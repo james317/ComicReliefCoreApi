@@ -1,0 +1,23 @@
+# Generated for `fly launch` / `fly deploy`. See README.md "Deploy to Fly.io".
+# `app` and `primary_region` are placeholders — `fly launch` will offer to
+# rewrite this file with a unique app name and your chosen region; keep the
+# rest (http_service, vm) as-is when it does.
+app = "comic-relief-api"
+primary_region = "iad"
+
+[build]
+
+[env]
+  ASPNETCORE_ENVIRONMENT = "Production"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

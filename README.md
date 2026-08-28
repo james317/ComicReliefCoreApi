@@ -52,10 +52,35 @@ GET /api/comics/upcoming?year=2026&month=12
 3. Launch it from the Home Screen icon — it opens full-screen, like an app,
    with no browser chrome.
 
-For access away from your home Wi-Fi, deploy the API somewhere public (a
-small VPS, Azure App Service, Fly.io, etc.) and point the Home Screen icon at
-that URL instead. This repo is just the API + static site; hosting it is a
-separate step.
+For access away from your home Wi-Fi, deploy the API somewhere public (see
+"Deploy to Fly.io" below) and point the Home Screen icon at that URL instead.
+
+## Deploy to Fly.io
+
+The repo includes a `Dockerfile` and `fly.toml` configured to **scale to
+zero**: the machine stops when nothing's hit it for a while and starts back
+up on the next request, so a personal, occasionally-checked app like this
+costs pennies a month instead of paying for an always-on server. The first
+request after a period of idleness takes a few extra seconds while the
+machine wakes up — expected, not a bug.
+
+1. Install `flyctl` and sign in: https://fly.io/docs/flyctl/install/, then
+   `fly auth login`.
+2. From the repo root, run `fly launch --no-deploy`. It detects `fly.toml`
+   and the `Dockerfile`, and will offer to pick a unique app name and region
+   for you (accept its rewrite of `fly.toml`, which keeps the
+   `http_service`/`vm` settings from this repo).
+3. Set your API key as a Fly secret (never commit it):
+   ```bash
+   fly secrets set ComicVine__ApiKey="YOUR_KEY_HERE"
+   ```
+4. Deploy: `fly deploy`
+5. Find your app's URL: `fly status`. Open it on your iPhone in Safari and
+   Add to Home Screen, per the steps above.
+
+To confirm auto-stop is working, leave the app idle for a few minutes, then
+`fly machine list` — the machine should show as `stopped`. It restarts
+automatically on the next incoming request.
 
 ## How it works
 
@@ -71,6 +96,8 @@ separate step.
 ## Project layout
 
 ```
+Dockerfile                          Container build for deployment (e.g. Fly.io)
+fly.toml                            Fly.io app config with auto-stop/auto-start
 src/ComicReliefCoreApi/
   Controllers/ComicsController.cs   API endpoint
   Services/ComicVineService.cs      Comic Vine client
