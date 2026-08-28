@@ -1,24 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting;
+using ComicReliefCoreApi.Configuration;
+using ComicReliefCoreApi.Services;
 
-namespace ComicReliefCoreApi
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+builder.Services.Configure<ComicVineOptions>(builder.Configuration.GetSection("ComicVine"));
+builder.Services.AddHttpClient<IComicVineService, ComicVineService>();
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
 {
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            var host = new WebHostBuilder()
-                .UseKestrel()
-                .UseContentRoot(Directory.GetCurrentDirectory())
-                .UseIISIntegration()
-                .UseStartup<Startup>()
-                .Build();
-
-            host.Run();
-        }
-    }
+    app.UseDeveloperExceptionPage();
 }
+
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+app.MapControllers();
+
+app.Run();

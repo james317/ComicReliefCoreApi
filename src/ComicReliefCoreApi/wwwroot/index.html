@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Comic Relief</title>
+
+  <meta name="theme-color" content="#5b21b6" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Comics" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <link rel="icon" href="/icons/favicon.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <button id="prevMonth" class="nav-btn" aria-label="Previous month">‹</button>
+    <div class="header-title">
+      <h1 id="monthTitle">Comic Relief</h1>
+      <p id="subTitle" class="subtitle">Loading…</p>
+    </div>
+    <button id="nextMonth" class="nav-btn" aria-label="Next month">›</button>
+  </header>
+
+  <main id="content" class="content">
+    <div id="status" class="status" hidden></div>
+    <ul id="comicList" class="comic-list" hidden></ul>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
