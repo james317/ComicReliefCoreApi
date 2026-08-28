@@ -1,0 +1,37 @@
+name: Deploy to Fly.io
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    concurrency: fly-deploy-comicrelief
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Ensure Fly app exists
+        run: |
+          app_name=$(grep -E '^app\s*=' fly.toml | cut -d '"' -f2)
+          if [ -z "$app_name" ]; then
+            echo "Could not read 'app' from fly.toml" >&2
+            exit 1
+          fi
+          flyctl apps create "$app_name" --org personal || true
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Stage Comic Vine API key
+        run: flyctl secrets set "ComicVine__ApiKey=${COMICVINE_API_KEY}" --stage
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          COMICVINE_API_KEY: ${{ secrets.COMICVINE_API_KEY }}
+
+      - name: Deploy
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

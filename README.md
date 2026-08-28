@@ -64,23 +64,50 @@ costs pennies a month instead of paying for an always-on server. The first
 request after a period of idleness takes a few extra seconds while the
 machine wakes up — expected, not a bug.
 
-1. Install `flyctl` and sign in: https://fly.io/docs/flyctl/install/, then
-   `fly auth login`.
-2. From the repo root, run `fly launch --no-deploy`. It detects `fly.toml`
-   and the `Dockerfile`, and will offer to pick a unique app name and region
-   for you (accept its rewrite of `fly.toml`, which keeps the
-   `http_service`/`vm` settings from this repo).
-3. Set your API key as a Fly secret (never commit it):
+Deploys are automated with GitHub Actions
+(`.github/workflows/fly-deploy.yml`): every push to `master` builds and
+deploys automatically. There's a one-time setup step that needs a real
+terminal — [GitHub Codespaces](https://github.com/codespaces) works fine
+from Safari on an iPhone (Code → Codespaces → Create codespace on this
+repo), so this whole flow can be done without a computer:
+
+1. **In the Codespace terminal**, install flyctl and sign up/in:
    ```bash
-   fly secrets set ComicVine__ApiKey="YOUR_KEY_HERE"
+   curl -L https://fly.io/install.sh | sh
+   export FLYCTL_INSTALL="$HOME/.fly"
+   export PATH="$FLYCTL_INSTALL/bin:$PATH"
+   fly auth signup   # or `fly auth login` if you already made an account
    ```
-4. Deploy: `fly deploy`
-5. Find your app's URL: `fly status`. Open it on your iPhone in Safari and
-   Add to Home Screen, per the steps above.
+2. **Mint a deploy token** and copy the value it prints:
+   ```bash
+   fly tokens create org -o personal
+   ```
+3. **Add two repository secrets** on GitHub (Settings → Secrets and
+   variables → Actions → New repository secret — works fine from the
+   GitHub website or app on your phone, no CLI needed):
+   - `FLY_API_TOKEN` — the token from step 2
+   - `COMICVINE_API_KEY` — your Comic Vine key
+4. **Push to `master`** (merge this branch into it). The workflow creates
+   the Fly app the first time it runs, stages your API key as a Fly
+   secret, and deploys — watch it under the repo's **Actions** tab.
+5. **Find the URL**: the workflow log's `flyctl deploy` step prints it, or
+   run `fly status -a comic-relief-api` (the app name from `fly.toml`) in
+   the Codespace. Open it on your iPhone in Safari and Add to Home Screen,
+   per the steps above.
+
+If `comic-relief-api` in `fly.toml` is already taken by someone else
+globally, the deploy step fails with a name-conflict error — edit that one
+line to something unique (GitHub's web file editor works fine for this) and
+push again.
 
 To confirm auto-stop is working, leave the app idle for a few minutes, then
 `fly machine list` — the machine should show as `stopped`. It restarts
 automatically on the next incoming request.
+
+Prefer to do it by hand from a computer instead of via GitHub Actions? Skip
+the workflow and repository secrets, and just run `fly launch --no-deploy`,
+`fly secrets set ComicVine__ApiKey="YOUR_KEY_HERE"`, and `fly deploy` from
+the repo root.
 
 ## How it works
 
@@ -96,6 +123,7 @@ automatically on the next incoming request.
 ## Project layout
 
 ```
+.github/workflows/fly-deploy.yml    Auto-deploy to Fly.io on push to master
 Dockerfile                          Container build for deployment (e.g. Fly.io)
 fly.toml                            Fly.io app config with auto-stop/auto-start
 src/ComicReliefCoreApi/
