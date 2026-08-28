@@ -1,9 +1,12 @@
-# Comic Relief
+# Comic Relief (API) — "If You Pull, Don't Miss" (app)
 
-An ASP.NET Core API that lists comics shipping in a given month (defaulting to
-"month after next"), backed by the [Comic Vine](https://comicvine.gamespot.com/api/)
-API. It also serves a small mobile-friendly web page you can add to your
-iPhone's Home Screen and use like an app.
+`comic-relief-api` is the ASP.NET Core backend: it lists comics shipping in a
+given month (defaulting to "month after next"), backed by the
+[Comic Vine](https://comicvine.gamespot.com/api/) API. The same process also
+serves **If You Pull, Don't Miss** — a small, western-themed mobile web page
+that calls that API and that you can add to your iPhone's Home Screen and use
+like an app. The name/theming is aimed at its planned next feature: tracking
+your comic pull list so nothing on it slips by.
 
 ## Requirements
 

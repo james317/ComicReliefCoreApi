@@ -1,23 +1,25 @@
 :root {
-  --bg: #f5f4fa;
-  --surface: #ffffff;
-  --text: #1c1033;
-  --text-muted: #6b6580;
-  --accent: #5b21b6;
-  --accent-contrast: #ffffff;
-  --border: #e6e3f0;
+  --bg: #f2e6cc;
+  --surface: #fbf3e1;
+  --text: #2b1a10;
+  --text-muted: #7a5c3e;
+  --accent: #8a3324;
+  --accent-contrast: #fbf3e1;
+  --brass: #c9973b;
+  --border: #dcc9a3;
   color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #14101f;
-    --surface: #1e1830;
-    --text: #f2f0f8;
-    --text-muted: #a49cc0;
-    --accent: #a385f0;
-    --accent-contrast: #1c1033;
-    --border: #322a49;
+    --bg: #1c130c;
+    --surface: #2b1d12;
+    --text: #f0e0c0;
+    --text-muted: #b09a7a;
+    --accent: #c9973b;
+    --accent-contrast: #241407;
+    --brass: #e0b563;
+    --border: #4a3620;
   }
 }
 
@@ -38,11 +40,12 @@ body {
   top: 0;
   z-index: 10;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   padding: calc(env(safe-area-inset-top, 0px) + 14px) 12px 14px;
   background: var(--accent);
   color: var(--accent-contrast);
+  border-bottom: 3px solid var(--brass);
 }
 
 .header-title {
@@ -51,28 +54,40 @@ body {
   min-width: 0;
 }
 
-.header-title h1 {
+.masthead {
   margin: 0;
-  font-size: 1.05rem;
+  font-family: "Rye", "Georgia", serif;
+  font-weight: 400;
+  font-size: 1.15rem;
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+}
+
+.month-title {
+  margin: 4px 0 0;
+  font-size: 0.82rem;
   font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.9;
 }
 
 .subtitle {
   margin: 2px 0 0;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   opacity: 0.85;
+  min-height: 1.1em;
 }
 
 .nav-btn {
   flex-shrink: 0;
+  margin-top: 2px;
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--brass);
+  background: rgba(0, 0, 0, 0.18);
   color: var(--accent-contrast);
   font-size: 1.4rem;
   line-height: 1;
@@ -80,7 +95,7 @@ body {
 }
 
 .nav-btn:active {
-  background: rgba(255, 255, 255, 0.32);
+  background: rgba(0, 0, 0, 0.32);
 }
 
 .content {
@@ -98,7 +113,7 @@ body {
 }
 
 .status.error {
-  color: #d33;
+  color: #b3382a;
 }
 
 .comic-list {
@@ -112,11 +127,11 @@ body {
 
 .date-heading {
   margin: 18px 4px 6px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-muted);
+  font-family: "Rye", "Georgia", serif;
+  font-weight: 400;
+  font-size: 0.92rem;
+  letter-spacing: 0.03em;
+  color: var(--accent);
 }
 
 .date-heading:first-child {
@@ -129,7 +144,7 @@ body {
   padding: 10px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 10px;
   text-decoration: none;
   color: var(--text);
 }
@@ -138,7 +153,7 @@ body {
   width: 56px;
   height: 84px;
   flex-shrink: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   object-fit: cover;
   background: var(--border);
 }

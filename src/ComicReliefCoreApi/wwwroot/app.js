@@ -28,7 +28,7 @@
       : `${data.count} comic${data.count === 1 ? "" : "s"}${data.truncated ? " (partial results)" : ""}`;
 
     if (data.comics.length === 0) {
-      setStatus("No comics found for this month yet. Solicitations may not be posted.", false);
+      setStatus("Ghost town — nothing solicited for this month yet. Try again later.", false);
       return;
     }
 
