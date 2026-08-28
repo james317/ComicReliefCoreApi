@@ -5,9 +5,22 @@
   const listEl = document.getElementById("comicList");
   const prevBtn = document.getElementById("prevMonth");
   const nextBtn = document.getElementById("nextMonth");
+  const splashEl = document.getElementById("splash");
 
   // null until the first response tells us what "month after next" resolved to.
   let current = null;
+
+  const SPLASH_MIN_MS = 1100;
+  const splashShownAt = Date.now();
+  let splashDismissed = false;
+
+  function dismissSplash() {
+    if (splashDismissed || !splashEl) return;
+    splashDismissed = true;
+    const elapsed = Date.now() - splashShownAt;
+    const wait = Math.max(0, SPLASH_MIN_MS - elapsed);
+    setTimeout(() => splashEl.classList.add("splash-hidden"), wait);
+  }
 
   function setStatus(message, isError) {
     statusEl.hidden = message === null;
@@ -91,6 +104,8 @@
       render(data);
     } catch (err) {
       setStatus(`Couldn't load comics: ${err.message}`, true);
+    } finally {
+      dismissSplash();
     }
   }
 
