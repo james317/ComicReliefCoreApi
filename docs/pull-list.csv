@@ -13,9 +13,9 @@ Amazing Spider-Man,1,Sticky,
 Amazing Spider-Man,1,Sticky,
 Archie Meets Batman 66,1,Sticky,
 Arkham Horror Terror At End of Time,1,Sticky,
-Avengers,1,Sticky,"Check: #1 in Jul only, absent Aug"
-Avengers,1,Sticky,"Check: #1 in Jul only, absent Aug"
-Avengers,1,Sticky,"Check: #1 in Jul only, absent Aug"
+Avengers,1,Sticky,"Check: #1 in Jul only, absent Aug -- Correctly excluded from the 8/29/2026 final order, consistent with the relisted/stale verdict."
+Avengers,1,Sticky,"Check: #1 in Jul only, absent Aug -- Correctly excluded from the 8/29/2026 final order, consistent with the relisted/stale verdict."
+Avengers,1,Sticky,"Check: #1 in Jul only, absent Aug -- Correctly excluded from the 8/29/2026 final order, consistent with the relisted/stale verdict."
 Axe Judgment Day,1,Sticky,
 Batman,1,Sticky,
 Batman 66 Meets Wonder Woman 77,1,Sticky,
@@ -229,23 +229,23 @@ Zdarsky Comic News,1,Sticky,
 DC Connect,1,Unsticky,
 Marvel Previews,1,Unsticky,
 Warhammer,1,Unsticky,Never seen in 4 months of orders - verify still wanted / has it solicited yet?
-World's Finest,1,Unsticky,"MISS? Ordered every month Apr-Jul, absent from Aug draft -- CONFIRMED still ongoing: #56 solicited Aug 2026 (4 covers), no relist banner. Added to pull-list-matches-v3.html (Add -- confirmed)."
+World's Finest,1,Unsticky,"MISS? Ordered every month Apr-Jul, absent from Aug draft -- CONFIRMED still ongoing: #56 solicited Aug 2026 (4 covers), no relist banner. Added to pull-list-matches-v3.html (Add -- confirmed). Reconfirmed via the actual 8/29/2026 final order."
 The Nice House By The Sea,1,Unsticky,Series complete at #12 of 12 (Jul) - remove or mark complete
 Sisterhood,1,Unsticky,
 IDW Monthly Title Catalog,1,Unsticky,
 Vampirella Archives,1,Unsticky,
 John Le Carre's The Circus,1,Unsticky,Never seen in 4 months of orders
 Deluge,1,Unsticky,Never seen in 4 months of orders
-American Caper,1,Unsticky,"Check: ordered Apr-Jun, absent Jul+Aug"
+American Caper,1,Unsticky,"Check: ordered Apr-Jun, absent Jul+Aug -- CONFIRMED: #12 shipped in the 8/29/2026 final order."
 Die!Namite,1,Unsticky,"Never seen in 4 months of orders (distinct from 'Die!Namite: Blood Red' one-shot, which HAS shipped)"
-The Rocketeer,1,Unsticky,"MISS? Ordered every month Apr-Jul, absent from Aug draft -- CONFIRMED still ongoing: #4 (series finale) solicited Aug 2026, no relist banner. Added to pull-list-matches-v3.html (Add -- confirmed)."
-Cult-De-Sac,1,Unsticky,"Check: #1-2 Jun-Jul 'of 3', absent Aug"
-Denver,1,Unsticky,"Check: #1-2 Jun-Jul 'of 3', absent Aug"
+The Rocketeer,1,Unsticky,"MISS? Ordered every month Apr-Jul, absent from Aug draft -- CONFIRMED still ongoing: #4 (series finale) solicited Aug 2026, no relist banner. Added to pull-list-matches-v3.html (Add -- confirmed). Reconfirmed via the actual 8/29/2026 final order."
+Cult-De-Sac,1,Unsticky,"Check: #1-2 Jun-Jul 'of 3', absent Aug -- CONFIRMED: #3 shipped in the 8/29/2026 final order."
+Denver,1,Unsticky,"Check: #1-2 Jun-Jul 'of 3', absent Aug -- CONFIRMED: #3 (of 3, series finale) shipped in the 8/29/2026 final order. Series now complete."
 Vampirella vs. Red Sonja Red City,1,Unsticky,
-Black Tower The Raven Conspiracy,1,Unsticky,"MISS? #1(Jun) #2(Jul) 'of 6' - not finished, absent from Aug draft"
-Doom Patrol,1,Unsticky,"Check: new #1 in Jul, absent Aug"
-Pathfinder Vampirella,1,Unsticky,Never seen in 4 months of orders
-Crowbound,1,Unsticky,"Check: new #1 in Jul, absent Aug"
+Black Tower The Raven Conspiracy,1,Unsticky,"MISS? #1(Jun) #2(Jul) 'of 6' - not finished, absent from Aug draft -- CONFIRMED: #3 (of 6) shipped in the 8/29/2026 final order."
+Doom Patrol,1,Unsticky,"Check: new #1 in Jul, absent Aug -- CONFIRMED: #2 shipped in the 8/29/2026 final order. Ongoing, resolved."
+Pathfinder Vampirella,1,Unsticky,Never seen in 4 months of orders -- CONFIRMED: #1 debut shipped in the 8/29/2026 final order -- no longer a *never seen* case.
+Crowbound,1,Unsticky,"Check: new #1 in Jul, absent Aug -- CONFIRMED: #2 shipped in the 8/29/2026 final order."
 Dark Horse Monthly Catalog,1,Seen in orders only (not on either list),"Recurring free catalog item, ordered every month Apr-Aug"
 Dynamite Dispatches,1,Seen in orders only (not on either list),"Seen once (Apr), $0.25 promo/insert item - verify it's worth tracking"
 Ps Artbooks Magazine Psycho,1,Seen in orders only (not on either list),"8 back issues bought at once in Apr - looks like a one-time catch-up buy, not a recurring monthly pull"
@@ -254,3 +254,6 @@ Curses TP,1,Seen in orders only (not on either list),One-time TP purchase (Apr)
 Gatchaman TP,1,Seen in orders only (not on either list),One-time TP purchase (Jul)
 Devils Due Presents Lovebunny & Mr Hell,1,Seen in orders only (not on either list),One-shot (May)
 Vampirella X Witchblade Special,1,Seen in orders only (not on either list),One-shot (Jul) - likely already covered by a Vampirella fuzzy-match rule rather than needing its own persistent entry
+You'll Never Leave This Place Alive,1,Seen in orders only (not on either list),"New #1 debut, IDW (MR), ordered 8/29/2026 (Variant B). Open-ended, no announced issue count -- verify next month whether DCBS carries it forward automatically (sticky) or it needs re-adding (unsticky)."
+Filthy Lambs,1,Seen in orders only (not on either list),"New #1 (of 5) debut, IDW, ordered 8/29/2026 (Cover A). 5-issue limited series -- add to unsticky tracking through #5."
+Vampirella vs Darkstalkers Special,1,Seen in orders only (not on either list),"One-shot (Aug 2026), ordered 8/29/2026. Likely already covered by the Vampirella character fuzzy-match rule rather than needing its own persistent entry (same pattern as Vampirella X Witchblade Special)."

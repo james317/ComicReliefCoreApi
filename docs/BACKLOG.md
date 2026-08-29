@@ -29,7 +29,7 @@ every title the user wants tracked, merged from **all sources**:
 - Titles listed on both sticky and unsticky under near-identical names,
   merged into one row (`Sticky + Unsticky (merged)`)
 
-255 titles total. This file must not be treated as a one-off report —
+258 titles total. This file must not be treated as a one-off report —
 unlike the monthly solicitation reports, it's foundational reference data
 and should be edited in place going forward rather than regenerated from
 scratch each session.
@@ -39,39 +39,51 @@ A second, more complete CLZ export was provided afterward (more fields)
 but this list has not been re-reconciled against it yet — worth doing
 before treating it as fully authoritative.
 
-**Flagged rows needing action** (from the `Notes/Flags` column — 35 rows
-carry a flag; most are already resolved or explained below, the rest
-still need a decision):
+**Validated against the actual 8/29/2026 final order:** every one of the
+8 "Add — confirmed" items from `pull-list-matches-v3.html` (American
+Caper, Black Tower, Crowbound, Cult-De-Sac, Denver, Doom Patrol, The
+Rocketeer, World's Finest) was genuinely in the cart, and all 6 items the
+report marked "stale/skip" (Avengers, Dune House Corrino, Arkham Horror,
+Racer X, Speed Racer, Hyde Street) were correctly absent — good end-to-end
+confirmation that the reconciliation methodology works.
 
-- *Confirmed still-active misses (add to cart now):* **The Rocketeer**
-  (Infiltrator! #4, series finale) and **World's Finest** (#56) — both
-  verified this session as genuinely solicited in August with no relist
-  banner, and both added to `pull-list-matches-v3.html`.
+**3 titles found in that order with no entry anywhere on the list —
+added:**
+- **You'll Never Leave This Place Alive** — new #1 debut (IDW, MR),
+  open-ended with no announced issue count. Needs a check next month for
+  whether DCBS carries it forward automatically.
+- **Filthy Lambs** — new #1 (of 5) debut (IDW), a 5-issue limited series.
+- **Vampirella vs Darkstalkers Special** — one-shot; probably doesn't need
+  its own persistent entry since the Vampirella character fuzzy-pull rule
+  already catches items like this (same pattern as Vampirella X
+  Witchblade Special, below).
+
+**Flagged rows needing action** (from the `Notes/Flags` column):
+
 - *Checked and NOT solicited this month at all* (not just "missing from
   cart" — actually absent from the full August catalog): **Odin** and
   **Altered States: Warlords**. Likely finished or on hiatus — verify
   before assuming they'll return.
-- *Still need a manual check* (flagged in the original Apr–Jul vs. Aug
-  reconciliation, not yet re-verified against a live catalog the way
-  Rocketeer/World's Finest were): Avengers, American Caper, Cult-De-Sac,
-  Denver, Black Tower: The Raven Conspiracy, Doom Patrol, Crowbound.
 - *Series complete — prune or mark finished:* Lady Mechanika: The
   Mechanical Menagerie, Peril of the Brutal Dark, Solomon Kane: The Lion
   Errant, Spy Bunnies, The Cimmerian: Xuthal of the Dusk, Torpedo 1972,
-  The Nice House by the Sea.
+  The Nice House by the Sea, and now also Denver (series finale shipped
+  in this order).
 - *Discontinued — remove:* W0rldtr33 (publisher cancelled it; DCBS issued
   a credit).
-- *Never seen in 4 months of orders — verify still wanted:* Sisterhood: A
-  Hyde Street Story, Warhammer, John le Carré's The Circus, Deluge,
-  Die!Namite (the ongoing, not the "Blood Red" one-shot which did ship),
-  Pathfinder Vampirella.
+- *Never seen in orders — verify still wanted:* Sisterhood: A Hyde Street
+  Story, Warhammer, John le Carré's The Circus, Deluge, Die!Namite (the
+  ongoing, not the "Blood Red" one-shot which did ship). Pathfinder
+  Vampirella no longer belongs in this bucket — its #1 debut shipped in
+  the 8/29/2026 order.
 - *One-time/incidental purchases — probably don't need a persistent
   entry:* Dynamite Dispatches, Ps Artbooks Magazine Psycho, Crisis
   Companion TP, Curses TP, Gatchaman TP, Devils Due Presents Lovebunny &
-  Mr Hell, Vampirella X Witchblade Special (likely already covered by the
-  Vampirella fuzzy-pull rule). Dark Horse Monthly Catalog is the one
-  exception in this group — it's a recurring free catalog item ordered
-  every month Apr–Aug and probably *should* stay on the list.
+  Mr Hell, Vampirella X Witchblade Special, Vampirella vs Darkstalkers
+  Special (both likely already covered by the Vampirella fuzzy-pull
+  rule). Dark Horse Monthly Catalog is the one exception in this group —
+  it's a recurring free catalog item ordered every month and probably
+  *should* stay on the list.
 
 A real implementation should turn "flagged rows needing action" into an
 actual workflow (a review queue the user clears month to month) instead
