@@ -16,6 +16,67 @@ comes in or a bug gets fixed.
 - PWA shell (splash screen, manifest, icons, western theme) for the iPhone
   Home Screen install.
 
+## Explicit pull list — canonical source of truth
+
+[`docs/pull-list.csv`](./pull-list.csv) is the definitive, persisted list of
+every title the user wants tracked, merged from **all sources**:
+
+- DCBS's own "sticky" pull list (titles that auto-carry month to month)
+- DCBS's "unsticky" list (titles that don't persist and need re-adding
+  each cycle)
+- Titles that turned up in DCBS order history but weren't on either list
+  (`Seen in orders only`)
+- Titles listed on both sticky and unsticky under near-identical names,
+  merged into one row (`Sticky + Unsticky (merged)`)
+
+255 titles total. This file must not be treated as a one-off report —
+unlike the monthly solicitation reports, it's foundational reference data
+and should be edited in place going forward rather than regenerated from
+scratch each session.
+
+**Known gap:** this list was built from the first CLZ collection export.
+A second, more complete CLZ export was provided afterward (more fields)
+but this list has not been re-reconciled against it yet — worth doing
+before treating it as fully authoritative.
+
+**Flagged rows needing action** (from the `Notes/Flags` column — 35 rows
+carry a flag; most are already resolved or explained below, the rest
+still need a decision):
+
+- *Confirmed still-active misses (add to cart now):* **The Rocketeer**
+  (Infiltrator! #4, series finale) and **World's Finest** (#56) — both
+  verified this session as genuinely solicited in August with no relist
+  banner, and both added to `pull-list-matches-v3.html`.
+- *Checked and NOT solicited this month at all* (not just "missing from
+  cart" — actually absent from the full August catalog): **Odin** and
+  **Altered States: Warlords**. Likely finished or on hiatus — verify
+  before assuming they'll return.
+- *Still need a manual check* (flagged in the original Apr–Jul vs. Aug
+  reconciliation, not yet re-verified against a live catalog the way
+  Rocketeer/World's Finest were): Avengers, American Caper, Cult-De-Sac,
+  Denver, Black Tower: The Raven Conspiracy, Doom Patrol, Crowbound.
+- *Series complete — prune or mark finished:* Lady Mechanika: The
+  Mechanical Menagerie, Peril of the Brutal Dark, Solomon Kane: The Lion
+  Errant, Spy Bunnies, The Cimmerian: Xuthal of the Dusk, Torpedo 1972,
+  The Nice House by the Sea.
+- *Discontinued — remove:* W0rldtr33 (publisher cancelled it; DCBS issued
+  a credit).
+- *Never seen in 4 months of orders — verify still wanted:* Sisterhood: A
+  Hyde Street Story, Warhammer, John le Carré's The Circus, Deluge,
+  Die!Namite (the ongoing, not the "Blood Red" one-shot which did ship),
+  Pathfinder Vampirella.
+- *One-time/incidental purchases — probably don't need a persistent
+  entry:* Dynamite Dispatches, Ps Artbooks Magazine Psycho, Crisis
+  Companion TP, Curses TP, Gatchaman TP, Devils Due Presents Lovebunny &
+  Mr Hell, Vampirella X Witchblade Special (likely already covered by the
+  Vampirella fuzzy-pull rule). Dark Horse Monthly Catalog is the one
+  exception in this group — it's a recurring free catalog item ordered
+  every month Apr–Aug and probably *should* stay on the list.
+
+A real implementation should turn "flagged rows needing action" into an
+actual workflow (a review queue the user clears month to month) instead
+of a static notes column.
+
 ## Prototyped, not yet real features
 
 Everything below currently exists only as Python scripts + generated HTML
