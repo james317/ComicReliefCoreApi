@@ -6,6 +6,92 @@ bugs found along the way, so future implementation work doesn't have to be
 re-derived from scratch. Update this file whenever a new feature request
 comes in or a bug gets fixed.
 
+## DCBS pull-list automation — reverse-engineered contract
+
+Goal: script "add to pull list" attempts instead of clicking through items
+one by one, and understand exactly why an attempt succeeds or fails. This
+was reverse-engineered live against the real site (authenticated, using a
+session cookie the user extracted from their own browser and shared for
+this purpose) rather than guessed. Confirmed mechanics:
+
+**Two separate concepts: "order" vs "cart".** Each month's order (e.g.
+`982026` for August 2026) is its own object at `/account/order/{id}`. It
+starts locked after the stated due date ("has passed for full editing")
+but stays open for *additions only* until next month's catalog goes live.
+Only one order can be in this "open" state at a time — opening another
+order's edit mode closes the current one. The separate `/cart` page (keyed
+by the `DCBSCart` cookie) is a smaller staging concept and read 0 items
+even while the order had 39 lines — the relationship between the two
+still isn't fully pinned down (see open question below).
+
+**Opening an order for edits:** `GET /order/editorder/{orderId}` (called
+by clicking "Edit Order" on the order page) — this is a plain link, not a
+form post, and just needs valid auth cookies. It redirects (302) back to
+`/account/order/{orderId}`, which then renders "This order is currently
+open for additions only."
+
+**Adding an item:** `POST /ajax/AddToCart`, form-encoded body
+`productId=<internal id>&quantity=<n>`, JSON response. This is the single
+endpoint behind both the big "Add To Cart" button and every small
+thumbnail "Add to cart" link on a product page — same payload shape
+either way. **No anti-forgery token is required in the body** — despite
+the page carrying a `__RequestVerificationToken` cookie, the add-to-cart
+JS never reads or sends it, so a valid session cookie alone is
+sufficient. This was confirmed by reading the actual minified JS in
+`/bundles/app` rather than guessing.
+
+**Critical gotcha:** `productId` is DCBS's own internal numeric ID (e.g.
+`879257`), not the public SKU code (e.g. `AUG254492`) used everywhere
+else on the site (URLs, order history, our own scraping). It's exposed
+as the `data-val` attribute on the button/link element — a scraper must
+pull this per-item from each product page; the SKU code alone won't work
+as the request parameter.
+
+**Confirmed failure/success signal:** on failure the JSON response
+carries an `error` string, which the page surfaces as
+`alert("Unable to add item to cart. " + error)`. This means DCBS
+generally tells you *why* in plain text — a script should read and log
+`response.error` directly rather than trying to infer failure from HTTP
+status or a disabled-button heuristic.
+
+**Confirmed hard-block case:** a button rendered with classes
+`cartbuttoninactive instock` doesn't even attempt the request — clicking
+it just shows a local alert: *"In-stock products can not be added to
+existing orders. Please close the order edit to add this item to your
+cart."* So genuinely in-stock (ships-now) inventory and preorder
+additions can't be mixed while an order is open for edits. Not yet
+observed live: every back-issue and in-stock-category item checked this
+session (including a stale relisted item and a true in-stock-section
+item) still rendered as an active, clickable `cartbutton` — so this
+inactive state is narrower than "anything under /instock" and needs
+more live examples to characterize precisely.
+
+**Useful side-finding, not part of the add mechanism:** a relisted
+back-issue keeps the SKU code from whenever it was *originally*
+solicited (e.g. `AUG254492` — the "25" is 2025 — showing up in the
+August *2026* catalog with "Expected Ship Date: 10/8/2025"). A SKU whose
+embedded year/month doesn't match the current solicitation month is a
+reliable, cheap stale/relist detector — arguably more reliable than
+scraping the "notice" banner text, and worth using as a second signal in
+`pull-list-matches` alongside it.
+
+**Open questions before this becomes a real script:**
+- How `/cart` (the `DCBSCart` cookie) and the currently-open `/account/order/{id}`
+  actually relate — does `/ajax/AddToCart` write into the open order
+  directly, or into the cart with a separate merge step? Needs a live
+  add + inspect of both pages to confirm.
+- How to remove/undo an add — `/cart` page JS references a
+  `.deletecartitem` control and a `/Cart/Update/{productId}?qty={n}`
+  quantity-change URL, but no actual delete link was present to inspect
+  because the cart currently shows 0 items. Needs to be captured during
+  a live add test.
+- The exact rule for when a button renders `cartbuttoninactive instock`
+  vs a normal active `cartbutton` — not yet observed on a real item.
+- Rate limits / bot detection: DCBS's ToS almost certainly doesn't
+  contemplate scripted cart mutations. Any real implementation should
+  throttle to human-like pacing (one add at a time, real delays) rather
+  than firing requests in parallel.
+
 ## Shipped in the app
 
 - **Upcoming comics feed** — `GET /api/comics/upcoming`, backed by
