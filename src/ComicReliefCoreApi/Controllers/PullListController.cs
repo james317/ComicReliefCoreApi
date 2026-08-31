@@ -1,4 +1,6 @@
 using ComicReliefCoreApi.Api.Data;
+using ComicReliefCoreApi.Api.Models.Dcbs;
+using ComicReliefCoreApi.Api.Services.Dcbs;
 using ComicReliefCoreApi.App.Services;
 using ComicReliefCoreApi.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -12,12 +14,15 @@ public sealed class PullListController : ControllerBase
 {
     private readonly IPullListService _pullListService;
     private readonly IClzCollectionService _clzService;
+    private readonly IDcbsClient _dcbs;
     private readonly ComicReliefDbContext _db;
 
-    public PullListController(IPullListService pullListService, IClzCollectionService clzService, ComicReliefDbContext db)
+    public PullListController(
+        IPullListService pullListService, IClzCollectionService clzService, IDcbsClient dcbs, ComicReliefDbContext db)
     {
         _pullListService = pullListService;
         _clzService = clzService;
+        _dcbs = dcbs;
         _db = db;
     }
 
@@ -89,5 +94,25 @@ public sealed class PullListController : ControllerBase
         var imported = await _pullListService.ImportKnownEntriesAsync(
             request.Rows.Select(r => r.ToImportRow()), cancellationToken);
         return Ok(new ImportPullListResponse(imported, request.Rows.Count - imported));
+    }
+
+    /// <summary>
+    /// Diagnostic-only passthrough to DCBS's own series search - raw facts, no matching
+    /// or business decisions. Built to answer a specific question: does DCBS's search
+    /// response include a usable "last shipped issue" fact anywhere (the CurrentIssueText
+    /// field), as an alternative to the CLZ purchase-history proxy. Read-only against
+    /// DCBS - never mutates anything.
+    /// </summary>
+    [HttpGet("dcbs-search")]
+    public async Task<ActionResult<IReadOnlyList<DcbsSeriesSearchResult>>> DcbsSearch(
+        [FromQuery] string term, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(term))
+        {
+            return BadRequest("term is required.");
+        }
+
+        var results = await _dcbs.SearchSeriesAsync(term, cancellationToken);
+        return Ok(results);
     }
 }
