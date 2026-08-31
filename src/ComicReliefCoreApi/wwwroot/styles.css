@@ -27,6 +27,19 @@
   box-sizing: border-box;
 }
 
+/* Any element hidden via the native `hidden` attribute/property must actually disappear,
+   even when its own class also sets `display` (several do: .comic-list, .add-form,
+   .bulk-bar). Without this, a plain author-stylesheet `display` declaration silently wins
+   over the browser's built-in `[hidden] { display: none }` rule regardless of selector
+   specificity - origin beats specificity in the cascade - so `el.hidden = true` sets the
+   attribute correctly but the element stays visible anyway. Real bug hit this session: the
+   bulk-action bar on pull-list.html stayed on screen after a batch archive completed,
+   because .bulk-bar sets display: flex unconditionally. One global !important rule here
+   fixes this class of bug everywhere instead of patching each affected selector by hand. */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   background: var(--bg);

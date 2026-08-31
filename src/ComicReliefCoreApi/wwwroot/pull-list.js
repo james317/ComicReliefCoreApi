@@ -43,6 +43,11 @@
   let selectMode = false;
   const selectedIds = new Set();
 
+  // All logging goes through this one tag so it's easy to filter in the browser console
+  // (Safari: Settings > Advanced > enable Web Inspector, then Develop menu on a connected
+  // Mac; or just search the console for "[pull-list]").
+  const log = (...args) => console.log("[pull-list]", ...args);
+
   function showMessage(text, isError) {
     message.textContent = text ?? "";
     message.className = "message" + (text ? (isError ? " error" : " success") : "");
@@ -77,7 +82,9 @@
 
   function updateBulkBar() {
     const n = selectedIds.size;
-    if (!selectMode || n === 0) {
+    const shouldShow = selectMode && n > 0;
+    log("updateBulkBar", { selectMode, selected: n, willShow: shouldShow });
+    if (!shouldShow) {
       bulkBar.hidden = true;
       return;
     }
@@ -87,6 +94,7 @@
   }
 
   function setSelectMode(on) {
+    log("setSelectMode", { from: selectMode, to: on });
     selectMode = on;
     selectModeBtn.textContent = on ? "Cancel" : "Select";
     if (!on) selectedIds.clear();
@@ -97,31 +105,46 @@
   selectModeBtn.addEventListener("click", () => setSelectMode(!selectMode));
 
   bulkActionBtn.addEventListener("click", async () => {
+    const ids = [...selectedIds];
     const titles = currentEntries.filter((e) => selectedIds.has(e.id)).map((e) => e.title);
     const n = titles.length;
-    if (n === 0) return;
+    log("bulkAction: clicked", { isBootHill, ids, titles });
+    if (n === 0) {
+      log("bulkAction: nothing selected, ignoring click");
+      return;
+    }
 
     const preview = titles.slice(0, 10).map((t) => `- ${t}`).join("\n") + (n > 10 ? `\n…and ${n - 10} more` : "");
     const question = isBootHill
       ? `Return ${n} title${n === 1 ? "" : "s"} to the Pull List?\n\n${preview}`
       : `Send ${n} title${n === 1 ? "" : "s"} to Boot Hill?\n\n${preview}\n\nSticky titles stay exactly as-is on your real DCBS pull list - this only changes what shows here.`;
-    if (!confirm(question)) return;
+    if (!confirm(question)) {
+      log("bulkAction: user cancelled the confirm dialog");
+      return;
+    }
 
     bulkActionBtn.disabled = true;
+    const action = isBootHill ? "unarchive" : "archive";
+    log("bulkAction: confirmed, sending requests", { action, count: ids.length });
     try {
-      const action = isBootHill ? "unarchive" : "archive";
       const results = await Promise.all(
-        [...selectedIds].map((id) =>
-          fetch(`/api/pulllist/${id}/${action}`, { method: "POST" }).then((res) => ({ id, ok: res.ok }))));
+        ids.map((id) =>
+          fetch(`/api/pulllist/${id}/${action}`, { method: "POST" })
+            .then((res) => ({ id, ok: res.ok, status: res.status }))
+            .catch((err) => ({ id, ok: false, error: err.message }))));
+      log("bulkAction: results", results);
       const failed = results.filter((r) => !r.ok);
       selectedIds.clear();
       setSelectMode(false);
       if (failed.length > 0) {
+        console.error("[pull-list] bulkAction: some requests failed", failed);
         showMessage(`${failed.length} of ${n} didn't go through - try again.`, true);
       } else {
+        log("bulkAction: all succeeded");
         showMessage(isBootHill ? `Returned ${n} title${n === 1 ? "" : "s"} to the Pull List.` : `Sent ${n} title${n === 1 ? "" : "s"} to Boot Hill.`, false);
       }
     } catch (err) {
+      console.error("[pull-list] bulkAction: unexpected error", err);
       showMessage(`Something went wrong: ${err.message}`, true);
     } finally {
       bulkActionBtn.disabled = false;
@@ -143,6 +166,7 @@
       checkbox.addEventListener("change", () => {
         if (checkbox.checked) selectedIds.add(entry.id);
         else selectedIds.delete(entry.id);
+        log("checkbox toggled", { id: entry.id, title: entry.title, checked: checkbox.checked, selectedCount: selectedIds.size });
         updateBulkBar();
       });
       card.appendChild(checkbox);
@@ -177,6 +201,7 @@
   }
 
   async function loadList() {
+    log("loadList: fetching", { isBootHill, selectMode });
     statusEl.hidden = false;
     groups.hidden = true;
     statusEl.textContent = isBootHill ? "Riding out to Boot Hill…" : "Rounding up your pull list…";
@@ -185,6 +210,7 @@
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const entries = await res.json();
       currentEntries = entries;
+      log("loadList: got entries", { count: entries.length });
 
       if (isBootHill) {
         archivedList.innerHTML = "";
@@ -227,6 +253,7 @@
         groups.hidden = false;
       }
     } catch (err) {
+      console.error("[pull-list] loadList: failed", err);
       statusEl.hidden = false;
       groups.hidden = true;
       statusEl.textContent = `Couldn't load the pull list: ${err.message}`;
