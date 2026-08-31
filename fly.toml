@@ -1,8 +1,12 @@
 # Generated for `fly launch` / `fly deploy`. See README.md "Deploy to Fly.io".
-# `app` and `primary_region` are placeholders — `fly launch` will offer to
-# rewrite this file with a unique app name and your chosen region; keep the
-# rest (http_service, vm) as-is when it does.
-app = "comic-relief-api"
+# `app` is deliberately named after the user-facing app ("If You Pull, Don't
+# Miss"), not the backend repo/namespace (ComicReliefCoreApi) - the container
+# and live URL are the public-facing identity, kept separate from the
+# backend's own internal name on purpose. `app` and `primary_region` are
+# otherwise placeholders — `fly launch` will offer to rewrite this file with
+# a unique app name and your chosen region; keep the rest (http_service, vm)
+# as-is when it does.
+app = "if-you-pull-dont-miss"
 primary_region = "iad"
 
 [build]

@@ -6,6 +6,25 @@ bugs found along the way, so future implementation work doesn't have to be
 re-derived from scratch. Update this file whenever a new feature request
 comes in or a bug gets fixed.
 
+## Naming: keep "comic-relief" scoped to backend code, not the public app
+
+Deliberate split, confirmed 8/31/2026: `ComicReliefCoreApi` (repo name,
+`.csproj`/`.sln`, every C# namespace) is the backend's own internal
+identity - it should never become the name a user sees or the public
+container/deployment identity. `"If You Pull, Don't Miss"` is the actual
+product name (PWA manifest `name`/`short_name`, browser tab title,
+splash screen).
+
+The one place this took a real fix rather than just being descriptive:
+`fly.toml`'s `app` name doubles as the live container name *and* the
+default URL (`{app}.fly.dev`), and it was `comic-relief-api` - meaning
+the backend's internal name was leaking into the public-facing
+deployment identity. Renamed to `if-you-pull-dont-miss` so the
+container/URL carries the product name instead, while the repo/project/
+namespace stay exactly as `ComicReliefCoreApi`. The GitHub Actions
+workflow reads the app name from `fly.toml` dynamically, so it needed no
+change; README.md's Fly CLI examples were updated to match.
+
 ## DCBS pull-list automation — reverse-engineered contract
 
 Goal: script "add to pull list" attempts instead of clicking through items

@@ -94,11 +94,11 @@ repo), so this whole flow can be done without a computer:
    the Fly app the first time it runs, stages your API key as a Fly
    secret, and deploys — watch it under the repo's **Actions** tab.
 5. **Find the URL**: the workflow log's `flyctl deploy` step prints it, or
-   run `fly status -a comic-relief-api` (the app name from `fly.toml`) in
-   the Codespace. Open it on your iPhone in Safari and Add to Home Screen,
-   per the steps above.
+   run `fly status -a if-you-pull-dont-miss` (the app name from
+   `fly.toml`) in the Codespace. Open it on your iPhone in Safari and Add
+   to Home Screen, per the steps above.
 
-If `comic-relief-api` in `fly.toml` is already taken by someone else
+If `if-you-pull-dont-miss` in `fly.toml` is already taken by someone else
 globally, the deploy step fails with a name-conflict error — edit that one
 line to something unique (GitHub's web file editor works fine for this) and
 push again.
@@ -120,7 +120,7 @@ session cookie, since DCBS has no public API. Both are one-time steps:
 
 1. **Create the volume** (do this before the first deploy that uses it):
    ```bash
-   fly volumes create comicrelief_data --region iad --size 1 -a comic-relief-api
+   fly volumes create comicrelief_data --region iad --size 1 -a if-you-pull-dont-miss
    ```
    (Match `--region` to `primary_region` in `fly.toml`, and the `-a` name
    to the `app` name there, if you changed either.)
@@ -130,7 +130,7 @@ session cookie, since DCBS has no public API. Both are one-time steps:
    so this is a "refresh it every so often," not a one-time step.
 3. **Set it as a Fly secret**:
    ```bash
-   fly secrets set Dcbs__SessionCookie="paste the full cookie string here" -a comic-relief-api
+   fly secrets set Dcbs__SessionCookie="paste the full cookie string here" -a if-you-pull-dont-miss
    ```
    Treat that string like a password — anyone holding it can act as you on
    DCBS until it expires or you log out elsewhere.
