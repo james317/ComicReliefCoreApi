@@ -62,6 +62,18 @@ body {
   object-position: center top;
 }
 
+/* splash.jpg is a tall portrait image (474x1024). object-fit: cover works well on a portrait
+   phone screen, but on anything wider than it is tall (a landscape iPad, a rotated phone) it
+   scales the image up to fill the width, cropping out nearly everything but a thin strip near
+   the top. Switch to contain there instead - letterboxed, but the whole image is visible - and
+   it blends in since .splash's own background already matches the image's dark tone. */
+@media (orientation: landscape) {
+  .splash-image {
+    object-fit: contain;
+    object-position: center center;
+  }
+}
+
 .splash-scrim {
   position: absolute;
   inset: 0;
