@@ -113,7 +113,12 @@
     archiveBtn.type = "button";
     archiveBtn.className = "secondary pull-archive-btn";
     archiveBtn.textContent = isBootHill ? "Unarchive" : "Archive";
-    archiveBtn.addEventListener("click", () => setArchived(entry.id, !isBootHill, archiveBtn));
+    archiveBtn.addEventListener("click", () => {
+      if (!isBootHill && !confirm(`Send "${entry.title}" to Boot Hill?\n\nIt'll be hidden from your pull list. If it's Sticky, it stays exactly as-is on your real DCBS pull list - this only changes what shows here.`)) {
+        return;
+      }
+      setArchived(entry.id, !isBootHill, archiveBtn);
+    });
     card.appendChild(archiveBtn);
 
     li.appendChild(card);
