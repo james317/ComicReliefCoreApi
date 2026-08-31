@@ -224,6 +224,45 @@ it's a 5-issue limited series, so it should be manually removed from
 the DCBS pull list once #5 ships rather than sitting there indefinitely
 with nothing left to solicit.
 
+**Swept the rest of the Unsticky list (8/31/2026)** — tried every
+remaining unsticky title the same way, split by whether it was actually
+a line item in order 982026:
+
+*In the order, tried via `UpdatePullListFromOrder`:* DC Connect, Marvel
+Previews, IDW Monthly Title Catalog, World's Finest, The Rocketeer,
+American Caper, Cult-De-Sac. **None stuck** — pull-list count stayed at
+232 after submission (previous 5 additions confirmed still intact, so
+the submission itself is safe/idempotent for unrelated rows). This is a
+stronger result than the earlier search-based failure: since the
+order-form route resolves a product code to its series entity through
+different server logic than `AddPullListItem`/`PullListSearch` and
+*still* found nothing to attach a pull-list entry to, these titles have
+no backing series record in DCBS's system at all — not a search-index
+gap, not a code-format bug. They're permanently unaddable via any
+mechanism found so far and have to stay on manual unsticky tracking.
+(Denver was deliberately skipped — its series just finished with #3 of
+3, so there'd be nothing left to auto-solicit even if it could be added.)
+
+*Not in the order at all* (so no product-code line to submit):
+Warhammer, Sisterhood, Vampirella Archives, John Le Carré's The Circus,
+Deluge, Die!Namite, Vampirella vs. Red Sonja Red City. Checked the only
+route available to them — `PullListSearch` — under several term
+variants each; none returned a relevant match (a few returned unrelated
+Vampirella hits, most returned nothing at all). Consistent with all of
+them being flagged "never seen in 4+ months of orders" — they appear to
+have dropped out of DCBS's currently-solicited catalog entirely, which
+would explain why neither the sticky pull list nor its search can find
+them. Same verdict: unaddable right now, manual tracking only, revisit
+if one of them turns up newly solicited again.
+
+**Net result:** of the 16 non-complete unsticky titles that existed
+before this session, 5 are now genuinely sticky on DCBS's own pull list
+(no longer our problem to track month-to-month) and 11 are confirmed,
+not just assumed, permanently unaddable — either no series record
+exists at all, or the title hasn't been solicited recently enough to
+appear anywhere in DCBS's own systems. `docs/pull-list.csv` reflects
+per-title findings so this doesn't need re-investigating later.
+
 ## Shipped in the app
 
 - **Upcoming comics feed** — `GET /api/comics/upcoming`, backed by
