@@ -482,6 +482,11 @@ server-side.
   type arriving incidentally via another package's transitive dependency
   chain in a plain class library; reference it directly.
 
+  **Confirmed fixed (8/31/2026):** `dotnet build` succeeded in the
+  Codespace after pulling the fix. The pull-list feature (three-project
+  split included) is now verified to actually compile, not just
+  reviewed by eye - first real confirmation since it was written.
+
   General lesson for future class-library splits in this repo: audit
   every file for implicit-usings-covered types once it leaves a
   `Microsoft.NET.Sdk.Web` project - the base implicit usings
