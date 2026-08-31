@@ -268,6 +268,36 @@ and `Denver` (#3 of 3) from `docs/pull-list.csv` entirely — both series
 finished, so there's nothing left to track or solicit and no reason to
 keep them on the unsticky list going forward.
 
+**Found and removed a duplicate entry:** `Vampirella Archives` (no
+"TP") had been sitting on the unsticky list, flagged dormant — but
+DCBS's general catalog search for "Vampirella Archives" turns up
+exactly one product line, `Vampirella Archives TP` (currently Vol. 08,
+the one in the 8/29 order), which is already `Sticky`. Per the user:
+this was very likely their own earlier attempt to add the series to
+sticky that failed for some reason, followed by manually noting an
+incomplete-named version on the external unsticky list rather than
+retrying. Removed the duplicate row — the real series is already
+correctly tracked under its sticky entry.
+
+**Two more possible instances of the same pattern, flagged but not
+resolved** — DCBS's live search can't settle these since *both* names
+in each pair are currently dormant (neither shows up in current
+solicitations either way, so search returning nothing is uninformative
+here, unlike the Vampirella Archives case):
+- `Sisterhood` (unsticky) vs. `Sisterhood A Hyde Street Story` (sticky,
+  itself flagged "never seen in 4 months of orders") — could be the
+  same series referenced with an incomplete name, or a genuinely
+  separate one-shot/spinoff.
+- `Vampirella vs. Red Sonja Red City` (unsticky) vs. `Vampirella vs Red
+  Sonja` (sticky) — "Red City" reads like it could name a distinct,
+  later miniseries rather than just a missing subtitle, so this one
+  seems less likely to be a pure duplicate, but isn't confirmed either
+  way.
+
+Needs the user's own memory/judgment to resolve, the same way they
+settled the Vampirella Archives case — DCBS's own data doesn't
+disambiguate either of these right now.
+
 ### Old (already-shipped) orders support pull-list adds too
 
 Tested whether `UpdatePullListFromOrder` only works on the currently
