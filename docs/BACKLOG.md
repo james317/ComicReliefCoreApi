@@ -392,10 +392,25 @@ server-side.
 - **Upcoming comics feed** — `GET /api/comics/upcoming`, backed by
   `ComicVineService`. Given a year/month (defaults to today + 2 months),
   paginates the Comic Vine `/issues/` endpoint filtered by `store_date` and
-  returns title/issue number/store date/cover/detail URL. This is the only
-  feature implemented as real, running app code so far.
+  returns title/issue number/store date/cover/detail URL.
 - PWA shell (splash screen, manifest, icons, western theme) for the iPhone
   Home Screen install.
+- **Reliable pull-list add** — `POST /api/pulllist/add {title}` /
+  `GET /api/pulllist`. The first real app implementation of the DCBS
+  reverse-engineering below, rather than a scratchpad script: given a
+  title, searches DCBS's pull-list index and tries adding it directly,
+  skips straight to the order-form fallback when the series code matches
+  the known long-code overflow pattern, and only ever declares success
+  after re-fetching the real `/account/pulllist` to confirm it actually
+  stuck. Falls back to a specific, stored `FailureReason` (not a generic
+  error) when neither route works. `Services/Dcbs/DcbsClient.cs` is the
+  reusable HTTP layer; `Services/PullListService.cs` is the workflow;
+  `PullListEntry`/`PullListAddAttempt` (SQLite via EF Core, persisted on a
+  Fly volume — see README.md's "One-time setup for the pull-list feature")
+  replace `docs/pull-list.csv` as the live source of truth going forward.
+  Written without a local .NET SDK available in this session — the Docker
+  build (which does have the full SDK) is the first real compile check, so
+  treat this as unverified until a build actually runs.
 
 ## Explicit pull list — canonical source of truth
 

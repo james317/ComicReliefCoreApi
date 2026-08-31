@@ -9,6 +9,7 @@ primary_region = "iad"
 
 [env]
   ASPNETCORE_ENVIRONMENT = "Production"
+  Data__SqlitePath = "/data/comicrelief.db"
 
 [http_service]
   internal_port = 8080
@@ -21,3 +22,10 @@ primary_region = "iad"
 [[vm]]
   size = "shared-cpu-1x"
   memory = "256mb"
+
+# Created once via `fly volumes create comicrelief_data --region iad --size 1` (see
+# README.md) - without this, the pull-list database would be wiped every time the
+# machine scales back up from zero, since auto_stop_machines discards local disk.
+[[mounts]]
+  source = "comicrelief_data"
+  destination = "/data"

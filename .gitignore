@@ -82,6 +82,11 @@ ipch/
 *.cachefile
 *.VC.db
 
+# Local SQLite dev database for the pull-list feature (production uses the Fly volume
+# at /data, configured via the Data__SqlitePath env var - see fly.toml)
+comicrelief.db
+comicrelief.db-*
+
 # Visual Studio profiler
 *.psess
 *.vsp

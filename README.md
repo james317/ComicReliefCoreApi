@@ -112,6 +112,29 @@ the workflow and repository secrets, and just run `fly launch --no-deploy`,
 `fly secrets set ComicVine__ApiKey="YOUR_KEY_HERE"`, and `fly deploy` from
 the repo root.
 
+### One-time setup for the pull-list feature
+
+The pull-list feature needs a place to persist data across restarts (Fly
+wipes local disk every time the machine scales back to zero) and a DCBS
+session cookie, since DCBS has no public API. Both are one-time steps:
+
+1. **Create the volume** (do this before the first deploy that uses it):
+   ```bash
+   fly volumes create comicrelief_data --region iad --size 1 -a comic-relief-api
+   ```
+   (Match `--region` to `primary_region` in `fly.toml`, and the `-a` name
+   to the `app` name there, if you changed either.)
+2. **Get a DCBS session cookie** from your own logged-in browser — see
+   `docs/BACKLOG.md` for exactly how (DevTools → Network tab → copy the
+   `Cookie:` request header). It's a forms-auth ticket with a real expiry,
+   so this is a "refresh it every so often," not a one-time step.
+3. **Set it as a Fly secret**:
+   ```bash
+   fly secrets set Dcbs__SessionCookie="paste the full cookie string here" -a comic-relief-api
+   ```
+   Treat that string like a password — anyone holding it can act as you on
+   DCBS until it expires or you log out elsewhere.
+
 ## How it works
 
 - `Services/ComicVineService.cs` queries Comic Vine's `/issues/` endpoint,
@@ -122,6 +145,14 @@ the repo root.
   defaulting the target month to today + 2 months.
 - `wwwroot/` is a static, dependency-free HTML/CSS/JS page that calls the API
   and renders results grouped by ship date, with month navigation.
+- `Services/Dcbs/DcbsClient.cs` wraps the DCBS endpoints reverse-engineered
+  in `docs/BACKLOG.md` (series search, add-to-pull-list, the order-form
+  fallback, and reading back the real pull list to verify anything actually
+  stuck). `Services/PullListService.cs` is the actual "given a title, try
+  the sticky pull list, fall back to tracking it as unsticky" workflow;
+  `Controllers/PullListController.cs` exposes it as `POST /api/pulllist/add`
+  and `GET /api/pulllist`. Data persists to SQLite (via EF Core) on the Fly
+  volume in production.
 
 ## Project layout
 
