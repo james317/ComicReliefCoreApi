@@ -263,6 +263,11 @@ exists at all, or the title hasn't been solicited recently enough to
 appear anywhere in DCBS's own systems. `docs/pull-list.csv` reflects
 per-title findings so this doesn't need re-investigating later.
 
+**Pruned (8/31/2026):** removed `The Nice House By The Sea` (#12 of 12)
+and `Denver` (#3 of 3) from `docs/pull-list.csv` entirely — both series
+finished, so there's nothing left to track or solicit and no reason to
+keep them on the unsticky list going forward.
+
 ### Old (already-shipped) orders support pull-list adds too
 
 Tested whether `UpdatePullListFromOrder` only works on the currently
