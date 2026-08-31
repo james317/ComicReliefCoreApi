@@ -279,20 +279,20 @@ incomplete-named version on the external unsticky list rather than
 retrying. Removed the duplicate row — the real series is already
 correctly tracked under its sticky entry.
 
-**Two more possible instances of the same pattern, flagged but not
-resolved** — DCBS's live search can't settle these since *both* names
-in each pair are currently dormant (neither shows up in current
-solicitations either way, so search returning nothing is uninformative
-here, unlike the Vampirella Archives case):
-- `Sisterhood` (unsticky) vs. `Sisterhood A Hyde Street Story` (sticky,
-  itself flagged "never seen in 4 months of orders") — could be the
-  same series referenced with an incomplete name, or a genuinely
-  separate one-shot/spinoff.
-- `Vampirella vs. Red Sonja Red City` (unsticky) vs. `Vampirella vs Red
-  Sonja` (sticky) — "Red City" reads like it could name a distinct,
-  later miniseries rather than just a missing subtitle, so this one
-  seems less likely to be a pure duplicate, but isn't confirmed either
-  way.
+**`Sisterhood` confirmed and removed (8/31/2026):** per the user, this
+is the same series as the sticky `Sisterhood A Hyde Street Story` —
+another incomplete-name duplicate from the same original mistake
+pattern. Removed from `docs/pull-list.csv`.
+
+**One more possible instance of the same pattern, still unresolved** —
+DCBS's live search can't settle this since both names are currently
+dormant (neither shows up in current solicitations, so an empty search
+result is uninformative here, unlike the Vampirella Archives case):
+`Vampirella vs. Red Sonja Red City` (unsticky) vs. `Vampirella vs Red
+Sonja` (sticky) — "Red City" reads like it could name a distinct, later
+miniseries rather than just a missing subtitle, so this one seems less
+likely to be a pure duplicate, but isn't confirmed either way. Needs
+the user's own memory to settle, same as the previous two.
 
 Needs the user's own memory/judgment to resolve, the same way they
 settled the Vampirella Archives case — DCBS's own data doesn't
