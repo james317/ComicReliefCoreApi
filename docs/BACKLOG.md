@@ -304,6 +304,46 @@ whatever the user actually bought last is definitive, and DCBS's
 persistent-list display can't be trusted for anything more than a
 simplified/truncated series name.
 
+### Full order-history census (8/31/2026)
+
+The original reconciliation (start of this session's work) was scoped
+to "Apr-Jul 2026" order history, plus this session's own sweep of the
+August order — 5 of the account's 20 total orders. Order history
+actually goes back to **1/29/2025** (order `909945`), roughly monthly,
+so 15 months (Jan 2025-Mar 2026) had never been checked against the
+pull list at all. Prompted by the user asking whether this was worth
+doing, fetched all 20 orders (694 line items total), extracted a
+series name per item (stripping issue numbers, cover variants, format
+suffixes), and diffed against every title in `docs/pull-list.csv`
+(normalized, with containment matching to absorb "The"/apostrophe/
+subtitle differences).
+
+Of 139 distinct series across the full 20-order history, only 6
+recurring (2+ orders) titles didn't match anything on file:
+- `Nice House By The Sea`, `Denver` — expected; both were deliberately
+  pruned this session for being complete.
+- `Solomon Kane The Serpent Ring`, `The Last Day(s) of H.P. Lovecraft`
+  — false positives from imperfect title-matching; both already
+  tracked (as `Solomon Kane Serpent Ring` and `The Last Days of Hp
+  Lovecraft`, both Sticky).
+- `Zatanna` — a real gap, but the series completed at #6 of 6 back in
+  May 2025 (over a year ago). Nothing to add or fix, just confirms it
+  fell through the cracks of documentation at the time.
+- **`Devil On My Shoulder`** — the one real, actionable finding. Ran
+  #1-4 (Aug-Dec 2025) with no "of N" ever printed, then nothing since —
+  8+ months dormant. Never on either list, and not on the real DCBS
+  sticky pull list either. Added to `docs/pull-list.csv` as Unsticky/
+  dormant, flagged to verify whether it quietly concluded or got
+  cancelled before attempting a real re-add.
+
+**Conclusion for the user's question:** a full historical re-audit was
+worth doing once, but turned up only one real, actionable gap out of
+~20 months and 694 line items — the existing Apr-Aug monthly-sweep
+habit (check each new order as it's placed, the way August was handled)
+is sufficient going forward. No standing need to re-run this full
+20-order census again; a fresh order needs checking against the list
+once, not the whole history re-checked every time.
+
 Needs the user's own memory/judgment to resolve, the same way they
 settled the Vampirella Archives case — DCBS's own data doesn't
 disambiguate either of these right now.
