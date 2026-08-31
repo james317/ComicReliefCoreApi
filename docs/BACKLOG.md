@@ -284,15 +284,25 @@ is the same series as the sticky `Sisterhood A Hyde Street Story` —
 another incomplete-name duplicate from the same original mistake
 pattern. Removed from `docs/pull-list.csv`.
 
-**One more possible instance of the same pattern, still unresolved** —
-DCBS's live search can't settle this since both names are currently
-dormant (neither shows up in current solicitations, so an empty search
-result is uninformative here, unlike the Vampirella Archives case):
-`Vampirella vs. Red Sonja Red City` (unsticky) vs. `Vampirella vs Red
-Sonja` (sticky) — "Red City" reads like it could name a distinct, later
-miniseries rather than just a missing subtitle, so this one seems less
-likely to be a pure duplicate, but isn't confirmed either way. Needs
-the user's own memory to settle, same as the previous two.
+**`Vampirella vs. Red Sonja Red City` confirmed and removed
+(8/31/2026)** — the user didn't remember either way, and DCBS's search
+couldn't settle it since both names are dormant. Resolved with a
+different technique: grepped every past order (all 20, back to
+909945) for "red sonja". Found exactly one hit across the user's entire
+order history — `Vampirella vs Red Sonja Red City #1` (product code
+`JUN264649`, ordered 6/16/2026). No un-subtitled "Vampirella vs Red
+Sonja" purchase exists anywhere. Combined with DCBS's established habit
+of truncating subtitles on the persistent pull-list display (same
+pattern as "Twilight Zone" and "X-Men 97" above), this is conclusive:
+the sticky `Vampirella vs Red Sonja` entry (plid `645469`) *is* this
+Red City series, just displayed short. Removed the duplicate.
+
+**General technique worth keeping:** when a live DCBS search can't
+disambiguate two similar names because both are currently dormant,
+grep the full order history for the distinguishing word(s) instead —
+whatever the user actually bought last is definitive, and DCBS's
+persistent-list display can't be trusted for anything more than a
+simplified/truncated series name.
 
 Needs the user's own memory/judgment to resolve, the same way they
 settled the Vampirella Archives case — DCBS's own data doesn't
