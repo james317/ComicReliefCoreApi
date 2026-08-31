@@ -251,7 +251,7 @@ Dynamite Dispatches,1,Seen in orders only (not on either list),"Seen once (Apr),
 Ps Artbooks Magazine Psycho,1,Seen in orders only (not on either list),"8 back issues bought at once in Apr - looks like a one-time catch-up buy, not a recurring monthly pull"
 Crisis Companion TP,1,Seen in orders only (not on either list),One-time TP purchase (Apr)
 Curses TP,1,Seen in orders only (not on either list),One-time TP purchase (Apr)
-Gatchaman TP,1,Seen in orders only (not on either list),One-time TP purchase (Jul)
+Gatchaman TP,1,Sticky,"8/31/2026: added to the real DCBS pull list (plid 707346) via the July order's own UpdatePullListFromOrder form, as a test of whether old/closed orders support pull-list adds (they do). Landed as a distinct 'Gatchaman TP' series entry, separate from the single-issue 'Gatchaman' series (seriesCode 150840) -- correctly matches that the user only buys the TP collections, not individual issues. Kept (not removed) since it appears to track the right format."
 Devils Due Presents Lovebunny & Mr Hell,1,Seen in orders only (not on either list),One-shot (May)
 Vampirella X Witchblade Special,1,Seen in orders only (not on either list),One-shot (Jul) - likely already covered by a Vampirella fuzzy-match rule rather than needing its own persistent entry
 You'll Never Leave This Place Alive,1,Seen in orders only (not on either list),"New #1 debut, IDW (MR), ordered 8/29/2026 (Variant B). Open-ended, no announced issue count -- verify next month whether DCBS carries it forward automatically (sticky) or it needs re-adding (unsticky)."

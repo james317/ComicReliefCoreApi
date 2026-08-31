@@ -263,6 +263,40 @@ exists at all, or the title hasn't been solicited recently enough to
 appear anywhere in DCBS's own systems. `docs/pull-list.csv` reflects
 per-title findings so this doesn't need re-investigating later.
 
+### Old (already-shipped) orders support pull-list adds too
+
+Tested whether `UpdatePullListFromOrder` only works on the currently
+"open for additions" order, or on any past order. **It works on old,
+already-filled orders too** — the same form is present on order
+975866 (July 2026, order date 7/12/2026, long since shipped), and
+submitting it worked exactly like the current order.
+
+Test case: the user only ever buys **Gatchaman in TP** (trade
+paperback), never single issues. `PullListSearch` for "Gatchaman" only
+turns up one series (`150840`), tied to the single-issue periodical
+(`Gatchaman #22`); searching "Gatchaman TP" directly returns nothing at
+all. Adding the single-issue series would have been wrong — it would
+have started auto-soliciting individual issues the user doesn't want.
+
+Submitted the July order's own TP line item (`JUL2671008`, Gatchaman TP
+Vol 04) through `UpdatePullListFromOrder` instead, as a reversible
+probe. **It landed as a distinct `"Gatchaman TP"` pull-list entry**
+(plid `707346`) — a different series from the single-issue one search
+had found. So the order-form route is more format-aware than the
+search box: it resolves a specific purchased product to its correct
+underlying series (TP vs. periodical), even when that series isn't
+independently searchable by name. Kept rather than removed, since it
+appears to correctly track the format the user actually buys — moved
+from `Seen in orders only` to `Sticky` in `docs/pull-list.csv`.
+
+**Implication for a real implementation:** when a title is bought in a
+non-single-issue format (TP, HC, etc.), prefer resolving its series via
+a specific already-purchased product's product code (through
+`UpdatePullListFromOrder`, current or past order) over the generic
+`PullListSearch` + `AddPullListItem` flow — the latter may only expose
+the single-issue series even when a format-specific one exists
+server-side.
+
 ## Shipped in the app
 
 - **Upcoming comics feed** — `GET /api/comics/upcoming`, backed by
