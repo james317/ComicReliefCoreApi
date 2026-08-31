@@ -1,4 +1,4 @@
-namespace ComicReliefCoreApi.Models.Dcbs;
+namespace ComicReliefCoreApi.Api.Models.Dcbs;
 
 /// <summary>One row from an /ajax/PullListSearch result.</summary>
 public record DcbsSeriesSearchResult(string SeriesCode, string SeriesTitle, string? CurrentIssueText);

@@ -1,4 +1,4 @@
-namespace ComicReliefCoreApi.Models;
+namespace ComicReliefCoreApi.Api.Models;
 
 /// <summary>
 /// Where a title currently stands relative to DCBS's own persistent pull list.

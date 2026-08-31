@@ -1,4 +1,4 @@
-namespace ComicReliefCoreApi.Models;
+namespace ComicReliefCoreApi.Api.Models;
 
 /// <summary>
 /// One tracked title. Mirrors what docs/pull-list.csv captured manually this session,

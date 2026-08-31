@@ -1,3 +1,5 @@
+using ComicReliefCoreApi.Api.Models;
+
 namespace ComicReliefCoreApi.Models;
 
 public record AddToPullListRequest(string Title);

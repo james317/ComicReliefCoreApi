@@ -1,6 +1,6 @@
-using ComicReliefCoreApi.Models;
+using ComicReliefCoreApi.Api.Models;
 
-namespace ComicReliefCoreApi.Services;
+namespace ComicReliefCoreApi.App.Services;
 
 public interface IPullListService
 {

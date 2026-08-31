@@ -1,10 +1,10 @@
 using System.Net;
 using System.Text.RegularExpressions;
-using ComicReliefCoreApi.Configuration;
-using ComicReliefCoreApi.Models.Dcbs;
+using ComicReliefCoreApi.Api.Configuration;
+using ComicReliefCoreApi.Api.Models.Dcbs;
 using Microsoft.Extensions.Options;
 
-namespace ComicReliefCoreApi.Services.Dcbs;
+namespace ComicReliefCoreApi.Api.Services.Dcbs;
 
 public class DcbsClient : IDcbsClient
 {

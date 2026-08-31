@@ -20,10 +20,41 @@ The one place this took a real fix rather than just being descriptive:
 default URL (`{app}.fly.dev`), and it was `comic-relief-api` - meaning
 the backend's internal name was leaking into the public-facing
 deployment identity. Renamed to `if-you-pull-dont-miss` so the
-container/URL carries the product name instead, while the repo/project/
-namespace stay exactly as `ComicReliefCoreApi`. The GitHub Actions
+container/URL carries the product name instead. The GitHub Actions
 workflow reads the app name from `fly.toml` dynamically, so it needed no
 change; README.md's Fly CLI examples were updated to match.
+
+**Sharper split, 8/31/2026:** the user's own framing is "comic-relief
+api has no business logic - just backend operations for DCBS and the
+data layer; the app is 'If You Pull, Don't Miss', contains all business
+logic, and heavily uses the comic-relief api." That's a real code-layer
+distinction, not just a display-name one, and the pull-list feature
+initially violated it: `PullListService` (the search-then-fall-back-to-
+order-form-then-verify *algorithm*) was sitting in the same project as
+`DcbsClient` (pure DCBS operations, no decisions). Split into three
+projects, still one deployed process/container (one Fly app, one
+Docker image - see the question below about why not two services):
+- `ComicReliefCoreApi.Api` - "comic-relief api" proper. `DcbsClient`,
+  `ComicReliefDbContext`, the `PullListEntry`/`PullListAddAttempt`
+  models, `DcbsOptions`. No decisions get made in this project - it
+  only executes operations it's told to.
+- `ComicReliefCoreApi.App` - "If You Pull, Don't Miss" business logic.
+  `PullListService` (the actual algorithm) and `TitleNormalizer`
+  (title-matching is a judgment call, not a raw operation). References
+  `.Api`, never the other way around.
+- `ComicReliefCoreApi` (unchanged name) - the one web host: `Program.cs`,
+  `Controllers/`, `wwwroot/`. Wires up both layers via DI but shouldn't
+  itself accumulate business logic or DCBS/data code as new features
+  land - new decision-making goes in `.App`, new raw operations in
+  `.Api`.
+
+Chose one process over two genuinely separate deployed services
+(separate Fly apps talking over HTTP) deliberately: this is a
+single-user hobby project, and a real network hop between "api" and
+"app" would add cost, latency, and a second thing that can
+independently break, for a separation that's really about code
+organization, not scaling or independent deployability. Revisit only if
+a real reason to deploy them separately shows up later.
 
 ## DCBS pull-list automation — reverse-engineered contract
 
@@ -422,9 +453,10 @@ server-side.
   the known long-code overflow pattern, and only ever declares success
   after re-fetching the real `/account/pulllist` to confirm it actually
   stuck. Falls back to a specific, stored `FailureReason` (not a generic
-  error) when neither route works. `Services/Dcbs/DcbsClient.cs` is the
-  reusable HTTP layer; `Services/PullListService.cs` is the workflow;
-  `PullListEntry`/`PullListAddAttempt` (SQLite via EF Core, persisted on a
+  error) when neither route works. `ComicReliefCoreApi.Api/Services/Dcbs/DcbsClient.cs`
+  is the reusable HTTP layer; `ComicReliefCoreApi.App/Services/PullListService.cs`
+  is the workflow (see the naming section above for why they're in
+  separate projects); `PullListEntry`/`PullListAddAttempt` (SQLite via EF Core, persisted on a
   Fly volume — see README.md's "One-time setup for the pull-list feature")
   replace `docs/pull-list.csv` as the live source of truth going forward.
   Written without a local .NET SDK available in this session — the Docker

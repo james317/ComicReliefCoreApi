@@ -145,14 +145,21 @@ session cookie, since DCBS has no public API. Both are one-time steps:
   defaulting the target month to today + 2 months.
 - `wwwroot/` is a static, dependency-free HTML/CSS/JS page that calls the API
   and renders results grouped by ship date, with month navigation.
-- `Services/Dcbs/DcbsClient.cs` wraps the DCBS endpoints reverse-engineered
-  in `docs/BACKLOG.md` (series search, add-to-pull-list, the order-form
-  fallback, and reading back the real pull list to verify anything actually
-  stuck). `Services/PullListService.cs` is the actual "given a title, try
-  the sticky pull list, fall back to tracking it as unsticky" workflow;
-  `Controllers/PullListController.cs` exposes it as `POST /api/pulllist/add`
-  and `GET /api/pulllist`. Data persists to SQLite (via EF Core) on the Fly
-  volume in production.
+- The solution is three projects, on purpose (see `docs/BACKLOG.md`'s
+  naming section): `ComicReliefCoreApi.Api` ("comic-relief api" - DCBS
+  operations and the data layer, no decisions), `ComicReliefCoreApi.App`
+  ("If You Pull, Don't Miss" business logic, built on top of `.Api`), and
+  `ComicReliefCoreApi` (the one web host - `Program.cs`, `Controllers/`,
+  `wwwroot/` - that wires both up and deploys as a single container).
+- `ComicReliefCoreApi.Api/Services/Dcbs/DcbsClient.cs` wraps the DCBS
+  endpoints reverse-engineered in `docs/BACKLOG.md` (series search,
+  add-to-pull-list, the order-form fallback, and reading back the real
+  pull list to verify anything actually stuck).
+  `ComicReliefCoreApi.App/Services/PullListService.cs` is the actual
+  "given a title, try the sticky pull list, fall back to tracking it as
+  unsticky" workflow; `Controllers/PullListController.cs` (in the web
+  host) exposes it as `POST /api/pulllist/add` and `GET /api/pulllist`.
+  Data persists to SQLite (via EF Core) on the Fly volume in production.
 
 ## Project layout
 
@@ -160,10 +167,17 @@ session cookie, since DCBS has no public API. Both are one-time steps:
 .github/workflows/fly-deploy.yml    Auto-deploy to Fly.io on push to master
 Dockerfile                          Container build for deployment (e.g. Fly.io)
 fly.toml                            Fly.io app config with auto-stop/auto-start
-src/ComicReliefCoreApi/
-  Controllers/ComicsController.cs   API endpoint
+src/ComicReliefCoreApi/             The one deployed web host
+  Controllers/                      API endpoints (Comics, PullList)
   Services/ComicVineService.cs      Comic Vine client
   Models/                           DTOs and response shapes
   Configuration/ComicVineOptions.cs API key + paging config
   wwwroot/                          Mobile web page (index.html, app.js, styles.css, icons)
+src/ComicReliefCoreApi.Api/         "comic-relief api" - DCBS ops + data layer, no decisions
+  Services/Dcbs/DcbsClient.cs       Raw DCBS HTTP operations
+  Data/ComicReliefDbContext.cs      EF Core / SQLite
+  Models/                           PullListEntry, PullListAddAttempt, enums
+src/ComicReliefCoreApi.App/         "If You Pull, Don't Miss" business logic
+  Services/PullListService.cs       The add-to-pull-list algorithm
+  Services/TitleNormalizer.cs       Title matching against DCBS's own inconsistent naming
 ```

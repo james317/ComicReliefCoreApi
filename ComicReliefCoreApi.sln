@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -6,6 +6,10 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{46831C55-4856-4C36-9C23-2709B8D8D72D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComicReliefCoreApi", "src\ComicReliefCoreApi\ComicReliefCoreApi.csproj", "{DB4E8501-76AD-4292-A568-A482A83DE63A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComicReliefCoreApi.Api", "src\ComicReliefCoreApi.Api\ComicReliefCoreApi.Api.csproj", "{3EE18495-D51E-45E2-9207-B269163E253A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComicReliefCoreApi.App", "src\ComicReliefCoreApi.App\ComicReliefCoreApi.App.csproj", "{20687A7B-AAF0-4A05-BDB7-D164E7A42E41}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,8 +24,18 @@ Global
 		{DB4E8501-76AD-4292-A568-A482A83DE63A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DB4E8501-76AD-4292-A568-A482A83DE63A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DB4E8501-76AD-4292-A568-A482A83DE63A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3EE18495-D51E-45E2-9207-B269163E253A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3EE18495-D51E-45E2-9207-B269163E253A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3EE18495-D51E-45E2-9207-B269163E253A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3EE18495-D51E-45E2-9207-B269163E253A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{20687A7B-AAF0-4A05-BDB7-D164E7A42E41}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{20687A7B-AAF0-4A05-BDB7-D164E7A42E41}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{20687A7B-AAF0-4A05-BDB7-D164E7A42E41}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{20687A7B-AAF0-4A05-BDB7-D164E7A42E41}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{DB4E8501-76AD-4292-A568-A482A83DE63A} = {46831C55-4856-4C36-9C23-2709B8D8D72D}
+		{3EE18495-D51E-45E2-9207-B269163E253A} = {46831C55-4856-4C36-9C23-2709B8D8D72D}
+		{20687A7B-AAF0-4A05-BDB7-D164E7A42E41} = {46831C55-4856-4C36-9C23-2709B8D8D72D}
 	EndGlobalSection
 EndGlobal

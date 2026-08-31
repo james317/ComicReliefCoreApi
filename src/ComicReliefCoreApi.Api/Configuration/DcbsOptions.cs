@@ -1,4 +1,4 @@
-namespace ComicReliefCoreApi.Configuration;
+namespace ComicReliefCoreApi.Api.Configuration;
 
 /// <summary>
 /// DCBS has no public API - this app acts on the user's own account using a session

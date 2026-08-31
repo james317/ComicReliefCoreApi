@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    "If You Pull, Don't Miss" (see docs/BACKLOG.md's naming section): all business
+    logic/decision-making lives here, built on top of the thin operations exposed by
+    ComicReliefCoreApi.Api.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ComicReliefCoreApi.Api\ComicReliefCoreApi.Api.csproj" />
+  </ItemGroup>
+
+</Project>

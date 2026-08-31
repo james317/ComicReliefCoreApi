@@ -1,9 +1,9 @@
-using ComicReliefCoreApi.Data;
-using ComicReliefCoreApi.Models;
-using ComicReliefCoreApi.Services.Dcbs;
+using ComicReliefCoreApi.Api.Data;
+using ComicReliefCoreApi.Api.Models;
+using ComicReliefCoreApi.Api.Services.Dcbs;
 using Microsoft.EntityFrameworkCore;
 
-namespace ComicReliefCoreApi.Services;
+namespace ComicReliefCoreApi.App.Services;
 
 public class PullListService : IPullListService
 {

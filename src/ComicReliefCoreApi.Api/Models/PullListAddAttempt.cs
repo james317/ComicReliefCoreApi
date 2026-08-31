@@ -1,4 +1,4 @@
-namespace ComicReliefCoreApi.Models;
+namespace ComicReliefCoreApi.Api.Models;
 
 /// <summary>
 /// Audit record of one attempt to resolve a <see cref="PullListEntry"/> against DCBS.

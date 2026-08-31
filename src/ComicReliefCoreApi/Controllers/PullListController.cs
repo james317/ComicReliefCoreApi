@@ -1,6 +1,6 @@
-using ComicReliefCoreApi.Data;
+using ComicReliefCoreApi.Api.Data;
+using ComicReliefCoreApi.App.Services;
 using ComicReliefCoreApi.Models;
-using ComicReliefCoreApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 

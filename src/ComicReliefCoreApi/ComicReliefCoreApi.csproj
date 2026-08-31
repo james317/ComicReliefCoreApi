@@ -7,8 +7,14 @@
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
+  <!--
+    This is the one deployed host (Program.cs, Controllers, wwwroot) - it wires up and
+    exposes both layers below but shouldn't itself grow business logic or DCBS/data
+    code; see docs/BACKLOG.md's naming section for why that split matters here.
+  -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.10" />
+    <ProjectReference Include="..\ComicReliefCoreApi.Api\ComicReliefCoreApi.Api.csproj" />
+    <ProjectReference Include="..\ComicReliefCoreApi.App\ComicReliefCoreApi.App.csproj" />
   </ItemGroup>
 
 </Project>

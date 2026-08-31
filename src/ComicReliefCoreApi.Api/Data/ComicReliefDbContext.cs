@@ -1,7 +1,7 @@
-using ComicReliefCoreApi.Models;
+using ComicReliefCoreApi.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace ComicReliefCoreApi.Data;
+namespace ComicReliefCoreApi.Api.Data;
 
 public class ComicReliefDbContext : DbContext
 {

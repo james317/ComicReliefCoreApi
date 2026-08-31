@@ -1,6 +1,6 @@
-using ComicReliefCoreApi.Models.Dcbs;
+using ComicReliefCoreApi.Api.Models.Dcbs;
 
-namespace ComicReliefCoreApi.Services.Dcbs;
+namespace ComicReliefCoreApi.Api.Services.Dcbs;
 
 /// <summary>
 /// Thin wrapper over the DCBS endpoints reverse-engineered this session. Every method

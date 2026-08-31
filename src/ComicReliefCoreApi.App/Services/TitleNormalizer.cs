@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace ComicReliefCoreApi.Services;
+namespace ComicReliefCoreApi.App.Services;
 
 /// <summary>
 /// DCBS strips "The", apostrophes, and colons from series titles inconsistently
