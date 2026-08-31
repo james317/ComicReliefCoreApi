@@ -45,4 +45,23 @@ public sealed class PullListController : ControllerBase
             .ToListAsync(cancellationToken);
         return Ok(entries.Select(PullListEntryResponse.FromEntity).ToList());
     }
+
+    /// <summary>
+    /// One-time seed for titles whose Sticky/Unsticky status is already known from a live
+    /// DCBS snapshot (docs/pull-list.csv) - skips DCBS entirely, so it's fast and doesn't
+    /// touch the real account. Existing entries (by normalized title) are left untouched.
+    /// </summary>
+    [HttpPost("import")]
+    public async Task<ActionResult<ImportPullListResponse>> Import(
+        [FromBody] ImportPullListRequest request, CancellationToken cancellationToken)
+    {
+        if (request.Rows.Count == 0)
+        {
+            return BadRequest("Rows is required.");
+        }
+
+        var imported = await _pullListService.ImportKnownEntriesAsync(
+            request.Rows.Select(r => r.ToImportRow()), cancellationToken);
+        return Ok(new ImportPullListResponse(imported, request.Rows.Count - imported));
+    }
 }

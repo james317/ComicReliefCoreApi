@@ -174,6 +174,34 @@ public class PullListService : IPullListService
         return await _db.PullListEntries.Select(e => e.NormalizedTitle).ToListAsync(ct);
     }
 
+    public async Task<int> ImportKnownEntriesAsync(IEnumerable<PullListImportRow> rows, CancellationToken ct = default)
+    {
+        var existingNormalizedTitles = (await GetTrackedNormalizedTitlesAsync(ct)).ToHashSet();
+        var imported = 0;
+
+        foreach (var row in rows)
+        {
+            var normalized = TitleNormalizer.Normalize(row.Title);
+            if (!existingNormalizedTitles.Add(normalized))
+            {
+                continue;
+            }
+
+            _db.PullListEntries.Add(new PullListEntry
+            {
+                Title = row.Title,
+                NormalizedTitle = normalized,
+                Status = row.Status,
+                FailureReason = row.Status == PullListStatus.Unsticky ? row.Notes : null,
+                Notes = row.Status == PullListStatus.Unsticky ? null : row.Notes,
+            });
+            imported++;
+        }
+
+        await _db.SaveChangesAsync(ct);
+        return imported;
+    }
+
     private static string Truncate(string value, int max = 2000) =>
         value.Length <= max ? value : value[..max];
 }

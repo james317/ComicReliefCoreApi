@@ -1,8 +1,18 @@
 using ComicReliefCoreApi.Api.Models;
+using ComicReliefCoreApi.App.Services;
 
 namespace ComicReliefCoreApi.Models;
 
 public record AddToPullListRequest(string Title);
+
+public record ImportPullListRowRequest(string Title, PullListStatus Status, string? Notes)
+{
+    public PullListImportRow ToImportRow() => new(Title, Status, Notes);
+}
+
+public record ImportPullListRequest(List<ImportPullListRowRequest> Rows);
+
+public record ImportPullListResponse(int Imported, int Skipped);
 
 public record PullListEntryResponse(
     int Id,

@@ -22,4 +22,17 @@ public interface IPullListService
     /// re-deriving DCBS's naming-inconsistency rules themselves.
     /// </summary>
     Task<IReadOnlyCollection<string>> GetTrackedNormalizedTitlesAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Seeds entries with an already-known status, without calling DCBS - for importing
+    /// docs/pull-list.csv, whose Sticky/Unsticky values were themselves captured from
+    /// DCBS's own live sticky/unsticky pull lists rather than guessed, so re-running the
+    /// full <see cref="AddToPullListAsync"/> workflow would just be re-confirming already-known
+    /// facts. Skips any title that already has an entry (by normalized title) rather than
+    /// overwriting something the app has already resolved for itself. Returns the count
+    /// actually inserted.
+    /// </summary>
+    Task<int> ImportKnownEntriesAsync(IEnumerable<PullListImportRow> rows, CancellationToken ct = default);
 }
+
+public sealed record PullListImportRow(string Title, PullListStatus Status, string? Notes);
