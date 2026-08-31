@@ -513,6 +513,58 @@ server-side.
   `DcbsOptions.SessionCookie` and the `Dcbs__SessionCookie` secret are
   superseded by this — `DcbsOptions` now only holds `BaseUrl`.
 
+- **Pull List UI + cross-app nav + workflow-driven theming pass (8/31/2026)** —
+  the pull-list backend had shipped with no UI beyond a raw API, and the
+  three pages (`index.html`, the new one, `dcbs-session.html`) had no way
+  to navigate between them. Decisions, tied to the user's stated 8-step
+  monthly ordering cycle (catalogs → DCBS auto-cart-from-pull-list →
+  variant-cover swaps → cart glance-through → #1s check → checkout →
+  pull-list touch-up):
+  - **`wwwroot/pull-list.html` + `pull-list.js`** — steps 1 and 8 (dogear
+    from catalogs and add to sticky; catch anything new at the end) had no
+    surface at all before this. Add-a-title form posts to the existing
+    `POST /api/pulllist/add`; results group into three lists matching
+    `PullListStatus`: **Corralled** (`Sticky` — actually confirmed stuck on
+    DCBS), **Still Wanted** (`Unsticky` — shown with its stored
+    `FailureReason` so the user knows what to do by hand during a catalog
+    pass instead of just seeing "failed"), and **Just Rode In**
+    (`Unresolved` — added but not attempted yet).
+  - **Cross-reference badge on the solicitations feed** (`index.html` /
+    `app.js`) — fetches `/api/pulllist` alongside the Comic Vine feed and
+    badges any solicited title that's already tracked ("On Your List"),
+    using a client-side copy of `TitleNormalizer`'s rules (strip leading
+    "The"/"A", strip non-alphanumerics) and substring containment (a
+    normalized pull-list title has to appear inside the normalized comic
+    title, since the comic title carries an issue number the pull list
+    entry doesn't). Runs concurrently with the main feed fetch rather than
+    blocking on it, since the primary content shouldn't wait on a
+    nice-to-have. Directly serves steps 1–3 (recognizing a followed title
+    while skimming catalogs/solicitations, before deciding whether a
+    variant cover is worth chasing).
+  - **Shared `.trail-nav`** — a sticky three-tab bar (Solicitations / Pull
+    List / DCBS Session) added to all three pages; previously each page was
+    an island with no link to the others.
+  - **De-duplicated component CSS** — `dcbs-session.html` had its own
+    embedded `<style>` block for buttons/textarea/status-card/message that
+    only that page could use. Promoted into `styles.css` as shared classes
+    so `pull-list.html` (and anything added later) gets the same button/
+    card/badge language for free instead of re-declaring it per page.
+  - **`Program.cs`**: added `JsonStringEnumConverter` to the controllers'
+    JSON options, so `PullListStatus`/`PullListFormat`/`PullListAddMethod`
+    serialize as `"Sticky"`/`"Unsticky"`/etc. instead of raw integers — the
+    new pages read these directly in JS to decide which group/badge an
+    entry belongs in, and a magic number would've been unreadable and
+    fragile against enum reordering.
+  - Kept explicit "gunfighter" copy (Corralled/Still Wanted/Just Rode In,
+    "Telegraph Office" for the session page) light-touch rather than
+    pervasive — the existing splash/masthead/Rye-font/flame-flicker theming
+    already carries most of the visual identity; new copy just extends the
+    same voice without turning functional status text into a puzzle.
+  - Not yet build-verified locally (no local .NET SDK in this session, same
+    situation as the pull-list feature itself) — the change to `Program.cs`
+    is small (one `using` + one `.AddJsonOptions()` call) but should still
+    go through the same Codespace `dotnet build` check before relying on it.
+
 ## Explicit pull list — canonical source of truth
 
 [`docs/pull-list.csv`](./pull-list.csv) is the definitive, persisted list of

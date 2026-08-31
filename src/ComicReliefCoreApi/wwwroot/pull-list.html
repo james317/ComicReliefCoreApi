@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Pull List — If You Pull, Don't Miss</title>
+<meta name="theme-color" content="#3a2214" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Rye&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<nav class="trail-nav">
+  <a href="/index.html">Solicitations</a>
+  <a href="/pull-list.html" class="active">Pull List</a>
+  <a href="/dcbs-session.html">DCBS Session</a>
+</nav>
+<main class="content">
+  <h1 class="page-heading">The Pull List</h1>
+  <p class="page-intro">
+    Add a title here and it's tried on DCBS's real sticky pull list first.
+    Anything that won't stick — a bad series code, a DCBS server bug — gets
+    tracked below as <strong>Still Wanted</strong> instead of silently
+    dropped, so nothing you meant to follow slips through when you're
+    working the catalogs.
+  </p>
+
+  <form id="addForm" class="add-form">
+    <input type="text" id="titleInput" placeholder="Series title, e.g. Vampirella Archives" autocomplete="off" />
+    <button type="submit" id="addBtn">Add</button>
+  </form>
+
+  <div class="message" id="message"></div>
+
+  <div id="status" class="status" hidden></div>
+
+  <div id="groups" hidden>
+    <div class="posse-group">
+      <h2 id="corralledHeading">Corralled (0)</h2>
+      <ul class="posse-list" id="corralledList"></ul>
+    </div>
+    <div class="posse-group">
+      <h2 id="wantedHeading">Still Wanted (0)</h2>
+      <ul class="posse-list" id="wantedList"></ul>
+    </div>
+    <div class="posse-group">
+      <h2 id="unresolvedHeading">Just Rode In (0)</h2>
+      <ul class="posse-list" id="unresolvedList"></ul>
+    </div>
+  </div>
+</main>
+<script src="/pull-list.js"></script>
+</body>
+</html>

@@ -170,6 +170,10 @@ secret.
   unsticky" workflow; `Controllers/PullListController.cs` (in the web
   host) exposes it as `POST /api/pulllist/add` and `GET /api/pulllist`.
   Data persists to SQLite (via EF Core) on the Fly volume in production.
+  `wwwroot/pull-list.html` is the UI for it: an add-a-title form plus the
+  list grouped as Corralled (stuck on the real DCBS pull list), Still
+  Wanted (couldn't stick - tracked with why), and Just Rode In
+  (not attempted yet).
 
 ## Project layout
 
@@ -178,11 +182,12 @@ secret.
 Dockerfile                          Container build for deployment (e.g. Fly.io)
 fly.toml                            Fly.io app config with auto-stop/auto-start
 src/ComicReliefCoreApi/             The one deployed web host
-  Controllers/                      API endpoints (Comics, PullList)
+  Controllers/                      API endpoints (Comics, PullList, DcbsSession)
   Services/ComicVineService.cs      Comic Vine client
   Models/                           DTOs and response shapes
   Configuration/ComicVineOptions.cs API key + paging config
-  wwwroot/                          Mobile web page (index.html, app.js, styles.css, icons)
+  wwwroot/                          Mobile web pages (index.html, pull-list.html,
+                                     dcbs-session.html), shared styles.css, icons
 src/ComicReliefCoreApi.Api/         "comic-relief api" - DCBS ops + data layer, no decisions
   Services/Dcbs/DcbsClient.cs       Raw DCBS HTTP operations
   Data/ComicReliefDbContext.cs      EF Core / SQLite

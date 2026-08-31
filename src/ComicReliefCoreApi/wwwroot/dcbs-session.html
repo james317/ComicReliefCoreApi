@@ -2,103 +2,26 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>DCBS Session — If You Pull, Don't Miss</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Rye&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/styles.css" />
-<style>
-  .session-page {
-    max-width: 640px;
-    margin: 0 auto;
-    padding: 24px 20px 60px;
-  }
-  .session-page h1 {
-    color: var(--accent);
-    font-size: 1.3rem;
-    border-bottom: 3px solid var(--brass);
-    padding-bottom: 8px;
-    margin: 0 0 8px;
-  }
-  .session-page p.intro {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    line-height: 1.5;
-  }
-  .status-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px 16px;
-    margin: 20px 0;
-    font-size: 0.85rem;
-    line-height: 1.6;
-  }
-  .status-dot {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    margin-right: 6px;
-  }
-  .status-dot.unknown { background: var(--text-muted); }
-  .status-dot.valid { background: #2e6b2e; }
-  .status-dot.invalid { background: #8a3324; }
-  textarea {
-    width: 100%;
-    min-height: 120px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 0.78rem;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text);
-    resize: vertical;
-  }
-  .actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 12px;
-    flex-wrap: wrap;
-  }
-  button {
-    font: inherit;
-    padding: 10px 18px;
-    border-radius: 8px;
-    border: 1px solid var(--brass);
-    background: var(--accent);
-    color: var(--accent-contrast);
-    cursor: pointer;
-  }
-  button.secondary {
-    background: transparent;
-    color: var(--accent);
-  }
-  button:disabled {
-    opacity: 0.6;
-    cursor: default;
-  }
-  .message {
-    margin-top: 14px;
-    font-size: 0.85rem;
-  }
-  .message.error { color: var(--accent); }
-  .message.success { color: #2e6b2e; }
-  details {
-    margin-top: 28px;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-  }
-  details summary { cursor: pointer; color: var(--accent); }
-</style>
 </head>
 <body>
-<main class="session-page">
-  <h1>DCBS Session</h1>
-  <p class="intro">
+<nav class="trail-nav">
+  <a href="/index.html">Solicitations</a>
+  <a href="/pull-list.html">Pull List</a>
+  <a href="/dcbs-session.html" class="active">DCBS Session</a>
+</nav>
+<main class="content">
+  <h1 class="page-heading">Telegraph Office</h1>
+  <p class="page-intro">
     DCBS has no login flow for this app to use directly - paste in a session
     cookie captured from your own logged-in browser instead. It's a
     forms-auth ticket with a real expiry, so you'll need to come back and
-    refresh it here every so often rather than once and forget it.
+    wire in a fresh one every so often rather than once and forget it.
   </p>
 
   <div class="status-card" id="statusCard">

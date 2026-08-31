@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using ComicReliefCoreApi.Api.Configuration;
 using ComicReliefCoreApi.Api.Data;
 using ComicReliefCoreApi.Api.Services.Dcbs;
@@ -8,7 +9,8 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.Configure<ComicVineOptions>(builder.Configuration.GetSection("ComicVine"));
 builder.Services.AddHttpClient<IComicVineService, ComicVineService>();
 
