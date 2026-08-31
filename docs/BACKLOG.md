@@ -330,11 +330,16 @@ recurring (2+ orders) titles didn't match anything on file:
   May 2025 (over a year ago). Nothing to add or fix, just confirms it
   fell through the cracks of documentation at the time.
 - **`Devil On My Shoulder`** — the one real, actionable finding. Ran
-  #1-4 (Aug-Dec 2025) with no "of N" ever printed, then nothing since —
-  8+ months dormant. Never on either list, and not on the real DCBS
-  sticky pull list either. Added to `docs/pull-list.csv` as Unsticky/
-  dormant, flagged to verify whether it quietly concluded or got
-  cancelled before attempting a real re-add.
+  #1-4 (Aug-Dec 2025) with no "of N" ever printed, then nothing since.
+  **Resolved (8/31/2026):** fetched the full solicitation text for #4
+  (`DEC254055`) directly — *"Join us for the final issue of Devil on My
+  Shoulder... A new dark horror **four issue series**... Series
+  finale!"* Always planned as a 4-issue mini by Kyle Starks and Piotr
+  Kowalski; it concluded exactly on schedule. Not a cancellation or a
+  quiet drop — the "of 4" just never made it into the cover-listing
+  title, which is why the "of N" heuristic missed it. Pruned from
+  `docs/pull-list.csv` entirely, same as Nice House By The Sea and
+  Denver — nothing left to track.
 
 **Conclusion for the user's question:** a full historical re-audit was
 worth doing once, but turned up only one real, actionable gap out of
@@ -594,6 +599,12 @@ Every card in the fuzzy-pulls/new-#1s report links to a Google search for
   false "not in your collection" claim to the user.
 - Pagination should stop when a page returns zero regex matches, not on
   a page-size heuristic (a "page has <90 items" guess was too fragile).
+- A completed series doesn't always print "of N" in its cover-listing
+  title — `Devil On My Shoulder` #4 never did, even though it was
+  explicitly billed as a 4-issue mini and its final issue's own
+  solicitation text said "Series finale!" outright. Detecting
+  completion reliably needs to check the solicitation description, not
+  just pattern-match the title.
 
 ## Open questions for a real implementation
 - Where does pull-list/order-history/CLZ data live persistently, and how
