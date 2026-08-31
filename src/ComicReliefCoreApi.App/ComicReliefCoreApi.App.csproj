@@ -16,4 +16,14 @@
     <ProjectReference Include="..\ComicReliefCoreApi.Api\ComicReliefCoreApi.Api.csproj" />
   </ItemGroup>
 
+  <!--
+    Plain class-library SDK projects don't get the Web SDK's implicit FrameworkReference
+    to Microsoft.AspNetCore.App, so ILogger<T> needs its own explicit package reference
+    here rather than relying on it arriving incidentally via another package's own
+    dependency on logging abstractions.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.10" />
+  </ItemGroup>
+
 </Project>

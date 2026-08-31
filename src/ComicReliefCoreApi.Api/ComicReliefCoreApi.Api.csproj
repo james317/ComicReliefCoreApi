@@ -12,8 +12,15 @@
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
+  <!--
+    DcbsClient uses IOptions&lt;DcbsOptions&gt; directly - explicitly referenced rather
+    than relying on it arriving incidentally via EF Core's own dependency chain (see
+    the same reasoning in ComicReliefCoreApi.App.csproj; a build broke once already
+    from assuming implicit availability that only holds for Web SDK projects).
+  -->
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.10" />
   </ItemGroup>
 
 </Project>

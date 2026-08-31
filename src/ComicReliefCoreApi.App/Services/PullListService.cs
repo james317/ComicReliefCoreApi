@@ -2,6 +2,7 @@ using ComicReliefCoreApi.Api.Data;
 using ComicReliefCoreApi.Api.Models;
 using ComicReliefCoreApi.Api.Services.Dcbs;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ComicReliefCoreApi.App.Services;
 

@@ -463,6 +463,34 @@ server-side.
   build (which does have the full SDK) is the first real compile check, so
   treat this as unverified until a build actually runs.
 
+  **First real build attempt (8/31/2026, via GitHub Codespaces) caught a
+  real bug**, confirming that caution was warranted: `PullListService.cs`
+  used `ILogger<PullListService>` with no `using Microsoft.Extensions.Logging;`
+  and no package reference for it. It compiled fine as written because
+  everything started life inside the one `Microsoft.NET.Sdk.Web` project,
+  which implicitly imports that namespace *and* gets an implicit
+  `FrameworkReference` to the whole `Microsoft.AspNetCore.App` shared
+  framework for free. Neither applies to `ComicReliefCoreApi.Api` or
+  `ComicReliefCoreApi.App` (plain `Microsoft.NET.Sdk` class libraries,
+  correctly, since they aren't web projects) - the split surfaced a gap
+  the original single-project build had been silently covering for.
+  Fixed by adding the explicit `using` plus an explicit
+  `Microsoft.Extensions.Logging.Abstractions` package reference on
+  `.App`, and (proactively, same reasoning, though this one built fine as-is)
+  an explicit `Microsoft.Extensions.Options` reference on `.Api` for its
+  `IOptions<DcbsOptions>` usage - don't rely on a `Microsoft.Extensions.*`
+  type arriving incidentally via another package's transitive dependency
+  chain in a plain class library; reference it directly.
+
+  General lesson for future class-library splits in this repo: audit
+  every file for implicit-usings-covered types once it leaves a
+  `Microsoft.NET.Sdk.Web` project - the base implicit usings
+  (`System`, `System.Collections.Generic`, `System.Linq`,
+  `System.Net.Http`, `System.Threading`, `System.Threading.Tasks`) are
+  shared by every SDK type, but `Microsoft.Extensions.Logging`,
+  `.Configuration`, `.DependencyInjection`, `.Hosting`, and the
+  `Microsoft.AspNetCore.*` namespaces are Web-SDK-only.
+
 ## Explicit pull list — canonical source of truth
 
 [`docs/pull-list.csv`](./pull-list.csv) is the definitive, persisted list of
