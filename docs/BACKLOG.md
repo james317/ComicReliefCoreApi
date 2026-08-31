@@ -120,6 +120,101 @@ same as `editorder`, no antiforgery token needed.
   implementation needs either a re-login flow or an accepted manual
   cookie-refresh step each time it's used.
 
+### The persistent pull list is a *separate* mechanism from the cart/order
+
+Everything above is about adding an item to one month's order. That's a
+nice feature, but it's not what actually matters long-term: DCBS has a
+**separate, persistent pull list** (`/account/pulllist`) that it uses to
+auto-populate every future month's draft order by cross-referencing new
+solicitations against titles on that list. Keeping *that* list accurate
+means DCBS does the month-to-month reconciliation work itself — our app
+only has to handle the residual titles DCBS's own pull list won't hold
+onto. This is a materially different and more valuable target than
+scripting cart adds.
+
+**Ground truth confirmed (8/31/2026):** fetched `/account/pulllist`
+directly (227 real entries, each `{seriesTitle, qty, id}`) and diffed it
+against every title in the 8/29 order. Once titles are normalized (DCBS
+internally strips "The" and apostrophes — its list has "Twilight Zone"
+and "X-Men 97", not "The Twilight Zone" / "X-Men '97"), this ground
+truth **matches our local `docs/pull-list.csv` "Unsticky" categorization
+almost exactly** — strong validation that the local list's manual
+sticky/unsticky calls have been accurate.
+
+**Adding a new series to the persistent list — two different mechanisms found:**
+
+1. `/account/pulllist` page's own search-and-add flow:
+   `POST /ajax/PullListSearch` with `{search: <term>}` returns a results
+   table of `{seriescode, seriestitle, currentIssueText}` rows (HTML
+   fragment, not JSON). Search is a plain substring/word match, not
+   fuzzy — e.g. "American Caper" and "Rocketeer" return nothing even
+   though the multi-word "The" search returns 105 unrelated rows. Then
+   `POST /ajax/AddPullListItem` with `{seriesCode, qtyToAdd, title}` ->
+   `{"success":true}` or `{"success":false,"errorMessage":"..."}`.
+   Removal is `POST /ajax/DeletePullListItem` with `{id: <plid>}` ->
+   `{"success":true}`.
+
+2. The order page's own embedded form,
+   `POST /Account/UpdatePullListFromOrder/{orderId}`, with one
+   `pulllistqty`+`productcode` field pair per order line (positional,
+   not indexed — same repeated-field-name pattern as the cart form).
+   This references items by their per-issue `AUG...` product code
+   instead of the series-level code, so it may route through different
+   server logic. **Not yet confirmed working** — see below.
+
+**Confirmed genuinely-not-addable series (the real "why can't I" answer
+for these, independent of any bug):** American Caper, The Rocketeer,
+Batman/Superman: World's Finest, and the Vampirella vs Darkstalkers
+one-shot have **no series record at all** in DCBS's pull-list search —
+searched under every reasonable term (full title, first word, last
+word). Also not findable, and not expected to be — none are real
+per-issue "series": Marvel Previews, DC Connect, Dark Horse Monthly
+Catalog, IDW Monthly Title Catalog (free catalogs), and Cult-De-Sac
+(tried multiple hyphen/spacing variants, still nothing). These titles
+must stay on our own external unsticky list indefinitely (or until DCBS
+adds them to its own catalog) — no amount of retrying will make them
+stick, because there's nothing there to stick to.
+
+**Confirmed live server bug (8/31/2026), and the real explanation for
+"the add button sometimes seems disabled":** searched and found real
+series records for 5 order titles not yet on the pull list — Doom
+Patrol (`761941398242`), Filthy Lambs (`601961405479`), Crowbound
+(`709853045861`), Black Tower: The Raven Conspiracy (`761941390802`),
+and Pathfinder Vampirella (`725130367389`, stored as "Pathfinder /
+Vampirella: Blade of Darknes"). All 5 use DCBS's newer 12-13 digit
+GTIN/UPC-style series codes. Attempting `AddPullListItem` with any of
+them returned a raw, unhandled **HTTP 500** — not DCBS's normal graceful
+JSON failure shape. To isolate the cause, the same call was retried with
+a short, legacy-style series code (`149028`, 6 digits) picked from an
+unrelated search result, purely as a technical probe — it succeeded
+cleanly (`{"success":true}`), and was immediately removed again via
+`DeletePullListItem` to leave no trace. That strongly points to a
+32-bit-integer overflow server-side: **the long codes are too large for
+an `Int32`**, and the server throws instead of validating and returning
+a friendly error. Critically, the page's own JS `error:` callback on
+this endpoint only does `console.log` — never an `alert()` — so a real
+user clicking "Add" on one of these newer-catalog series sees **no
+feedback of any kind**, success or failure. That almost certainly *is*
+the "sometimes the add button seems disabled" experience: the button
+works, the click fires, the server silently 500s, and nothing visibly
+happens either way.
+
+**Not yet tried:** whether route 2 above (`UpdatePullListFromOrder`,
+keyed by product code rather than series code) avoids the same overflow
+for these 5 titles — it may hit different server-side code that handles
+the conversion correctly. Recommended immediate next step: the user
+tries this manually in their own browser (order page's "Pull List"
+column, type `1` for the 5 titles above, click "Update Pull List") since
+it's the fastest way to learn the answer, and it isn't a scripted action
+so it sidesteps the question of repeated automated attempts entirely.
+If it works by hand, that confirms route 2 as the one worth scripting
+for a real implementation (and DCBS support would be the right channel
+to report the `AddPullListItem` 500 as a bug). If it *also* silently
+fails, the overflow is more fundamental (e.g. baked into how the order
+page resolves product code to series code) and these 5 titles would need
+to stay manually tracked on our unsticky list too, at least until DCBS
+fixes it server-side.
+
 ## Shipped in the app
 
 - **Upcoming comics feed** — `GET /api/comics/upcoming`, backed by
