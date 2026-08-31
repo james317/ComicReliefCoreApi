@@ -465,6 +465,12 @@ Surfaces items *not* in the cart that match the user's known interests:
   already in the cart, regardless of writer.
 - **Favorite imprint:** Vertigo — any active Vertigo-imprint solicitation
   not already in the cart.
+- **Favorite franchise/brand:** Warhammer — any new Warhammer-related
+  title from any publisher, not already in the cart. Moved here from the
+  pull list 8/31/2026: there's no ongoing "Warhammer" series currently
+  solicited (hence its removal from `docs/pull-list.csv`), but the user
+  wants to keep watching for new Warhammer-branded comics going forward
+  rather than tracking one specific series.
 - Today this matching is done by Claude reading solicitation text
   conversationally, not by a repeatable algorithm. A real implementation
   would need either a maintained writer/character/imprint ruleset applied
