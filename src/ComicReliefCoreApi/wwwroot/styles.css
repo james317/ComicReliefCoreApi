@@ -279,13 +279,43 @@ body {
   margin: 0 0 20px;
 }
 
-.view-toggle {
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin: -8px 0 20px;
-  font-size: 0.82rem;
 }
 
-.view-toggle a {
+.view-toggle {
+  font-size: 0.82rem;
   color: var(--accent);
+}
+
+#selectModeBtn {
+  padding: 5px 12px;
+  font-size: 0.78rem;
+}
+
+.bulk-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 16px -12px 0;
+  padding: 10px 12px calc(env(safe-area-inset-bottom, 0px) + 10px);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-top: 3px solid var(--brass);
+  font-size: 0.85rem;
+}
+
+.bulk-bar button {
+  background: var(--brass);
+  color: #241407;
+  border-color: var(--brass);
 }
 
 /* Shared form controls (add-a-title, session cookie paste, etc.) */
@@ -458,11 +488,12 @@ details summary { cursor: pointer; color: var(--accent); }
   margin-top: 2px;
 }
 
-.pull-archive-btn {
+.pull-checkbox {
   flex-shrink: 0;
   align-self: center;
-  padding: 5px 10px;
-  font-size: 0.72rem;
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
 }
 
 .on-list-badge {

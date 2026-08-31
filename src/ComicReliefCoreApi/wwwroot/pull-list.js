@@ -17,6 +17,10 @@
   const pageHeading = document.getElementById("pageHeading");
   const pageIntro = document.getElementById("pageIntro");
   const viewToggleLink = document.getElementById("viewToggleLink");
+  const selectModeBtn = document.getElementById("selectModeBtn");
+  const bulkBar = document.getElementById("bulkBar");
+  const bulkCount = document.getElementById("bulkCount");
+  const bulkActionBtn = document.getElementById("bulkActionBtn");
 
   const isBootHill = new URLSearchParams(location.search).get("archived") === "true";
 
@@ -35,6 +39,9 @@
   } else {
     archivedGroup.hidden = true;
   }
+
+  let selectMode = false;
+  const selectedIds = new Set();
 
   function showMessage(text, isError) {
     message.textContent = text ?? "";
@@ -68,22 +75,78 @@
     return { cls: "unresolved", label: "?" };
   }
 
-  async function setArchived(id, archived, button) {
-    button.disabled = true;
+  function updateBulkBar() {
+    const n = selectedIds.size;
+    if (!selectMode || n === 0) {
+      bulkBar.hidden = true;
+      return;
+    }
+    bulkBar.hidden = false;
+    bulkCount.textContent = `${n} selected`;
+    bulkActionBtn.textContent = isBootHill ? `Return ${n} to the Pull List` : `Send ${n} to Boot Hill`;
+  }
+
+  function setSelectMode(on) {
+    selectMode = on;
+    selectModeBtn.textContent = on ? "Cancel" : "Select";
+    if (!on) selectedIds.clear();
+    updateBulkBar();
+    loadList();
+  }
+
+  selectModeBtn.addEventListener("click", () => setSelectMode(!selectMode));
+
+  bulkActionBtn.addEventListener("click", async () => {
+    const titles = currentEntries.filter((e) => selectedIds.has(e.id)).map((e) => e.title);
+    const n = titles.length;
+    if (n === 0) return;
+
+    const preview = titles.slice(0, 10).map((t) => `- ${t}`).join("\n") + (n > 10 ? `\n…and ${n - 10} more` : "");
+    const question = isBootHill
+      ? `Return ${n} title${n === 1 ? "" : "s"} to the Pull List?\n\n${preview}`
+      : `Send ${n} title${n === 1 ? "" : "s"} to Boot Hill?\n\n${preview}\n\nSticky titles stay exactly as-is on your real DCBS pull list - this only changes what shows here.`;
+    if (!confirm(question)) return;
+
+    bulkActionBtn.disabled = true;
     try {
-      const res = await fetch(`/api/pulllist/${id}/${archived ? "archive" : "unarchive"}`, { method: "POST" });
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      await loadList();
+      const action = isBootHill ? "unarchive" : "archive";
+      const results = await Promise.all(
+        [...selectedIds].map((id) =>
+          fetch(`/api/pulllist/${id}/${action}`, { method: "POST" }).then((res) => ({ id, ok: res.ok }))));
+      const failed = results.filter((r) => !r.ok);
+      selectedIds.clear();
+      setSelectMode(false);
+      if (failed.length > 0) {
+        showMessage(`${failed.length} of ${n} didn't go through - try again.`, true);
+      } else {
+        showMessage(isBootHill ? `Returned ${n} title${n === 1 ? "" : "s"} to the Pull List.` : `Sent ${n} title${n === 1 ? "" : "s"} to Boot Hill.`, false);
+      }
     } catch (err) {
       showMessage(`Something went wrong: ${err.message}`, true);
-      button.disabled = false;
+    } finally {
+      bulkActionBtn.disabled = false;
     }
-  }
+  });
+
+  let currentEntries = [];
 
   function renderCard(entry) {
     const li = document.createElement("li");
     const card = document.createElement("div");
     card.className = "pull-card" + (entry.status === "Unsticky" ? " wanted" : "");
+
+    if (selectMode) {
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "pull-checkbox";
+      checkbox.checked = selectedIds.has(entry.id);
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) selectedIds.add(entry.id);
+        else selectedIds.delete(entry.id);
+        updateBulkBar();
+      });
+      card.appendChild(checkbox);
+    }
 
     const badge = document.createElement("span");
     const b = badgeFor(entry);
@@ -109,18 +172,6 @@
     card.appendChild(badge);
     card.appendChild(info);
 
-    const archiveBtn = document.createElement("button");
-    archiveBtn.type = "button";
-    archiveBtn.className = "secondary pull-archive-btn";
-    archiveBtn.textContent = isBootHill ? "Unarchive" : "Archive";
-    archiveBtn.addEventListener("click", () => {
-      if (!isBootHill && !confirm(`Send "${entry.title}" to Boot Hill?\n\nIt'll be hidden from your pull list. If it's Sticky, it stays exactly as-is on your real DCBS pull list - this only changes what shows here.`)) {
-        return;
-      }
-      setArchived(entry.id, !isBootHill, archiveBtn);
-    });
-    card.appendChild(archiveBtn);
-
     li.appendChild(card);
     return li;
   }
@@ -133,6 +184,7 @@
       const res = await fetch(`/api/pulllist?archived=${isBootHill}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const entries = await res.json();
+      currentEntries = entries;
 
       if (isBootHill) {
         archivedList.innerHTML = "";

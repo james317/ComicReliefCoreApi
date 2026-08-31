@@ -26,7 +26,10 @@
     working the catalogs.
   </p>
 
-  <p class="view-toggle"><a id="viewToggleLink" href="/pull-list.html?archived=true">View Boot Hill →</a></p>
+  <div class="toolbar-row">
+    <a id="viewToggleLink" class="view-toggle" href="/pull-list.html?archived=true">View Boot Hill →</a>
+    <button id="selectModeBtn" type="button" class="secondary">Select</button>
+  </div>
 
   <form id="addForm" class="add-form">
     <input type="text" id="titleInput" placeholder="Series title, e.g. Vampirella Archives" autocomplete="off" />
@@ -54,6 +57,11 @@
       <h2 id="archivedHeading">Boot Hill (0)</h2>
       <ul class="posse-list" id="archivedList"></ul>
     </div>
+  </div>
+
+  <div class="bulk-bar" id="bulkBar" hidden>
+    <span id="bulkCount"></span>
+    <button type="button" id="bulkActionBtn"></button>
   </div>
 </main>
 <script src="/pull-list.js"></script>
