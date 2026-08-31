@@ -87,6 +87,12 @@ ipch/
 comicrelief.db
 comicrelief.db-*
 
+# Scratch files for copying secrets (Fly tokens, DCBS cookies, etc.) out of a Codespace
+# terminal via the editor instead of clipboard. Never meant to be committed; this is a
+# safety net in case one gets created inside the repo by mistake.
+*.secret
+*_token.txt
+
 # Visual Studio profiler
 *.psess
 *.vsp
