@@ -8,7 +8,7 @@ namespace ComicReliefCoreApi.Controllers;
 /// at will - each upload fully replaces the stored snapshot, since a CLZ export is always a
 /// complete collection dump, not an incremental one. See wwwroot/pull-list.html for the
 /// upload UI this backs, and IClzCollectionService's docs for why this data is labeled
-/// "last owned issue" rather than "last shipped issue" throughout the app.
+/// "last purchased" rather than "last shipped" throughout the app.
 /// </summary>
 [ApiController]
 [Route("api/clz")]

@@ -2,12 +2,13 @@ namespace ComicReliefCoreApi.Api.Models;
 
 /// <summary>
 /// One row per series from the user's CLZ (Comic Book Collector) collection export,
-/// aggregated at import time to the most recent issue release date and how many issues
-/// of that series are owned. This is "the newest issue of this series the user owns" -
-/// not proof the publisher stopped shipping it. A gap here can just as easily mean DCBS
-/// silently dropped the title from auto-cart (the exact failure mode this whole app
-/// exists to catch) as it can mean the series actually ended. Treat it as a signal for
-/// the user's own judgment when deciding what to archive, never as an auto-archive fact.
+/// aggregated at import time to the most recent issue's release (ship) date and how many
+/// issues of that series are owned. This is "when the user last purchased an issue of
+/// this series" - not proof the publisher stopped shipping it. A gap here can just as
+/// easily mean DCBS silently dropped the title from auto-cart (the exact failure mode
+/// this whole app exists to catch) as it can mean the series actually ended. Treat it as
+/// a signal for the user's own judgment when deciding what to archive, never as an
+/// auto-archive fact.
 /// </summary>
 public class ClzSeriesSummary
 {

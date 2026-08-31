@@ -24,8 +24,8 @@ public static class ClzCsvParser
             return new List<ClzSeriesSummary>();
         }
 
-        var seriesIndex = Array.IndexOf(header, "Series");
-        var releaseDateIndex = Array.IndexOf(header, "Release Date");
+        var seriesIndex = header.IndexOf("Series");
+        var releaseDateIndex = header.IndexOf("Release Date");
         if (seriesIndex < 0)
         {
             throw new InvalidDataException("CSV is missing a \"Series\" column - is this a CLZ comics export?");

@@ -79,7 +79,7 @@
       bits.push("Not attempted yet");
     }
     if (entry.lastKnownIssueDate) {
-      bits.push(`Last owned issue: ${formatDateOnly(entry.lastKnownIssueDate)}`);
+      bits.push(`Last purchased: ${formatDateOnly(entry.lastKnownIssueDate)}`);
     }
     if (entry.dcbsSeriesCode) {
       bits.push(`Series code ${entry.dcbsSeriesCode}`);

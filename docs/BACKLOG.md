@@ -599,8 +599,8 @@ server-side.
   enough once production has real data.**
 
 - **CLZ collection import, refreshable via upload (8/31/2026)** — the user
-  wants a "last owned issue" date per pull-list title as an archiving
-  signal, sourced from their CLZ (Comic Book Collector) export CSV rather
+  wants a "last purchased" ship-date signal per pull-list title as an
+  archiving aid, sourced from their CLZ (Comic Book Collector) export CSV rather
   than DCBS itself. DCBS was considered first but rejected as a source for
   this specific feature: it's an ordering catalog, not a comics database,
   and nothing in this session's DCBS reverse-engineering confirms it
@@ -626,7 +626,7 @@ server-side.
   matching an unrelated 2019 `Archie Meets Batman 66` one-shot just from
   word overlap), so an unmatched pull-list title just shows no date
   rather than a wrong one.
-  **Labeled "last owned issue" everywhere in the UI, never "last
+  **Labeled "last purchased" everywhere in the UI, never "last
   shipped"** - this is purchase history, not publisher fact. A DCBS
   silently dropping a title from auto-cart (the exact failure this whole
   app exists to catch, confirmed repeatedly this session: Black Tower,
