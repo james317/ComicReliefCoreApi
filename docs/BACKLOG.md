@@ -75,22 +75,50 @@ reliable, cheap stale/relist detector — arguably more reliable than
 scraping the "notice" banner text, and worth using as a second signal in
 `pull-list-matches` alongside it.
 
-**Open questions before this becomes a real script:**
-- How `/cart` (the `DCBSCart` cookie) and the currently-open `/account/order/{id}`
-  actually relate — does `/ajax/AddToCart` write into the open order
-  directly, or into the cart with a separate merge step? Needs a live
-  add + inspect of both pages to confirm.
-- How to remove/undo an add — `/cart` page JS references a
-  `.deletecartitem` control and a `/Cart/Update/{productId}?qty={n}`
-  quantity-change URL, but no actual delete link was present to inspect
-  because the cart currently shows 0 items. Needs to be captured during
-  a live add test.
+**Live end-to-end test (8/30/2026):** added *Vampirella vs Darkstalkers
+Special #1 Cvr E* (product code `AUG2670894`, internal `productId`
+`907470`) to the open August order via `POST /ajax/AddToCart`, confirmed
+it landed in both `/cart` and `/account/order/982026` immediately
+(subtotal moved to $127.60), removed it via `GET /cart/delete/{productId}/page/1?returnRoute=/Cart`,
+and confirmed the order was back to exactly its original 39 lines and
+$123.71 subtotal. This resolves the first two open questions below and
+gives a real success-response shape to code against:
+
+```
+POST /ajax/AddToCart
+Body: productId=907470&quantity=1
+-> 200 {"count":1,"subtotal":"$3.89","products":[{"ProductCode":"AUG2670894","Title":"...","Qty":1,"Url":"/product/..."}]}
+
+GET /cart/delete/907470/page/1?returnRoute=/Cart
+-> 200, item gone from both /cart and the order immediately
+```
+
+Note the success shape has no `error` key at all — a script should
+treat `error` present-and-non-empty as failure and anything else
+(a `count`/`products` body) as success, rather than keying off HTTP
+status, which is 200 either way.
+
+**Resolved:** `/cart` is not a separate staging area — `/ajax/AddToCart`
+writes directly into whichever order is currently open for edits, and
+`/cart` is just a live view of that same order. The removal link
+(`.deletecartitem`, confirmed real markup) is
+`GET /cart/delete/{productId}/page/1?returnRoute=/Cart` — a plain GET,
+same as `editorder`, no antiforgery token needed.
+
+**Still open before this becomes a real script:**
 - The exact rule for when a button renders `cartbuttoninactive instock`
-  vs a normal active `cartbutton` — not yet observed on a real item.
+  vs a normal active `cartbutton` — not yet observed on a real item;
+  every item checked so far (a stale relisted back issue, a true
+  in-stock-section item, and a normal current solicitation) all
+  rendered as active `cartbutton`.
 - Rate limits / bot detection: DCBS's ToS almost certainly doesn't
   contemplate scripted cart mutations. Any real implementation should
   throttle to human-like pacing (one add at a time, real delays) rather
   than firing requests in parallel.
+- Session lifetime: the `.ASPXAUTH` cookie used for this investigation
+  will expire eventually (forms-auth tickets are time-limited) — a real
+  implementation needs either a re-login flow or an accepted manual
+  cookie-refresh step each time it's used.
 
 ## Shipped in the app
 
