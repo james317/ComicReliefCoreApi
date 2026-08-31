@@ -25,9 +25,10 @@ public record PullListEntryResponse(
     string? FailureReason,
     DateTime? LastAttemptedAt,
     DateTime? LastVerifiedStickyAt,
-    DateTime? ArchivedAt)
+    DateTime? ArchivedAt,
+    DateOnly? LastKnownIssueDate)
 {
-    public static PullListEntryResponse FromEntity(PullListEntry entry) => new(
+    public static PullListEntryResponse FromEntity(PullListEntry entry, DateOnly? lastKnownIssueDate = null) => new(
         entry.Id,
         entry.Title,
         entry.Status,
@@ -38,5 +39,6 @@ public record PullListEntryResponse(
         entry.FailureReason,
         entry.LastAttemptedAt,
         entry.LastVerifiedStickyAt,
-        entry.ArchivedAt);
+        entry.ArchivedAt,
+        lastKnownIssueDate);
 }

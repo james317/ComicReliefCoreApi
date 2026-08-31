@@ -598,6 +598,52 @@ server-side.
   treatment (or a real tracked migration) - editing the EF model is not
   enough once production has real data.**
 
+- **CLZ collection import, refreshable via upload (8/31/2026)** — the user
+  wants a "last owned issue" date per pull-list title as an archiving
+  signal, sourced from their CLZ (Comic Book Collector) export CSV rather
+  than DCBS itself. DCBS was considered first but rejected as a source for
+  this specific feature: it's an ordering catalog, not a comics database,
+  and nothing in this session's DCBS reverse-engineering confirms it
+  exposes a clean per-series issue-history-with-dates fact anywhere
+  (`SearchSeriesAsync`'s `CurrentIssueText` is the closest candidate, but
+  untested and blocked anyway - no DCBS session cookie has been set on the
+  production deploy at all).
+  New table `ClzSeriesSummary` (`.Api`) - one row per series, aggregated
+  at import time to `LastReleaseDate` (max across owned issues) and
+  `IssueCount`, keyed by `NormalizedSeries` (via the relocated
+  `TitleNormalizer` - see below). `ClzCsvParser` (`.Api`) hand-rolls a
+  quoted-CSV line reader (real CLZ exports have commas inside quoted
+  fields, e.g. "Variant Description") rather than adding a dependency;
+  handles the two date formats actually seen ("Jan 17, 2024" and
+  year-only "1996" for old back issues). `POST /api/clz/import` (multipart
+  file upload) fully replaces the stored snapshot every time - a CLZ
+  export is always a complete dump, so "refresh" means replace, not merge.
+  `GET /api/clz/status` and the upload control both live in a collapsed
+  `<details>` on `pull-list.html` to stay out of the way day-to-day.
+  **Matching is exact-normalized-title only, deliberately not fuzzy** -
+  this session's own quick substring-match experiment (see the "18+
+  months" CLZ discussion above) produced real false positives (`Batman`
+  matching an unrelated 2019 `Archie Meets Batman 66` one-shot just from
+  word overlap), so an unmatched pull-list title just shows no date
+  rather than a wrong one.
+  **Labeled "last owned issue" everywhere in the UI, never "last
+  shipped"** - this is purchase history, not publisher fact. A DCBS
+  silently dropping a title from auto-cart (the exact failure this whole
+  app exists to catch, confirmed repeatedly this session: Black Tower,
+  Doom Patrol, Crowbound, Pathfinder Vampirella) looks identical in this
+  data to a series that actually ended. It's meant as a signal for the
+  user's own archiving judgment, never an auto-archive trigger.
+  **`TitleNormalizer` relocated `.App` → `.Api`** (namespace
+  `ComicReliefCoreApi.Api.Services`) so both layers can share the one
+  normalization implementation - `.Api`'s CLZ import needs it now too,
+  and `.Api` can't depend on `.App` (wrong direction). All callers
+  (`PullListService`, `ComicsController`) updated to the new namespace.
+  **Second occurrence of the EnsureCreated table-not-column gap:** a
+  brand-new table needs the same hand-written-DDL treatment as a new
+  column, just `CREATE TABLE IF NOT EXISTS` instead of a caught
+  duplicate-column exception - SQLite handles "already exists" natively
+  for table/index creation, no try/catch needed there.
+
 ## Explicit pull list — canonical source of truth
 
 [`docs/pull-list.csv`](./pull-list.csv) is the definitive, persisted list of

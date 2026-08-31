@@ -21,6 +21,9 @@
   const bulkBar = document.getElementById("bulkBar");
   const bulkCount = document.getElementById("bulkCount");
   const bulkActionBtn = document.getElementById("bulkActionBtn");
+  const clzStatus = document.getElementById("clzStatus");
+  const clzFileInput = document.getElementById("clzFileInput");
+  const clzUploadBtn = document.getElementById("clzUploadBtn");
 
   const isBootHill = new URLSearchParams(location.search).get("archived") === "true";
 
@@ -57,6 +60,13 @@
     return value ? new Date(value).toLocaleString() : null;
   }
 
+  // entry.lastKnownIssueDate is a plain "yyyy-MM-dd" (System.Text.Json's default DateOnly
+  // format) with no time component - appending T00:00:00 keeps the Date constructor from
+  // treating it as UTC midnight, which shifts to the previous day in negative UTC offsets.
+  function formatDateOnly(value) {
+    return value ? new Date(value + "T00:00:00").toLocaleDateString() : null;
+  }
+
   function metaLine(entry) {
     const bits = [];
     if (entry.status === "Sticky" && entry.lastVerifiedStickyAt) {
@@ -67,6 +77,9 @@
     }
     if (entry.status === "Unresolved") {
       bits.push("Not attempted yet");
+    }
+    if (entry.lastKnownIssueDate) {
+      bits.push(`Last owned issue: ${formatDateOnly(entry.lastKnownIssueDate)}`);
     }
     if (entry.dcbsSeriesCode) {
       bits.push(`Series code ${entry.dcbsSeriesCode}`);
@@ -261,6 +274,56 @@
     }
   }
 
+  async function loadClzStatus() {
+    try {
+      const res = await fetch("/api/clz/status", { cache: "no-store" });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+      const status = await res.json();
+      log("clz status", status);
+      if (!status.hasData) {
+        clzStatus.textContent = "none yet — upload your CLZ export below";
+        return;
+      }
+      const when = status.importedAt ? new Date(status.importedAt).toLocaleString() : "unknown time";
+      clzStatus.textContent = `${status.seriesCount} series, imported ${when}`;
+    } catch (err) {
+      console.error("[pull-list] loadClzStatus: failed", err);
+      clzStatus.textContent = "couldn't check";
+    }
+  }
+
+  clzUploadBtn.addEventListener("click", async () => {
+    const file = clzFileInput.files[0];
+    if (!file) {
+      showMessage("Choose a CSV file first.", true);
+      return;
+    }
+    log("clz upload: starting", { name: file.name, size: file.size });
+    clzUploadBtn.disabled = true;
+    clzStatus.textContent = "uploading…";
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/clz/import", { method: "POST", body: formData });
+      if (!res.ok) {
+        const problem = await res.text().catch(() => "");
+        throw new Error(problem || `Request failed (${res.status})`);
+      }
+      const status = await res.json();
+      log("clz upload: succeeded", status);
+      clzFileInput.value = "";
+      showMessage(`Imported ${status.seriesCount} series from your collection export.`, false);
+      await loadClzStatus();
+      await loadList();
+    } catch (err) {
+      console.error("[pull-list] clz upload: failed", err);
+      showMessage(`Upload failed: ${err.message}`, true);
+      await loadClzStatus();
+    } finally {
+      clzUploadBtn.disabled = false;
+    }
+  });
+
   addForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const title = titleInput.value.trim();
@@ -294,5 +357,6 @@
     }
   });
 
+  loadClzStatus();
   loadList();
 })();

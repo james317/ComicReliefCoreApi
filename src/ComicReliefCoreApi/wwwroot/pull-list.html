@@ -26,6 +26,21 @@
     working the catalogs.
   </p>
 
+  <details class="clz-import">
+    <summary>Collection data: <span id="clzStatus">checking…</span></summary>
+    <p class="page-intro clz-intro">
+      Upload your CLZ collection export (CSV) to see the last issue you own for each
+      title below — that's a <strong>last owned issue</strong> signal only, not proof
+      the publisher stopped shipping it (DCBS silently dropping a title from your cart
+      looks identical to a finished series in this data). Each upload fully replaces
+      the previous one.
+    </p>
+    <div class="clz-upload-row">
+      <input type="file" id="clzFileInput" accept=".csv" />
+      <button type="button" id="clzUploadBtn">Upload</button>
+    </div>
+  </details>
+
   <div class="toolbar-row">
     <a id="viewToggleLink" class="view-toggle" href="/pull-list.html?archived=true">View Boot Hill →</a>
     <button id="selectModeBtn" type="button" class="secondary">Select</button>

@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using ComicReliefCoreApi.Api.Configuration;
 using ComicReliefCoreApi.Api.Data;
+using ComicReliefCoreApi.Api.Services.Clz;
 using ComicReliefCoreApi.Api.Services.Dcbs;
 using ComicReliefCoreApi.App.Services;
 using ComicReliefCoreApi.Configuration;
@@ -19,6 +20,8 @@ builder.Services.AddScoped<IDcbsSessionStore, DcbsSessionStore>();
 builder.Services.AddHttpClient<IDcbsClient, DcbsClient>();
 builder.Services.AddScoped<IDcbsSessionManager, DcbsSessionManager>();
 builder.Services.AddScoped<IPullListService, PullListService>();
+builder.Services.AddScoped<IClzImportStore, ClzImportStore>();
+builder.Services.AddScoped<IClzCollectionService, ClzCollectionService>();
 
 // SQLite path comes from config (appsettings.json locally, the Data__SqlitePath env var
 // in fly.toml for production) so it can point at the Fly volume mount without code
@@ -56,6 +59,23 @@ using (var scope = app.Services.CreateScope())
     {
         // Already applied.
     }
+
+    // Same EnsureCreated() limitation, but for a whole new table (ClzSeriesSummaries) rather
+    // than a column - EnsureCreated() no-ops entirely once the database file already exists,
+    // so a brand-new table added to the model afterward never gets created on its own.
+    // "IF NOT EXISTS" makes this safe to run on every startup without a try/catch.
+    db.Database.ExecuteSqlRaw("""
+        CREATE TABLE IF NOT EXISTS "ClzSeriesSummaries" (
+            "Id" INTEGER NOT NULL CONSTRAINT "PK_ClzSeriesSummaries" PRIMARY KEY AUTOINCREMENT,
+            "Series" TEXT NOT NULL,
+            "NormalizedSeries" TEXT NOT NULL,
+            "LastReleaseDate" TEXT NULL,
+            "IssueCount" INTEGER NOT NULL,
+            "ImportedAt" TEXT NOT NULL
+        )
+        """);
+    db.Database.ExecuteSqlRaw(
+        "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_ClzSeriesSummaries_NormalizedSeries\" ON \"ClzSeriesSummaries\" (\"NormalizedSeries\")");
 }
 
 app.UseDefaultFiles();

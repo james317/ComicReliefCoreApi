@@ -1,12 +1,15 @@
 using System.Text.RegularExpressions;
 
-namespace ComicReliefCoreApi.App.Services;
+namespace ComicReliefCoreApi.Api.Services;
 
 /// <summary>
 /// DCBS strips "The", apostrophes, and colons from series titles inconsistently
 /// (e.g. "Twilight Zone" not "The Twilight Zone", "X-Men 97" not "X-Men '97") - this
 /// normalization has to tolerate that or every comparison against DCBS's own data
-/// produces false negatives, as happened repeatedly this session.
+/// produces false negatives, as happened repeatedly this session. Lives in .Api (not
+/// .App, where it started) because both layers need it now - .Api's CLZ CSV import has
+/// to normalize series names the same way .App's PullListService normalizes pull-list
+/// titles, and .Api can't depend on .App.
 /// </summary>
 public static class TitleNormalizer
 {

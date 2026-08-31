@@ -11,11 +11,13 @@ namespace ComicReliefCoreApi.Controllers;
 public sealed class PullListController : ControllerBase
 {
     private readonly IPullListService _pullListService;
+    private readonly IClzCollectionService _clzService;
     private readonly ComicReliefDbContext _db;
 
-    public PullListController(IPullListService pullListService, ComicReliefDbContext db)
+    public PullListController(IPullListService pullListService, IClzCollectionService clzService, ComicReliefDbContext db)
     {
         _pullListService = pullListService;
+        _clzService = clzService;
         _db = db;
     }
 
@@ -46,7 +48,13 @@ public sealed class PullListController : ControllerBase
             .Where(e => archived ? e.ArchivedAt != null : e.ArchivedAt == null)
             .OrderBy(e => e.Title)
             .ToListAsync(cancellationToken);
-        return Ok(entries.Select(PullListEntryResponse.FromEntity).ToList());
+
+        var issueDates = await _clzService.GetLastKnownIssueDatesAsync(
+            entries.Select(e => e.NormalizedTitle), cancellationToken);
+
+        return Ok(entries
+            .Select(e => PullListEntryResponse.FromEntity(e, issueDates.GetValueOrDefault(e.NormalizedTitle)))
+            .ToList());
     }
 
     /// <summary>Hides a title from the default pull-list view. Never touches DCBS itself.</summary>

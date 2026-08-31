@@ -12,6 +12,7 @@ public class ComicReliefDbContext : DbContext
     public DbSet<PullListEntry> PullListEntries => Set<PullListEntry>();
     public DbSet<PullListAddAttempt> PullListAddAttempts => Set<PullListAddAttempt>();
     public DbSet<DcbsSession> DcbsSessions => Set<DcbsSession>();
+    public DbSet<ClzSeriesSummary> ClzSeriesSummaries => Set<ClzSeriesSummary>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -31,6 +32,11 @@ public class ComicReliefDbContext : DbContext
         modelBuilder.Entity<PullListAddAttempt>(entity =>
         {
             entity.Property(a => a.Method).HasConversion<string>();
+        });
+
+        modelBuilder.Entity<ClzSeriesSummary>(entity =>
+        {
+            entity.HasIndex(e => e.NormalizedSeries).IsUnique();
         });
     }
 }

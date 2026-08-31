@@ -292,6 +292,34 @@ body {
   margin: 0 0 20px;
 }
 
+.clz-import {
+  margin: 0 0 18px;
+  font-size: 0.82rem;
+}
+
+.clz-import summary {
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.clz-intro {
+  font-size: 0.82rem;
+  margin: 10px 0;
+}
+
+.clz-upload-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.clz-upload-row input[type="file"] {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.78rem;
+  padding: 8px;
+}
+
 .toolbar-row {
   display: flex;
   align-items: center;
