@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DCBS Session — If You Pull, Don't Miss</title>
+<link rel="stylesheet" href="/styles.css" />
+<style>
+  .session-page {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+  .session-page h1 {
+    color: var(--accent);
+    font-size: 1.3rem;
+    border-bottom: 3px solid var(--brass);
+    padding-bottom: 8px;
+    margin: 0 0 8px;
+  }
+  .session-page p.intro {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+  .status-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 20px 0;
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+  .status-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+  .status-dot.unknown { background: var(--text-muted); }
+  .status-dot.valid { background: #2e6b2e; }
+  .status-dot.invalid { background: #8a3324; }
+  textarea {
+    width: 100%;
+    min-height: 120px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.78rem;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    resize: vertical;
+  }
+  .actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  button {
+    font: inherit;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--brass);
+    background: var(--accent);
+    color: var(--accent-contrast);
+    cursor: pointer;
+  }
+  button.secondary {
+    background: transparent;
+    color: var(--accent);
+  }
+  button:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+  .message {
+    margin-top: 14px;
+    font-size: 0.85rem;
+  }
+  .message.error { color: var(--accent); }
+  .message.success { color: #2e6b2e; }
+  details {
+    margin-top: 28px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+  details summary { cursor: pointer; color: var(--accent); }
+</style>
+</head>
+<body>
+<main class="session-page">
+  <h1>DCBS Session</h1>
+  <p class="intro">
+    DCBS has no login flow for this app to use directly - paste in a session
+    cookie captured from your own logged-in browser instead. It's a
+    forms-auth ticket with a real expiry, so you'll need to come back and
+    refresh it here every so often rather than once and forget it.
+  </p>
+
+  <div class="status-card" id="statusCard">
+    <span class="status-dot unknown" id="statusDot"></span>
+    <span id="statusText">Checking current status…</span>
+  </div>
+
+  <textarea id="cookieInput" placeholder="Paste the full Cookie: header value here (name=value; name2=value2; ...)" autocomplete="off" spellcheck="false"></textarea>
+
+  <div class="actions">
+    <button id="saveBtn">Save &amp; Validate</button>
+    <button id="checkBtn" class="secondary">Check Current Cookie</button>
+  </div>
+
+  <div class="message" id="message"></div>
+
+  <details>
+    <summary>How do I get a cookie?</summary>
+    <p>
+      Log into dcbservice.com in a normal browser, open DevTools' Network
+      tab, reload the page, click the first request, and copy the full
+      value of the <code>Cookie:</code> request header. See
+      <code>docs/BACKLOG.md</code> in the repo for the exact steps
+      (including how to do this from an iPad/iPhone with no computer
+      handy).
+    </p>
+  </details>
+</main>
+<script>
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const cookieInput = document.getElementById('cookieInput');
+  const saveBtn = document.getElementById('saveBtn');
+  const checkBtn = document.getElementById('checkBtn');
+  const message = document.getElementById('message');
+
+  function renderStatus(status) {
+    const parts = [];
+    if (!status.hasCookie) {
+      statusDot.className = 'status-dot unknown';
+      parts.push('No cookie saved yet.');
+    } else {
+      if (status.isValid === true) {
+        statusDot.className = 'status-dot valid';
+        parts.push('Cookie is valid.');
+      } else if (status.isValid === false) {
+        statusDot.className = 'status-dot invalid';
+        parts.push('Cookie is present but not authenticating - it may have expired.');
+      } else {
+        statusDot.className = 'status-dot unknown';
+        parts.push('Cookie saved; validity unknown until checked.');
+      }
+      if (status.lastUpdatedAt) {
+        parts.push(`Saved ${new Date(status.lastUpdatedAt).toLocaleString()}.`);
+      }
+      if (status.lastValidatedAt) {
+        parts.push(`Last confirmed working ${new Date(status.lastValidatedAt).toLocaleString()}.`);
+      }
+    }
+    statusText.textContent = parts.join(' ');
+  }
+
+  function showMessage(text, isError) {
+    message.textContent = text;
+    message.className = 'message ' + (isError ? 'error' : 'success');
+  }
+
+  async function loadStatus() {
+    try {
+      const res = await fetch('/api/dcbs-session/status');
+      const status = await res.json();
+      renderStatus(status);
+    } catch (err) {
+      statusText.textContent = 'Could not reach the API.';
+    }
+  }
+
+  async function withBusy(button, fn) {
+    button.disabled = true;
+    try {
+      await fn();
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  saveBtn.addEventListener('click', () => withBusy(saveBtn, async () => {
+    const cookie = cookieInput.value.trim();
+    if (!cookie) {
+      showMessage('Paste a cookie value first.', true);
+      return;
+    }
+    showMessage('Saving and checking…', false);
+    try {
+      const res = await fetch('/api/dcbs-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cookie }),
+      });
+      const status = await res.json();
+      renderStatus(status);
+      if (status.isValid) {
+        showMessage('Saved - the cookie works.', false);
+        cookieInput.value = '';
+      } else {
+        showMessage('Saved, but DCBS did not accept it - double check you copied the whole Cookie header.', true);
+      }
+    } catch (err) {
+      showMessage('Something went wrong saving that.', true);
+    }
+  }));
+
+  checkBtn.addEventListener('click', () => withBusy(checkBtn, async () => {
+    showMessage('Checking…', false);
+    try {
+      const res = await fetch('/api/dcbs-session/revalidate', { method: 'POST' });
+      const status = await res.json();
+      renderStatus(status);
+      showMessage(status.isValid ? 'Still working.' : 'Not authenticating right now.', !status.isValid);
+    } catch (err) {
+      showMessage('Something went wrong checking that.', true);
+    }
+  }));
+
+  loadStatus();
+</script>
+</body>
+</html>

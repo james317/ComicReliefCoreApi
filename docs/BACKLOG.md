@@ -496,6 +496,23 @@ server-side.
   `.Configuration`, `.DependencyInjection`, `.Hosting`, and the
   `Microsoft.AspNetCore.*` namespaces are Web-SDK-only.
 
+- **Runtime-settable DCBS session cookie** — `GET /api/dcbs-session/status`,
+  `POST /api/dcbs-session`, `POST /api/dcbs-session/revalidate`, backed by
+  `wwwroot/dcbs-session.html`. The DCBS cookie used to only be settable via
+  the `Dcbs__SessionCookie` Fly secret (config-time, needs a redeploy to
+  change) - since it's a forms-auth ticket with a real expiry that needs
+  refreshing periodically, that was real ongoing friction. Now it's stored
+  in a single-row `DcbsSession` table and can be pasted in from a small
+  page at any time. `DcbsClient` reads the cookie fresh from
+  `IDcbsSessionStore` (`.Api`) on every request rather than fixing it at
+  startup, so a new paste takes effect immediately with no restart.
+  `IsSessionValidAsync` (`.Api` - a raw operation, just reports whether
+  DCBS redirected to its login page) backs `DcbsSessionManager` (`.App` -
+  the actual judgment call of "is this cookie any good", used both right
+  after a paste and on demand via a "Check Current Cookie" button).
+  `DcbsOptions.SessionCookie` and the `Dcbs__SessionCookie` secret are
+  superseded by this — `DcbsOptions` now only holds `BaseUrl`.
+
 ## Explicit pull list — canonical source of truth
 
 [`docs/pull-list.csv`](./pull-list.csv) is the definitive, persisted list of

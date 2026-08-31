@@ -38,4 +38,12 @@ public interface IDcbsClient
 
     /// <summary>Recent order ids, newest first, from /account/orders.</summary>
     Task<IReadOnlyList<string>> GetRecentOrderIdsAsync(int max = 6, CancellationToken ct = default);
+
+    /// <summary>
+    /// Fetches /account/pulllist and reports whether the current session cookie
+    /// actually authenticates - DCBS redirects an unauthenticated/expired session to
+    /// its login page rather than returning an error, so this is the real signal to
+    /// check after pasting in a fresh cookie.
+    /// </summary>
+    Task<bool> IsSessionValidAsync(CancellationToken ct = default);
 }

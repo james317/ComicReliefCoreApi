@@ -114,26 +114,36 @@ the repo root.
 
 ### One-time setup for the pull-list feature
 
-The pull-list feature needs a place to persist data across restarts (Fly
-wipes local disk every time the machine scales back to zero) and a DCBS
-session cookie, since DCBS has no public API. Both are one-time steps:
+The pull-list feature needs a place to persist data across restarts, since
+Fly wipes local disk every time the machine scales back to zero:
 
-1. **Create the volume** (do this before the first deploy that uses it):
-   ```bash
-   fly volumes create comicrelief_data --region iad --size 1 -a if-you-pull-dont-miss
-   ```
-   (Match `--region` to `primary_region` in `fly.toml`, and the `-a` name
-   to the `app` name there, if you changed either.)
-2. **Get a DCBS session cookie** from your own logged-in browser — see
-   `docs/BACKLOG.md` for exactly how (DevTools → Network tab → copy the
-   `Cookie:` request header). It's a forms-auth ticket with a real expiry,
-   so this is a "refresh it every so often," not a one-time step.
-3. **Set it as a Fly secret**:
-   ```bash
-   fly secrets set Dcbs__SessionCookie="paste the full cookie string here" -a if-you-pull-dont-miss
-   ```
-   Treat that string like a password — anyone holding it can act as you on
-   DCBS until it expires or you log out elsewhere.
+```bash
+fly volumes create comicrelief_data --region iad --size 1 -a if-you-pull-dont-miss
+```
+
+(Match `--region` to `primary_region` in `fly.toml`, and the `-a` name to
+the `app` name there, if you changed either.) Do this before the first
+deploy that uses it — `fly.toml` references this volume, so a deploy
+without it existing yet will fail.
+
+DCBS itself has no public API, so the app also needs a session cookie
+from your own logged-in browser — but rather than a Fly secret, this is
+set at runtime from a page in the app itself, since it's a forms-auth
+ticket with a real expiry and needs refreshing periodically:
+
+1. Open **`/dcbs-session.html`** on your deployed app (e.g.
+   `https://if-you-pull-dont-miss.fly.dev/dcbs-session.html`).
+2. Get a cookie from your own logged-in browser — see `docs/BACKLOG.md`
+   for exactly how (DevTools → Network tab → copy the `Cookie:` request
+   header).
+3. Paste it in and hit **Save & Validate** — the page confirms
+   immediately whether DCBS actually accepted it, and a **Check Current
+   Cookie** button lets you re-check later without pasting a new one.
+
+Treat that cookie string like a password — anyone holding it can act as
+you on DCBS until it expires or you log out elsewhere. It's stored in the
+app's own database (on the Fly volume above), not in a GitHub or Fly
+secret.
 
 ## How it works
 

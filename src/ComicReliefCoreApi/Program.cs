@@ -13,7 +13,9 @@ builder.Services.Configure<ComicVineOptions>(builder.Configuration.GetSection("C
 builder.Services.AddHttpClient<IComicVineService, ComicVineService>();
 
 builder.Services.Configure<DcbsOptions>(builder.Configuration.GetSection("Dcbs"));
+builder.Services.AddScoped<IDcbsSessionStore, DcbsSessionStore>();
 builder.Services.AddHttpClient<IDcbsClient, DcbsClient>();
+builder.Services.AddScoped<IDcbsSessionManager, DcbsSessionManager>();
 builder.Services.AddScoped<IPullListService, PullListService>();
 
 // SQLite path comes from config (appsettings.json locally, the Data__SqlitePath env var

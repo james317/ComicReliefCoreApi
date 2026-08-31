@@ -11,6 +11,7 @@ public class ComicReliefDbContext : DbContext
 
     public DbSet<PullListEntry> PullListEntries => Set<PullListEntry>();
     public DbSet<PullListAddAttempt> PullListAddAttempts => Set<PullListAddAttempt>();
+    public DbSet<DcbsSession> DcbsSessions => Set<DcbsSession>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
