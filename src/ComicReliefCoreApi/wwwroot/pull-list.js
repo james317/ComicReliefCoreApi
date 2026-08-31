@@ -18,13 +18,13 @@
   const pageIntro = document.getElementById("pageIntro");
   const viewToggleLink = document.getElementById("viewToggleLink");
 
-  const isBoneyard = new URLSearchParams(location.search).get("archived") === "true";
+  const isBootHill = new URLSearchParams(location.search).get("archived") === "true";
 
   const activeGroupIds = ["corralledHeading", "wantedHeading", "unresolvedHeading"].map((id) =>
     document.getElementById(id).closest(".posse-group"));
 
-  if (isBoneyard) {
-    pageHeading.textContent = "The Boneyard";
+  if (isBootHill) {
+    pageHeading.textContent = "Boot Hill";
     pageIntro.innerHTML =
       "Titles marked done for good — a finished series, a one-time item. " +
       "They're only hidden here; nothing was touched on DCBS itself.";
@@ -112,8 +112,8 @@
     const archiveBtn = document.createElement("button");
     archiveBtn.type = "button";
     archiveBtn.className = "secondary pull-archive-btn";
-    archiveBtn.textContent = isBoneyard ? "Unarchive" : "Archive";
-    archiveBtn.addEventListener("click", () => setArchived(entry.id, !isBoneyard, archiveBtn));
+    archiveBtn.textContent = isBootHill ? "Unarchive" : "Archive";
+    archiveBtn.addEventListener("click", () => setArchived(entry.id, !isBootHill, archiveBtn));
     card.appendChild(archiveBtn);
 
     li.appendChild(card);
@@ -123,15 +123,15 @@
   async function loadList() {
     statusEl.hidden = false;
     groups.hidden = true;
-    statusEl.textContent = isBoneyard ? "Digging up the boneyard…" : "Rounding up your pull list…";
+    statusEl.textContent = isBootHill ? "Riding out to Boot Hill…" : "Rounding up your pull list…";
     try {
-      const res = await fetch(`/api/pulllist?archived=${isBoneyard}`, { cache: "no-store" });
+      const res = await fetch(`/api/pulllist?archived=${isBootHill}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const entries = await res.json();
 
-      if (isBoneyard) {
+      if (isBootHill) {
         archivedList.innerHTML = "";
-        archivedHeading.textContent = `The Boneyard (${entries.length})`;
+        archivedHeading.textContent = `Boot Hill (${entries.length})`;
         entries.forEach((e) => archivedList.appendChild(renderCard(e)));
 
         if (entries.length === 0) {

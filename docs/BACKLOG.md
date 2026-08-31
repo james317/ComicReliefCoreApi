@@ -572,7 +572,7 @@ server-side.
     is small (one `using` + one `.AddJsonOptions()` call) but should still
     go through the same Codespace `dotnet build` check before relying on it.
 
-- **Archived titles + "The Boneyard" view (8/31/2026)** — after the CSV
+- **Archived titles + "Boot Hill" view (8/31/2026)** — after the CSV
   import landed 232 real entries, several Sticky titles were long-finished
   series (confirmed via explicit "Series complete at #X of X" notes from
   this session's order-history research, not guessed from general comics
@@ -582,7 +582,7 @@ server-side.
   touching DCBS at all - archiving is purely a display decision.
   `POST /api/pulllist/{id}/archive` / `/unarchive`; `GET /api/pulllist`
   defaults to `archived=false`, `?archived=true` shows only archived ones
-  (rendered as "The Boneyard" - `pull-list.html?archived=true`, linked from
+  (rendered as "Boot Hill" - `pull-list.html?archived=true`, linked from
   the main page).
   **Real schema-evolution gotcha hit here:** `Database.EnsureCreated()`
   (used throughout since no `dotnet-ef` tooling exists in this session)
