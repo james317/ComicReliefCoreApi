@@ -659,6 +659,32 @@ server-side.
   duplicate-column exception - SQLite handles "already exists" natively
   for table/index creation, no try/catch needed there.
 
+- **DCBS `CurrentIssueText` tested live and ruled out as a "last shipped
+  issue" source (8/31/2026)** — once a real DCBS session cookie was
+  finally set on production, built `GET /api/pulllist/dcbs-search?term=`
+  (read-only passthrough to `SearchSeriesAsync`, left in place as a
+  harmless diagnostic/future preview tool) and tested it directly:
+  - `Torpedo 1972` (one of the 6 titles archived this session as
+    confirmed-complete) returned **zero search results** - not even a
+    stale entry, it's just gone from DCBS's index.
+  - `Batman` returned 17 series-code matches, but the actual flagship
+    ongoing monthly series (code `136313`, unambiguously still shipping)
+    came back with `currentIssueText: null` - identical in shape to how a
+    dead series looks. Only entries with something solicited in the
+    *current* catalog cycle (e.g. a tie-in mini's specific issue) had text.
+  - `Vampirella` similarly only returned the specific issue currently
+    up for order (`Vampirella (2026) #7 ... (AUG2670877)`), not a history.
+
+  **Conclusion: `CurrentIssueText` reflects "what's solicited this
+  catalog cycle," not a series' shipping history.** It goes blank for a
+  healthy ongoing series between solicitations exactly as it does for a
+  series that's permanently over - there's no way to tell the two apart
+  from this field. Confirms the reasoning that led to building the CLZ
+  import in the first place: DCBS is an ordering catalog with no concept
+  of issue history, not a comics database. No DCBS-side alternative to
+  the CLZ "last purchased" signal exists; don't re-investigate this
+  without new information (e.g. a different DCBS endpoint surfacing).
+
 ## Explicit pull list — canonical source of truth
 
 [`docs/pull-list.csv`](./pull-list.csv) is the definitive, persisted list of
