@@ -199,21 +199,30 @@ the "sometimes the add button seems disabled" experience: the button
 works, the click fires, the server silently 500s, and nothing visibly
 happens either way.
 
-**Not yet tried:** whether route 2 above (`UpdatePullListFromOrder`,
-keyed by product code rather than series code) avoids the same overflow
-for these 5 titles — it may hit different server-side code that handles
-the conversion correctly. Recommended immediate next step: the user
-tries this manually in their own browser (order page's "Pull List"
-column, type `1` for the 5 titles above, click "Update Pull List") since
-it's the fastest way to learn the answer, and it isn't a scripted action
-so it sidesteps the question of repeated automated attempts entirely.
-If it works by hand, that confirms route 2 as the one worth scripting
-for a real implementation (and DCBS support would be the right channel
-to report the `AddPullListItem` 500 as a bug). If it *also* silently
-fails, the overflow is more fundamental (e.g. baked into how the order
-page resolves product code to series code) and these 5 titles would need
-to stay manually tracked on our unsticky list too, at least until DCBS
-fixes it server-side.
+**Resolved (8/31/2026): route 2 works.** The user tried the manual
+workaround — typing `1` into the order page's "Pull List" column for
+all 5 titles and clicking "Update Pull List" — and got no visible
+feedback either way (confirming this page also gives zero UI
+confirmation on success, same silence problem as route 1's missing
+`alert()`). Re-fetching `/account/pulllist` directly settled it: entry
+count went from 227 to 232, with fresh distinct plids for all 5 —
+`Doom Patrol` (707339), `Filthy Lambs` (707338), `Crowbound` (707340),
+`Black Tower The Raven Conspiracy` (707341), and `Pathfinder /
+Vampirella: Blade of Darknes` (707337). **So `UpdatePullListFromOrder`
+correctly resolves product-code-to-series internally and sidesteps
+whatever throws on the long codes in `AddPullListItem`.** This is the
+route worth building into a real implementation — `AddPullListItem`
+should be avoided entirely for any series using a long code, or at
+minimum wrapped in a fallback to this order-form path on a 500. Also
+worth reporting the raw 500 to DCBS support separately, independent of
+our own workaround, since a real user hand-clicking "Add" on one of
+these series gets nothing and no explanation.
+
+Updated `docs/pull-list.csv`: all 5 moved from `Unsticky` to `Sticky`,
+each annotated with its new plid. Filthy Lambs carries an extra note —
+it's a 5-issue limited series, so it should be manually removed from
+the DCBS pull list once #5 ships rather than sitting there indefinitely
+with nothing left to solicit.
 
 ## Shipped in the app
 
