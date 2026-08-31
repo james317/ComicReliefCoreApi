@@ -10,37 +10,6 @@
   // null until the first response tells us what "month after next" resolved to.
   let current = null;
 
-  // Normalized titles from the pull list, fetched once, used to badge matching
-  // comics on this page - lets a catalog pass surface "you're already tracking
-  // this" without a separate trip to the Pull List page. Mirrors
-  // ComicReliefCoreApi.App/Services/TitleNormalizer.cs so DCBS's inconsistent
-  // "The"/apostrophe/colon stripping doesn't cause false negatives here either.
-  let pullListNormalizedTitles = [];
-
-  function normalizeTitle(title) {
-    return title
-      .trim()
-      .toLowerCase()
-      .replace(/^(the|a)\s+/, "")
-      .replace(/[^a-z0-9]/g, "");
-  }
-
-  async function loadPullListTitles() {
-    try {
-      const res = await fetch("/api/pulllist", { cache: "no-store" });
-      if (!res.ok) return;
-      const entries = await res.json();
-      pullListNormalizedTitles = entries.map((e) => normalizeTitle(e.title));
-    } catch {
-      // Non-critical - the feed still works without the badge.
-    }
-  }
-
-  function isOnPullList(comicTitle) {
-    const normalized = normalizeTitle(comicTitle);
-    return pullListNormalizedTitles.some((t) => normalized.includes(t));
-  }
-
   const SPLASH_MIN_MS = 1100;
   const splashShownAt = Date.now();
   let splashDismissed = false;
@@ -113,7 +82,7 @@
       title.textContent = comic.title;
       info.appendChild(title);
 
-      if (isOnPullList(comic.title)) {
+      if (comic.onPullList) {
         const badge = document.createElement("span");
         badge.className = "on-list-badge";
         badge.textContent = "On Your List";
@@ -159,8 +128,5 @@
   prevBtn.addEventListener("click", () => shiftMonth(-1));
   nextBtn.addEventListener("click", () => shiftMonth(1));
 
-  // Run concurrently rather than sequentially - the pull list badge is a nice-to-have
-  // and shouldn't delay the primary comics feed rendering.
-  loadPullListTitles();
   load();
 })();

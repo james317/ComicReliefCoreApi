@@ -530,17 +530,24 @@ server-side.
     pass instead of just seeing "failed"), and **Just Rode In**
     (`Unresolved` — added but not attempted yet).
   - **Cross-reference badge on the solicitations feed** (`index.html` /
-    `app.js`) — fetches `/api/pulllist` alongside the Comic Vine feed and
-    badges any solicited title that's already tracked ("On Your List"),
-    using a client-side copy of `TitleNormalizer`'s rules (strip leading
-    "The"/"A", strip non-alphanumerics) and substring containment (a
-    normalized pull-list title has to appear inside the normalized comic
-    title, since the comic title carries an issue number the pull list
-    entry doesn't). Runs concurrently with the main feed fetch rather than
-    blocking on it, since the primary content shouldn't wait on a
-    nice-to-have. Directly serves steps 1–3 (recognizing a followed title
-    while skimming catalogs/solicitations, before deciding whether a
-    variant cover is worth chasing).
+    `app.js`) — badges any solicited title already tracked on the pull list
+    ("On Your List"). Directly serves steps 1–3 (recognizing a followed
+    title while skimming catalogs/solicitations, before deciding whether a
+    variant cover is worth chasing). **Corrected same day**: this first
+    shipped with a client-side copy of `TitleNormalizer`'s matching rules
+    in `app.js`, which the user correctly flagged as a business-logic leak
+    into the UI layer - a future change to DCBS's naming quirks would've
+    had to be updated in two places, in two languages, and could silently
+    drift out of sync. Fixed by moving the decision server-side:
+    `IPullListService.GetTrackedNormalizedTitlesAsync()` (`.App`) exposes
+    normalized tracked titles, `ComicsController` (web host) combines them
+    with `TitleNormalizer.Normalize()` (the same single source of truth
+    `PullListService` itself uses) to set a new `ComicIssue.OnPullList`
+    bool per comic, and `app.js` now just reads that field - no matching
+    logic in the UI at all. General rule going forward: the UI layer reads
+    `IPullListService`/`IDcbsClient`-shaped data through controllers and
+    renders it; any comparison, matching, or status decision belongs in
+    `.App` (or `.Api` for raw DCBS facts), never reimplemented in JS.
   - **Shared `.trail-nav`** — a sticky three-tab bar (Solicitations / Pull
     List / DCBS Session) added to all three pages; previously each page was
     an island with no link to the others.

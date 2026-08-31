@@ -169,6 +169,11 @@ public class PullListService : IPullListService
         return null;
     }
 
+    public async Task<IReadOnlyCollection<string>> GetTrackedNormalizedTitlesAsync(CancellationToken ct = default)
+    {
+        return await _db.PullListEntries.Select(e => e.NormalizedTitle).ToListAsync(ct);
+    }
+
     private static string Truncate(string value, int max = 2000) =>
         value.Length <= max ? value : value[..max];
 }

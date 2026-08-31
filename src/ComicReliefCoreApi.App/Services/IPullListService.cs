@@ -13,4 +13,13 @@ public interface IPullListService
     /// response alone.
     /// </summary>
     Task<PullListEntry> AddToPullListAsync(string title, CancellationToken ct = default);
+
+    /// <summary>
+    /// Normalized titles of everything currently tracked (any status), for callers that
+    /// need to cross-reference some other title list against the pull list - e.g. the
+    /// solicitations feed badging titles the user already tracks. Callers should use
+    /// <see cref="TitleNormalizer"/> on their own titles before comparing, rather than
+    /// re-deriving DCBS's naming-inconsistency rules themselves.
+    /// </summary>
+    Task<IReadOnlyCollection<string>> GetTrackedNormalizedTitlesAsync(CancellationToken ct = default);
 }

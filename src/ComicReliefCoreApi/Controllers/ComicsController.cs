@@ -1,3 +1,4 @@
+using ComicReliefCoreApi.App.Services;
 using ComicReliefCoreApi.Models;
 using ComicReliefCoreApi.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -9,10 +10,12 @@ namespace ComicReliefCoreApi.Controllers;
 public sealed class ComicsController : ControllerBase
 {
     private readonly IComicVineService _comicVineService;
+    private readonly IPullListService _pullListService;
 
-    public ComicsController(IComicVineService comicVineService)
+    public ComicsController(IComicVineService comicVineService, IPullListService pullListService)
     {
         _comicVineService = comicVineService;
+        _pullListService = pullListService;
     }
 
     /// <summary>
@@ -61,11 +64,27 @@ public sealed class ComicsController : ControllerBase
         try
         {
             var result = await _comicVineService.GetIssuesShippingInAsync(rangeStart, rangeEnd, cancellationToken);
-            return Ok(result);
+
+            // Badging "already on your pull list" is a domain decision (it depends on
+            // TitleNormalizer's DCBS-naming-quirk rules), so it's resolved here against
+            // IPullListService rather than duplicated in the UI - the client just
+            // displays whatever OnPullList says.
+            var trackedTitles = await _pullListService.GetTrackedNormalizedTitlesAsync(cancellationToken);
+            var comics = result.Comics
+                .Select(c => c with { OnPullList = IsOnPullList(c.Title, trackedTitles) })
+                .ToList();
+
+            return Ok(result with { Comics = comics });
         }
         catch (InvalidOperationException ex)
         {
             return Problem(ex.Message, statusCode: StatusCodes.Status502BadGateway);
         }
+    }
+
+    private static bool IsOnPullList(string comicTitle, IReadOnlyCollection<string> trackedNormalizedTitles)
+    {
+        var normalized = TitleNormalizer.Normalize(comicTitle);
+        return trackedNormalizedTitles.Any(tracked => normalized.Contains(tracked));
     }
 }

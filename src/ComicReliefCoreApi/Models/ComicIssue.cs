@@ -7,7 +7,8 @@ public sealed record ComicIssue(
     string? IssueNumber,
     DateOnly? StoreDate,
     string? CoverImageUrl,
-    string? DetailUrl);
+    string? DetailUrl,
+    bool OnPullList = false);
 
 /// <summary>Result of a request for comics shipping within a given month.</summary>
 public sealed record UpcomingComicsResponse(
