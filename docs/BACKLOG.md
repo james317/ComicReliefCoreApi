@@ -513,6 +513,21 @@ server-side.
   `DcbsOptions.SessionCookie` and the `Dcbs__SessionCookie` secret are
   superseded by this — `DcbsOptions` now only holds `BaseUrl`.
 
+  **How to actually get a cookie (documented here since `dcbs-session.html`
+  promises this file has it, and it didn't yet):** log into dcbservice.com
+  in a normal browser tab, open DevTools (F12 - identical steps in any
+  Chromium browser: Edge, Chrome, Brave), go to the **Network** tab,
+  reload the page, click any request to dcbservice.com in the list, find
+  **Cookie:** under **Request Headers** on the right, and copy that whole
+  value (a long `name=value; name2=value2; ...` string, not just one
+  cookie). Paste the entire thing into `/dcbs-session.html`. Don't use a
+  browser's Application/Storage tab for this - it lists cookies
+  individually, and hand-reconstructing the full header string from that
+  is error-prone; the Network tab's Cookie header is the exact string the
+  browser actually sent. The auth cookie itself is `.ASPXAUTH` (see
+  "Session lifetime" above) but the app needs the full header, not just
+  that one name/value pair.
+
 - **Pull List UI + cross-app nav + workflow-driven theming pass (8/31/2026)** —
   the pull-list backend had shipped with no UI beyond a raw API, and the
   three pages (`index.html`, the new one, `dcbs-session.html`) had no way
