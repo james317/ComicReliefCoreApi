@@ -17,14 +17,16 @@
   <a href="/dcbs-session.html">DCBS Session</a>
 </nav>
 <main class="content">
-  <h1 class="page-heading">The Pull List</h1>
-  <p class="page-intro">
+  <h1 class="page-heading" id="pageHeading">The Pull List</h1>
+  <p class="page-intro" id="pageIntro">
     Add a title here and it's tried on DCBS's real sticky pull list first.
     Anything that won't stick — a bad series code, a DCBS server bug — gets
     tracked below as <strong>Still Wanted</strong> instead of silently
     dropped, so nothing you meant to follow slips through when you're
     working the catalogs.
   </p>
+
+  <p class="view-toggle"><a id="viewToggleLink" href="/pull-list.html?archived=true">View the Boneyard →</a></p>
 
   <form id="addForm" class="add-form">
     <input type="text" id="titleInput" placeholder="Series title, e.g. Vampirella Archives" autocomplete="off" />
@@ -47,6 +49,10 @@
     <div class="posse-group">
       <h2 id="unresolvedHeading">Just Rode In (0)</h2>
       <ul class="posse-list" id="unresolvedList"></ul>
+    </div>
+    <div class="posse-group" id="archivedGroup">
+      <h2 id="archivedHeading">The Boneyard (0)</h2>
+      <ul class="posse-list" id="archivedList"></ul>
     </div>
   </div>
 </main>

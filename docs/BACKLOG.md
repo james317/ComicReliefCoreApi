@@ -572,6 +572,32 @@ server-side.
     is small (one `using` + one `.AddJsonOptions()` call) but should still
     go through the same Codespace `dotnet build` check before relying on it.
 
+- **Archived titles + "The Boneyard" view (8/31/2026)** — after the CSV
+  import landed 232 real entries, several Sticky titles were long-finished
+  series (confirmed via explicit "Series complete at #X of X" notes from
+  this session's order-history research, not guessed from general comics
+  knowledge - deliberately excluded `Altered States: Warlords`, whose note
+  only says "likely concluded... or on hiatus"). `PullListEntry.ArchivedAt`
+  (nullable) hides a title from the default `/pull-list.html` view without
+  touching DCBS at all - archiving is purely a display decision.
+  `POST /api/pulllist/{id}/archive` / `/unarchive`; `GET /api/pulllist`
+  defaults to `archived=false`, `?archived=true` shows only archived ones
+  (rendered as "The Boneyard" - `pull-list.html?archived=true`, linked from
+  the main page).
+  **Real schema-evolution gotcha hit here:** `Database.EnsureCreated()`
+  (used throughout since no `dotnet-ef` tooling exists in this session)
+  only builds a schema for a brand-new database - it does **not** apply
+  incremental changes to one that already has data, which the production
+  SQLite file on the Fly volume now does (the 232 imported entries).
+  Adding `ArchivedAt` to the C# model alone would've compiled fine and
+  then thrown "no such column" against the live database. Fixed with an
+  idempotent hand-written `ALTER TABLE PullListEntries ADD COLUMN
+  ArchivedAt TEXT NULL` in `Program.cs`, guarded by catching SQLite's
+  duplicate-column error so it's safe to run on every startup. **General
+  rule going forward: any new column on an existing table needs this
+  treatment (or a real tracked migration) - editing the EF model is not
+  enough once production has real data.**
+
 ## Explicit pull list — canonical source of truth
 
 [`docs/pull-list.csv`](./pull-list.csv) is the definitive, persisted list of

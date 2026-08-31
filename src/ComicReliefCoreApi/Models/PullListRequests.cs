@@ -24,7 +24,8 @@ public record PullListEntryResponse(
     PullListAddMethod? LastSuccessfulMethod,
     string? FailureReason,
     DateTime? LastAttemptedAt,
-    DateTime? LastVerifiedStickyAt)
+    DateTime? LastVerifiedStickyAt,
+    DateTime? ArchivedAt)
 {
     public static PullListEntryResponse FromEntity(PullListEntry entry) => new(
         entry.Id,
@@ -36,5 +37,6 @@ public record PullListEntryResponse(
         entry.LastSuccessfulMethod,
         entry.FailureReason,
         entry.LastAttemptedAt,
-        entry.LastVerifiedStickyAt);
+        entry.LastVerifiedStickyAt,
+        entry.ArchivedAt);
 }

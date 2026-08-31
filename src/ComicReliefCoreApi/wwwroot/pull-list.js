@@ -8,9 +8,33 @@
   const corralledList = document.getElementById("corralledList");
   const wantedList = document.getElementById("wantedList");
   const unresolvedList = document.getElementById("unresolvedList");
+  const archivedList = document.getElementById("archivedList");
   const corralledHeading = document.getElementById("corralledHeading");
   const wantedHeading = document.getElementById("wantedHeading");
   const unresolvedHeading = document.getElementById("unresolvedHeading");
+  const archivedHeading = document.getElementById("archivedHeading");
+  const archivedGroup = document.getElementById("archivedGroup");
+  const pageHeading = document.getElementById("pageHeading");
+  const pageIntro = document.getElementById("pageIntro");
+  const viewToggleLink = document.getElementById("viewToggleLink");
+
+  const isBoneyard = new URLSearchParams(location.search).get("archived") === "true";
+
+  const activeGroupIds = ["corralledHeading", "wantedHeading", "unresolvedHeading"].map((id) =>
+    document.getElementById(id).closest(".posse-group"));
+
+  if (isBoneyard) {
+    pageHeading.textContent = "The Boneyard";
+    pageIntro.innerHTML =
+      "Titles marked done for good — a finished series, a one-time item. " +
+      "They're only hidden here; nothing was touched on DCBS itself.";
+    viewToggleLink.textContent = "← Back to the Pull List";
+    viewToggleLink.href = "/pull-list.html";
+    addForm.hidden = true;
+    activeGroupIds.forEach((el) => { el.hidden = true; });
+  } else {
+    archivedGroup.hidden = true;
+  }
 
   function showMessage(text, isError) {
     message.textContent = text ?? "";
@@ -44,6 +68,18 @@
     return { cls: "unresolved", label: "?" };
   }
 
+  async function setArchived(id, archived, button) {
+    button.disabled = true;
+    try {
+      const res = await fetch(`/api/pulllist/${id}/${archived ? "archive" : "unarchive"}`, { method: "POST" });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+      await loadList();
+    } catch (err) {
+      showMessage(`Something went wrong: ${err.message}`, true);
+      button.disabled = false;
+    }
+  }
+
   function renderCard(entry) {
     const li = document.createElement("li");
     const card = document.createElement("div");
@@ -72,6 +108,14 @@
 
     card.appendChild(badge);
     card.appendChild(info);
+
+    const archiveBtn = document.createElement("button");
+    archiveBtn.type = "button";
+    archiveBtn.className = "secondary pull-archive-btn";
+    archiveBtn.textContent = isBoneyard ? "Unarchive" : "Archive";
+    archiveBtn.addEventListener("click", () => setArchived(entry.id, !isBoneyard, archiveBtn));
+    card.appendChild(archiveBtn);
+
     li.appendChild(card);
     return li;
   }
@@ -79,11 +123,27 @@
   async function loadList() {
     statusEl.hidden = false;
     groups.hidden = true;
-    statusEl.textContent = "Rounding up your pull list…";
+    statusEl.textContent = isBoneyard ? "Digging up the boneyard…" : "Rounding up your pull list…";
     try {
-      const res = await fetch("/api/pulllist", { cache: "no-store" });
+      const res = await fetch(`/api/pulllist?archived=${isBoneyard}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const entries = await res.json();
+
+      if (isBoneyard) {
+        archivedList.innerHTML = "";
+        archivedHeading.textContent = `The Boneyard (${entries.length})`;
+        entries.forEach((e) => archivedList.appendChild(renderCard(e)));
+
+        if (entries.length === 0) {
+          statusEl.hidden = false;
+          groups.hidden = true;
+          statusEl.textContent = "Nothing archived yet.";
+        } else {
+          statusEl.hidden = true;
+          groups.hidden = false;
+        }
+        return;
+      }
 
       corralledList.innerHTML = "";
       wantedList.innerHTML = "";

@@ -41,6 +41,21 @@ using (var scope = app.Services.CreateScope())
     // written - EnsureCreated() builds the schema directly from the model instead. If
     // real migrations are added later, switch this to db.Database.Migrate().
     db.Database.EnsureCreated();
+
+    // EnsureCreated() only builds the schema for a brand-new database - it does NOT apply
+    // incremental changes to one that already exists, which the production database on the
+    // Fly volume now does (it has real imported pull-list data). Add new columns by hand
+    // like this instead of just editing the model, or EF throws "no such column" at query
+    // time against the live database. Safe to run on every startup: a duplicate-column
+    // error just means a previous startup already applied it.
+    try
+    {
+        db.Database.ExecuteSqlRaw("ALTER TABLE PullListEntries ADD COLUMN ArchivedAt TEXT NULL");
+    }
+    catch (Exception ex) when (ex.Message.Contains("duplicate column", StringComparison.OrdinalIgnoreCase))
+    {
+        // Already applied.
+    }
 }
 
 app.UseDefaultFiles();

@@ -37,13 +37,31 @@ public sealed class PullListController : ControllerBase
         return Ok(PullListEntryResponse.FromEntity(entry));
     }
 
+    /// <summary>Archived titles are hidden by default - pass ?archived=true to see only those instead.</summary>
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<PullListEntryResponse>>> GetAll(CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<PullListEntryResponse>>> GetAll(
+        [FromQuery] bool archived, CancellationToken cancellationToken)
     {
         var entries = await _db.PullListEntries
+            .Where(e => archived ? e.ArchivedAt != null : e.ArchivedAt == null)
             .OrderBy(e => e.Title)
             .ToListAsync(cancellationToken);
         return Ok(entries.Select(PullListEntryResponse.FromEntity).ToList());
+    }
+
+    /// <summary>Hides a title from the default pull-list view. Never touches DCBS itself.</summary>
+    [HttpPost("{id:int}/archive")]
+    public async Task<ActionResult<PullListEntryResponse>> Archive(int id, CancellationToken cancellationToken)
+    {
+        var entry = await _pullListService.SetArchivedAsync(id, archived: true, cancellationToken);
+        return entry is null ? NotFound() : Ok(PullListEntryResponse.FromEntity(entry));
+    }
+
+    [HttpPost("{id:int}/unarchive")]
+    public async Task<ActionResult<PullListEntryResponse>> Unarchive(int id, CancellationToken cancellationToken)
+    {
+        var entry = await _pullListService.SetArchivedAsync(id, archived: false, cancellationToken);
+        return entry is null ? NotFound() : Ok(PullListEntryResponse.FromEntity(entry));
     }
 
     /// <summary>

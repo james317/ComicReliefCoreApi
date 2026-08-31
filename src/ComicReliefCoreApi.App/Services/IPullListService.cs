@@ -33,6 +33,12 @@ public interface IPullListService
     /// actually inserted.
     /// </summary>
     Task<int> ImportKnownEntriesAsync(IEnumerable<PullListImportRow> rows, CancellationToken ct = default);
+
+    /// <summary>
+    /// Marks a title archived (hidden from the default pull-list view) or unarchived.
+    /// Purely a display decision - never touches DCBS. Returns null if no entry with that id exists.
+    /// </summary>
+    Task<PullListEntry?> SetArchivedAsync(int id, bool archived, CancellationToken ct = default);
 }
 
 public sealed record PullListImportRow(string Title, PullListStatus Status, string? Notes);

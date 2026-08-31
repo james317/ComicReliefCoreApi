@@ -279,6 +279,15 @@ body {
   margin: 0 0 20px;
 }
 
+.view-toggle {
+  margin: -8px 0 20px;
+  font-size: 0.82rem;
+}
+
+.view-toggle a {
+  color: var(--accent);
+}
+
 /* Shared form controls (add-a-title, session cookie paste, etc.) */
 textarea, input[type="text"] {
   width: 100%;
@@ -447,6 +456,13 @@ details summary { cursor: pointer; color: var(--accent); }
   font-size: 0.76rem;
   color: var(--text-muted);
   margin-top: 2px;
+}
+
+.pull-archive-btn {
+  flex-shrink: 0;
+  align-self: center;
+  padding: 5px 10px;
+  font-size: 0.72rem;
 }
 
 .on-list-badge {

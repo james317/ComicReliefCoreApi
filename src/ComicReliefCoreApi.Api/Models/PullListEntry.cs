@@ -56,5 +56,12 @@ public class PullListEntry
     /// </summary>
     public DateTime? LastVerifiedStickyAt { get; set; }
 
+    /// <summary>
+    /// Set when the user has marked this title done for good (a finished series, a one-time
+    /// item) - hidden from the default pull-list view but left alone on DCBS itself, since
+    /// archiving here is purely a display decision, not a DCBS mutation.
+    /// </summary>
+    public DateTime? ArchivedAt { get; set; }
+
     public List<PullListAddAttempt> Attempts { get; set; } = new();
 }

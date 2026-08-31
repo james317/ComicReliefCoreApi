@@ -202,6 +202,19 @@ public class PullListService : IPullListService
         return imported;
     }
 
+    public async Task<PullListEntry?> SetArchivedAsync(int id, bool archived, CancellationToken ct = default)
+    {
+        var entry = await _db.PullListEntries.FindAsync(new object?[] { id }, ct);
+        if (entry is null)
+        {
+            return null;
+        }
+
+        entry.ArchivedAt = archived ? DateTime.UtcNow : null;
+        await _db.SaveChangesAsync(ct);
+        return entry;
+    }
+
     private static string Truncate(string value, int max = 2000) =>
         value.Length <= max ? value : value[..max];
 }
