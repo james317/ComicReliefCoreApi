@@ -649,3 +649,34 @@ details summary { cursor: pointer; color: var(--accent); }
 .comic-card-wrap {
   list-style: none;
 }
+
+.issue-card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.cover-strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.cover-strip a {
+  flex-shrink: 0;
+}
+
+.cover-thumb {
+  display: block;
+  width: 56px;
+  height: 84px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--border);
+}
+
+.comic-title, .cover-strip a {
+  text-decoration: none;
+  color: inherit;
+}

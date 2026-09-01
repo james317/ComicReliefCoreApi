@@ -39,40 +39,81 @@ function renderStatus(status) {
   statusText.textContent = parts.join(' ');
 }
 
-function itemCard(solicitationItem) {
-  const { publisher, item } = solicitationItem;
+// DCBS's own title convention inserts "Cvr X" (or "Cover X") right after the
+// series/issue identity for every variant of the same issue - splitting there groups
+// "Absolute Batman #25 Cvr F..." and "...Cvr G..." under one "Absolute Batman #25" card
+// instead of one card per cover. Items with no cover marker (most TPBs/HCs, one-shots
+// without variants) just fall back to their own single-item group - no special-casing
+// needed since a group of one renders identically to the old one-card-per-item layout.
+function extractIssueIdentity(title) {
+  const match = title.match(/^(.*?)\s+(cvr|cover)\b/i);
+  return match ? match[1].trim() : title.trim();
+}
+
+function groupByIssue(items) {
+  const groups = new Map();
+  for (const solicitationItem of items) {
+    const key = extractIssueIdentity(solicitationItem.item.title).toLowerCase();
+    const list = groups.get(key) || [];
+    list.push(solicitationItem);
+    groups.set(key, list);
+  }
+  return [...groups.values()];
+}
+
+function issueCard(group) {
   const li = document.createElement('li');
   li.className = 'comic-card-wrap';
 
-  const a = document.createElement('a');
-  a.className = 'comic-card';
-  a.href = item.productUrl;
-  a.target = '_blank';
-  a.rel = 'noopener';
-  a.dataset.title = item.title.toLowerCase();
+  const card = document.createElement('div');
+  card.className = 'comic-card issue-card';
+  card.dataset.title = group.map((g) => g.item.title.toLowerCase()).join(' ');
 
-  if (item.thumbnailUrl) {
-    const img = document.createElement('img');
-    img.className = 'comic-cover';
-    img.src = item.thumbnailUrl;
-    img.alt = '';
-    img.loading = 'lazy';
-    a.appendChild(img);
+  const coverStrip = document.createElement('div');
+  coverStrip.className = 'cover-strip';
+  for (const solicitationItem of group) {
+    const { item } = solicitationItem;
+    const a = document.createElement('a');
+    a.href = item.productUrl;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.title = item.title;
+    if (item.thumbnailUrl) {
+      const img = document.createElement('img');
+      img.className = 'cover-thumb';
+      img.src = item.thumbnailUrl;
+      img.alt = item.title;
+      img.loading = 'lazy';
+      a.appendChild(img);
+    } else {
+      a.textContent = item.title;
+    }
+    coverStrip.appendChild(a);
   }
+  card.appendChild(coverStrip);
 
   const info = document.createElement('div');
   info.className = 'comic-info';
 
-  const title = document.createElement('div');
+  const title = document.createElement('a');
   title.className = 'comic-title';
-  title.textContent = item.title;
+  title.href = group[0].item.productUrl;
+  title.target = '_blank';
+  title.rel = 'noopener';
+  title.textContent = extractIssueIdentity(group[0].item.title);
   info.appendChild(title);
 
-  const metaParts = [publisher];
-  if (item.price != null) {
-    metaParts.push(`$${item.price.toFixed(2)}`);
+  const prices = group.map((g) => g.item.price).filter((p) => p != null);
+  const metaParts = [group[0].publisher];
+  if (group.length > 1) {
+    metaParts.push(`${group.length} covers`);
   }
-  if (item.isRelisted) {
+  if (prices.length > 0) {
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    metaParts.push(min === max ? `$${min.toFixed(2)}` : `$${min.toFixed(2)}–$${max.toFixed(2)}`);
+  }
+  if (group.some((g) => g.item.isRelisted)) {
     metaParts.push('Relisted');
   }
   const meta = document.createElement('div');
@@ -80,8 +121,8 @@ function itemCard(solicitationItem) {
   meta.textContent = metaParts.join(' · ');
   info.appendChild(meta);
 
-  a.appendChild(info);
-  li.appendChild(a);
+  card.appendChild(info);
+  li.appendChild(card);
   return li;
 }
 
@@ -134,17 +175,18 @@ function renderUntracked(untracked) {
   const publishers = [...byPublisher.keys()].sort();
   for (const publisher of publishers) {
     const items = byPublisher.get(publisher);
+    const issueGroups = groupByIssue(items);
     const details = document.createElement('details');
     details.className = 'candidate-group';
 
     const summary = document.createElement('summary');
-    summary.textContent = `${publisher} (${items.length})`;
+    summary.textContent = `${publisher} (${issueGroups.length})`;
     details.appendChild(summary);
 
     const ul = document.createElement('ul');
     ul.className = 'comic-list';
-    for (const item of items) {
-      ul.appendChild(itemCard(item));
+    for (const group of issueGroups) {
+      ul.appendChild(issueCard(group));
     }
     details.appendChild(ul);
 
