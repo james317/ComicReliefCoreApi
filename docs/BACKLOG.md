@@ -858,11 +858,31 @@ Every card in the fuzzy-pulls/new-#1s report links to a Google search for
 
 ## DCBS scraping gotchas (encode these into any real scraper)
 - Category pages are `/products/<any-slug>/<numeric-id>` — the slug is
-  cosmetic, only the numeric ID matters.
+  cosmetic, only the numeric ID matters. IDs found via the homepage nav
+  (9/2026): dc-comics=1, dark-horse=2, image-comics=3, marvel-comics=4,
+  other=6, previews-catalog=34 (magazines/catalogs, not comics — small,
+  ~29 items), trading-cards=10, boom-studios=36, idw-publishing=37,
+  dynamite-entertainment=38, manga=42, scout-comics=46, vault-comics=47,
+  titan-comics=48, archie-comics-publications=49, cinebook=50, drawn-
+  quarterly=52, fantagraphics=53, oni-press=54, papercutz=55, udon-
+  entertainment=56, viz-media-llc=57, yen-press=58, kodansha-comics=59,
+  tokyopop=60, valiant-entertainment=61, seven-seas-entertainment=62,
+  twomorrows-publishing=63, calendars=35, specials (no numeric id seen).
 - Product pages are `/product/<code>/<any-slug>` — same deal, slug is
   ignored.
-- Page size is controlled by a `ProductsPerPage` cookie (10/20/30/50/100,
-  default 10) — set it to 100 to avoid unnecessary pagination.
+- Page size is controlled by a `ProductsPerPage` cookie. **Tested live
+  9/2026 (not just read off the UI dropdown):** values well past the
+  dropdown's documented 10/20/30/50/100 max are genuinely honored, not
+  capped at 100 — `/products/dc-comics/1` returned 35/125/275/325 items
+  for cookie values 10/100/250/500 respectively, and `/products/marvel-
+  comics/4` returned 125/255 items for 100/500. Both plateaued once
+  requesting past the category's actual current inventory (325 for DC,
+  255 for Marvel at test time) — increasing the cookie further (1000,
+  5000, 99999) returned the same plateaued count, not an error or a
+  truncation at a rounder number. So there is no hard 100-item
+  server-side cap; a real crawler can set this to something safely large
+  (e.g. 1000+) and fetch each publisher category in one request instead
+  of paginating.
 - `/search/<term>` does full-text matching across titles, creators, *and*
   descriptions, not just titles — prone to false positives. It also
   renders an unrelated "featured items" carousel before the real results;
