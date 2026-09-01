@@ -49,11 +49,21 @@ public interface IDcbsClient
 
     /// <summary>
     /// Diagnostic-only raw GET, for probing DCBS's actual behavior before committing to a
-    /// real endpoint contract (e.g. whether the documented ProductsPerPage cookie values
-    /// of 10/20/30/50/100 are a hard server-side cap or just what the site's own UI
-    /// dropdown offers). extraCookies are appended to the session cookie already on file,
-    /// not a replacement for it. Never used by any real feature - just exploration.
+    /// real endpoint contract. extraCookies are appended to the session cookie already on
+    /// file, not a replacement for it. Also used internally by GetPublisherListingAsync,
+    /// which is how the ProductsPerPage-past-100 finding (see docs/BACKLOG.md) turned into
+    /// an actual feature rather than staying exploration-only.
     /// </summary>
     Task<(int StatusCode, string Body)> GetRawAsync(
         string relativeUrl, IReadOnlyDictionary<string, string>? extraCookies = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Fetches and parses one publisher's current-preorders listing page in a single
+    /// request (ProductsPerPage set high internally - confirmed live 9/2026 to return the
+    /// category's full current inventory rather than being capped at 100). Raw facts only:
+    /// every item on the page, DCBS's own "Relisted" flag included, no judgment about
+    /// whether it belongs on anyone's pull list.
+    /// </summary>
+    Task<IReadOnlyList<DcbsListingItem>> GetPublisherListingAsync(
+        string categorySlug, int categoryId, CancellationToken ct = default);
 }

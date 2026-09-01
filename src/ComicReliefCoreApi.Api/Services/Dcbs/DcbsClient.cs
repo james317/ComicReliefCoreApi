@@ -27,6 +27,24 @@ public class DcbsClient : IDcbsClient
 
     private static readonly Regex OrderIdLinkRegex = new("href=\"/account/order/(\\d+)\"", RegexOptions.Compiled);
 
+    // Publisher listing-page parsing - the real results grid lives inside
+    // <ul class="thumblist">, same container class documented for /search pages (see
+    // docs/BACKLOG.md). Scoping to that container first, then splitting on "<li " to get
+    // one chunk per product, avoids accidentally matching nav-menu <li> elements that
+    // appear earlier in the page.
+    private static readonly Regex ThumbListRegex = new(
+        "<ul class=\"thumblist\">([\\s\\S]*?)</ul>", RegexOptions.Compiled);
+    private static readonly Regex ListingProductLinkRegex = new(
+        "<a href=\"(/product/([^/\"]+)/[^\"]*)\"", RegexOptions.Compiled);
+    private static readonly Regex ListingTitleRegex = new(
+        "<h5><a href=\"[^\"]+\">([^<]+)</a></h5>", RegexOptions.Compiled);
+    private static readonly Regex ListingDescriptionRegex = new(
+        "</h5>\\s*<div>([\\s\\S]*?)</div>", RegexOptions.Compiled);
+    private static readonly Regex ListingThumbnailRegex = new(
+        "class=\"thumbnail\" src=\"([^\"]+)\"", RegexOptions.Compiled);
+    private static readonly Regex ListingPriceRegex = new(
+        "DCBS Price: </span>\\$([\\d.]+)", RegexOptions.Compiled);
+
     public DcbsClient(HttpClient http, IOptions<DcbsOptions> options, IDcbsSessionStore sessionStore)
     {
         _options = options.Value;
@@ -83,6 +101,61 @@ public class DcbsClient : IDcbsClient
         using var response = await _http.SendAsync(request, ct);
         var body = await response.Content.ReadAsStringAsync(ct);
         return ((int)response.StatusCode, body);
+    }
+
+    public async Task<IReadOnlyList<DcbsListingItem>> GetPublisherListingAsync(
+        string categorySlug, int categoryId, CancellationToken ct = default)
+    {
+        // 1000 comfortably exceeds every publisher's current inventory observed while
+        // testing this (DC's 325 was the largest) - confirmed live that DCBS returns
+        // everything in one page rather than capping at the UI dropdown's 100 max.
+        var extraCookies = new Dictionary<string, string> { ["ProductsPerPage"] = "1000" };
+        var (statusCode, body) = await GetRawAsync($"/products/{categorySlug}/{categoryId}", extraCookies, ct);
+        if (statusCode != 200)
+        {
+            return Array.Empty<DcbsListingItem>();
+        }
+
+        var thumbListMatch = ThumbListRegex.Match(body);
+        if (!thumbListMatch.Success)
+        {
+            return Array.Empty<DcbsListingItem>();
+        }
+
+        var items = new List<DcbsListingItem>();
+        var chunks = thumbListMatch.Groups[1].Value.Split("<li ", StringSplitOptions.RemoveEmptyEntries);
+        foreach (var chunk in chunks)
+        {
+            var linkMatch = ListingProductLinkRegex.Match(chunk);
+            var titleMatch = ListingTitleRegex.Match(chunk);
+            if (!linkMatch.Success || !titleMatch.Success)
+            {
+                continue;
+            }
+
+            var descriptionMatch = ListingDescriptionRegex.Match(chunk);
+            var thumbnailMatch = ListingThumbnailRegex.Match(chunk);
+            var priceMatch = ListingPriceRegex.Match(chunk);
+            var price = priceMatch.Success && decimal.TryParse(priceMatch.Groups[1].Value, out var parsedPrice)
+                ? parsedPrice
+                : (decimal?)null;
+
+            items.Add(new DcbsListingItem(
+                ProductCode: linkMatch.Groups[2].Value,
+                Title: WebUtility.HtmlDecode(titleMatch.Groups[1].Value.Trim()),
+                ProductUrl: _options.BaseUrl + linkMatch.Groups[1].Value,
+                ThumbnailUrl: thumbnailMatch.Success ? thumbnailMatch.Groups[1].Value : null,
+                CreatorsAndDescription: descriptionMatch.Success
+                    ? WebUtility.HtmlDecode(descriptionMatch.Groups[1].Value.Trim())
+                    : null,
+                Price: price,
+                // DCBS marks these with class="relist" on the <li> itself, right at the
+                // start of the chunk since we split on "<li " - a plain substring check on
+                // the whole chunk would also match if that text ever showed up inside a
+                // solicitation blurb, so this is scoped to just the opening tag.
+                IsRelisted: chunk.TrimStart().StartsWith("class=relist", StringComparison.OrdinalIgnoreCase)));
+        }
+        return items;
     }
 
     public async Task<IReadOnlyList<DcbsSeriesSearchResult>> SearchSeriesAsync(string term, CancellationToken ct = default)
