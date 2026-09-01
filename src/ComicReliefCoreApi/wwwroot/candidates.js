@@ -83,7 +83,12 @@ function issueCard(group) {
       img.className = 'cover-thumb';
       img.src = item.thumbnailUrl;
       img.alt = item.title;
-      img.loading = 'lazy';
+      // Not loading="lazy" - these are only ever created once their <details> group is
+      // actually opened (see renderUntracked), so native lazy-loading has nothing left to
+      // defer. It was tried first and dropped: an img that starts inside a collapsed
+      // <details> (display:none) never gets a viewport-intersection check in some browsers,
+      // so it silently never loads even after the group is opened - this is what building
+      // the cards on open (rather than upfront) actually fixes, not just a perf nicety.
       a.appendChild(img);
     } else {
       a.textContent = item.title;
@@ -162,6 +167,24 @@ function renderTracked(matches) {
   }
 }
 
+// Cards (and their cover images) are only built the first time a group is actually
+// opened, not upfront for all ~1900 items. This isn't just a perf nicety - an <img> that
+// starts inside a collapsed <details> (display:none) never gets loaded in some browsers
+// even after the group is opened, since there's nothing there yet for the browser to
+// notice becoming visible. Building on open sidesteps that entirely.
+function buildGroupCards(details) {
+  if (details.dataset.built === 'true') {
+    return;
+  }
+  const ul = document.createElement('ul');
+  ul.className = 'comic-list';
+  for (const group of details.issueGroups) {
+    ul.appendChild(issueCard(group));
+  }
+  details.appendChild(ul);
+  details.dataset.built = 'true';
+}
+
 function renderUntracked(untracked) {
   untrackedGroups.innerHTML = '';
 
@@ -178,17 +201,17 @@ function renderUntracked(untracked) {
     const issueGroups = groupByIssue(items);
     const details = document.createElement('details');
     details.className = 'candidate-group';
+    details.issueGroups = issueGroups;
 
     const summary = document.createElement('summary');
     summary.textContent = `${publisher} (${issueGroups.length})`;
     details.appendChild(summary);
 
-    const ul = document.createElement('ul');
-    ul.className = 'comic-list';
-    for (const group of issueGroups) {
-      ul.appendChild(issueCard(group));
-    }
-    details.appendChild(ul);
+    details.addEventListener('toggle', () => {
+      if (details.open) {
+        buildGroupCards(details);
+      }
+    });
 
     untrackedGroups.appendChild(details);
   }
@@ -196,24 +219,33 @@ function renderUntracked(untracked) {
 
 function applyFilter() {
   const term = filterInput.value.trim().toLowerCase();
-  const cards = document.querySelectorAll('#untrackedGroups .comic-card');
-  let anyVisibleByGroup = new Map();
-
-  for (const card of cards) {
-    const matches = !term || card.dataset.title.includes(term);
-    card.closest('.comic-card-wrap').hidden = !matches;
-    if (matches) {
-      const group = card.closest('details');
-      anyVisibleByGroup.set(group, (anyVisibleByGroup.get(group) || 0) + 1);
-    }
-  }
 
   for (const details of document.querySelectorAll('#untrackedGroups details')) {
-    const count = anyVisibleByGroup.get(details) || 0;
-    details.hidden = term.length > 0 && count === 0;
-    if (term.length > 0 && count > 0) {
-      details.open = true;
+    if (!term) {
+      details.hidden = false;
+      for (const wrap of details.querySelectorAll('.comic-card-wrap')) {
+        wrap.hidden = false;
+      }
+      continue;
     }
+
+    // Match against the underlying data, not the DOM - a still-collapsed group has no
+    // cards built yet, so this has to work without them.
+    const matchingIndexes = details.issueGroups
+      .map((group, i) => (group.some((g) => g.item.title.toLowerCase().includes(term)) ? i : -1))
+      .filter((i) => i >= 0);
+
+    details.hidden = matchingIndexes.length === 0;
+    if (matchingIndexes.length === 0) {
+      continue;
+    }
+
+    buildGroupCards(details);
+    details.open = true;
+    const matchingSet = new Set(matchingIndexes);
+    details.querySelectorAll('.comic-card-wrap').forEach((wrap, i) => {
+      wrap.hidden = !matchingSet.has(i);
+    });
   }
 }
 
