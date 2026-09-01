@@ -125,7 +125,8 @@ public sealed class PullListController : ControllerBase
     /// </summary>
     [HttpGet("dcbs-raw")]
     public async Task<ActionResult> DcbsRaw(
-        [FromQuery] string path, [FromQuery] int? productsPerPage, CancellationToken cancellationToken)
+        [FromQuery] string path, [FromQuery] int? productsPerPage, [FromQuery] int snippetOffset = 0,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -137,6 +138,8 @@ public sealed class PullListController : ControllerBase
             : null;
 
         var (statusCode, body) = await _dcbs.GetRawAsync(path, extraCookies, cancellationToken);
+        var start = Math.Clamp(snippetOffset, 0, body.Length);
+        var length = Math.Min(4000, body.Length - start);
 
         return Ok(new
         {
@@ -150,7 +153,7 @@ public sealed class PullListController : ControllerBase
                 .Distinct()
                 .Take(30)
                 .ToList(),
-            snippet = body.Length > 4000 ? body[..4000] : body,
+            snippet = body.Substring(start, length),
         });
     }
 
