@@ -23,6 +23,12 @@ builder.Services.AddScoped<IPullListService, PullListService>();
 builder.Services.AddScoped<IClzImportStore, ClzImportStore>();
 builder.Services.AddScoped<IClzCollectionService, ClzCollectionService>();
 
+// Singleton (not Scoped) so the crawled-solicitations cache survives across requests -
+// it's refreshed on demand via POST /api/solicitations/refresh, not on every request.
+// Never touches the database itself (see ISolicitationService's doc comment) so there's
+// no risk of holding a Scoped DbContext past its request's lifetime.
+builder.Services.AddSingleton<ISolicitationService, SolicitationService>();
+
 // SQLite path comes from config (appsettings.json locally, the Data__SqlitePath env var
 // in fly.toml for production) so it can point at the Fly volume mount without code
 // changes - see fly.toml for the mount and README.md for the one-time volume setup.

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Candidates — If You Pull, Don't Miss</title>
+<meta name="theme-color" content="#3a2214" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Rye&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<nav class="trail-nav">
+  <a href="/index.html">Solicitations</a>
+  <a href="/pull-list.html">Pull List</a>
+  <a href="/candidates.html" class="active">Candidates</a>
+  <a href="/dcbs-session.html">DCBS Session</a>
+</nav>
+<main class="content">
+  <h1 class="page-heading">Candidates</h1>
+  <p class="page-intro">
+    Crawled straight from each publisher's own current-preorders page on
+    DCBS - not a third-party database, so it's exactly what's actually
+    solicited right now. Anything that doesn't match a title already on
+    your pull list shows up below as a candidate worth a look.
+  </p>
+
+  <div class="status-card" id="statusCard">
+    <span class="status-dot unknown" id="statusDot"></span>
+    <span id="statusText">Checking…</span>
+  </div>
+
+  <div class="actions">
+    <button id="refreshBtn">Refresh from DCBS</button>
+  </div>
+
+  <div class="message" id="message"></div>
+
+  <input type="text" id="filterInput" placeholder="Filter by title…" autocomplete="off" style="margin-top:16px;" hidden />
+
+  <div id="results" hidden>
+    <div class="posse-group">
+      <h2 id="trackedHeading">On Your Pull List (0)</h2>
+      <ul class="posse-list" id="trackedList"></ul>
+    </div>
+    <div id="untrackedGroups"></div>
+  </div>
+</main>
+<script src="/candidates.js"></script>
+</body>
+</html>

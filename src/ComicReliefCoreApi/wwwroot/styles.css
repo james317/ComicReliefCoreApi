@@ -629,3 +629,23 @@ details summary { cursor: pointer; color: var(--accent); }
   font-size: 0.75rem;
   padding: 20px 20px 0;
 }
+
+/* Candidates page */
+.candidate-group {
+  margin-top: 16px;
+}
+
+.candidate-group summary {
+  font-family: "Rye", "Georgia", serif;
+  font-weight: 400;
+  font-size: 0.92rem;
+  color: var(--accent);
+}
+
+.candidate-group .comic-list {
+  margin-top: 10px;
+}
+
+.comic-card-wrap {
+  list-style: none;
+}
