@@ -15,26 +15,21 @@ public class SolicitationService : ISolicitationService
     private const int MaxConcurrentCrawls = 4;
 
     private readonly IDcbsClient _dcbs;
+    private readonly IDcbsSolicitationStore _store;
     private readonly ILogger<SolicitationService> _logger;
 
-    private readonly object _lock = new();
-    private IReadOnlyList<SolicitationItem> _cachedItems = Array.Empty<SolicitationItem>();
-    private DateTime? _lastRefreshedAt;
-    private IReadOnlyDictionary<string, int> _publisherItemCounts = new Dictionary<string, int>();
-    private IReadOnlyDictionary<string, string> _publisherErrors = new Dictionary<string, string>();
-
-    public SolicitationService(IDcbsClient dcbs, ILogger<SolicitationService> logger)
+    public SolicitationService(IDcbsClient dcbs, IDcbsSolicitationStore store, ILogger<SolicitationService> logger)
     {
         _dcbs = dcbs;
+        _store = store;
         _logger = logger;
     }
 
-    public async Task<SolicitationCacheStatus> RefreshAsync(CancellationToken ct = default)
+    public async Task<SolicitationRefreshResult> RefreshAsync(CancellationToken ct = default)
     {
         using var throttle = new SemaphoreSlim(MaxConcurrentCrawls);
-        var allItems = new ConcurrentBag<SolicitationItem>();
-        var counts = new ConcurrentDictionary<string, int>();
         var errors = new ConcurrentDictionary<string, string>();
+        var refreshedAt = DateTime.UtcNow;
 
         var tasks = DcbsPublisherCategories.All.Select(async category =>
         {
@@ -42,15 +37,14 @@ public class SolicitationService : ISolicitationService
             try
             {
                 var items = await _dcbs.GetPublisherListingAsync(category.Slug, category.CategoryId, ct);
-                counts[category.DisplayName] = items.Count;
-                foreach (var item in items)
-                {
-                    allItems.Add(new SolicitationItem(category.DisplayName, item));
-                }
+                await _store.ReplacePublisherAsync(category.DisplayName, items, refreshedAt, ct);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to crawl {Publisher} solicitations", category.DisplayName);
+                // Deliberately don't touch this publisher's stored rows on failure - its
+                // last successful crawl stays queryable instead of disappearing for one
+                // bad request.
+                _logger.LogWarning(ex, "Failed to crawl {Publisher} solicitations - leaving its last known data in place", category.DisplayName);
                 errors[category.DisplayName] = ex.Message;
             }
             finally
@@ -61,34 +55,21 @@ public class SolicitationService : ISolicitationService
 
         await Task.WhenAll(tasks);
 
-        lock (_lock)
-        {
-            _cachedItems = allItems.ToList();
-            _lastRefreshedAt = DateTime.UtcNow;
-            _publisherItemCounts = counts.ToDictionary(kv => kv.Key, kv => kv.Value);
-            _publisherErrors = errors.ToDictionary(kv => kv.Key, kv => kv.Value);
-        }
-
-        return GetStatus();
+        var status = await GetStatusAsync(ct);
+        return new SolicitationRefreshResult(status, errors.ToDictionary(kv => kv.Key, kv => kv.Value));
     }
 
-    public SolicitationCacheStatus GetStatus()
+    public async Task<SolicitationCacheStatus> GetStatusAsync(CancellationToken ct = default)
     {
-        lock (_lock)
-        {
-            return new SolicitationCacheStatus(_lastRefreshedAt, _cachedItems.Count, _publisherItemCounts, _publisherErrors);
-        }
+        var (lastRefreshedAt, counts) = await _store.GetStatusAsync(ct);
+        return new SolicitationCacheStatus(lastRefreshedAt, counts.Values.Sum(), counts);
     }
 
-    public SolicitationCandidateList BuildCandidateList(IReadOnlyCollection<PullListEntry> trackedEntries)
+    public async Task<SolicitationCandidateList> BuildCandidateListAsync(
+        IReadOnlyCollection<PullListEntry> trackedEntries, CancellationToken ct = default)
     {
-        IReadOnlyList<SolicitationItem> items;
-        DateTime? generatedAt;
-        lock (_lock)
-        {
-            items = _cachedItems;
-            generatedAt = _lastRefreshedAt;
-        }
+        var rows = await _store.GetAllAsync(ct);
+        var items = rows.Select(r => new SolicitationItem(r.Publisher, r.Item)).ToList();
 
         var matched = new HashSet<SolicitationItem>();
         var matches = new List<SolicitationMatch>();
@@ -112,6 +93,7 @@ public class SolicitationService : ISolicitationService
         }
 
         var untracked = items.Where(i => !matched.Contains(i)).ToList();
-        return new SolicitationCandidateList(generatedAt, matches, untracked);
+        var (lastRefreshedAt, _) = await _store.GetStatusAsync(ct);
+        return new SolicitationCandidateList(lastRefreshedAt, matches, untracked);
     }
 }

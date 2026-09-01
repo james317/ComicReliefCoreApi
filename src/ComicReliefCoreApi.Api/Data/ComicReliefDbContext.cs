@@ -13,6 +13,7 @@ public class ComicReliefDbContext : DbContext
     public DbSet<PullListAddAttempt> PullListAddAttempts => Set<PullListAddAttempt>();
     public DbSet<DcbsSession> DcbsSessions => Set<DcbsSession>();
     public DbSet<ClzSeriesSummary> ClzSeriesSummaries => Set<ClzSeriesSummary>();
+    public DbSet<DcbsSolicitationEntry> DcbsSolicitationEntries => Set<DcbsSolicitationEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -37,6 +38,11 @@ public class ComicReliefDbContext : DbContext
         modelBuilder.Entity<ClzSeriesSummary>(entity =>
         {
             entity.HasIndex(e => e.NormalizedSeries).IsUnique();
+        });
+
+        modelBuilder.Entity<DcbsSolicitationEntry>(entity =>
+        {
+            entity.HasIndex(e => e.Publisher);
         });
     }
 }

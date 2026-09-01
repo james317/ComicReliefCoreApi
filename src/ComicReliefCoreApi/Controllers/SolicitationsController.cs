@@ -28,20 +28,21 @@ public sealed class SolicitationsController : ControllerBase
 
     /// <summary>Crawls every non-manga publisher category fresh - expect this to take a while (~20 real DCBS pages).</summary>
     [HttpPost("refresh")]
-    public async Task<ActionResult<SolicitationCacheStatus>> Refresh(CancellationToken cancellationToken)
+    public async Task<ActionResult<SolicitationRefreshResult>> Refresh(CancellationToken cancellationToken)
     {
-        var status = await _solicitations.RefreshAsync(cancellationToken);
-        return Ok(status);
+        return Ok(await _solicitations.RefreshAsync(cancellationToken));
     }
 
     [HttpGet("status")]
-    public ActionResult<SolicitationCacheStatus> Status() => Ok(_solicitations.GetStatus());
+    public async Task<ActionResult<SolicitationCacheStatus>> Status(CancellationToken cancellationToken)
+    {
+        return Ok(await _solicitations.GetStatusAsync(cancellationToken));
+    }
 
     /// <summary>
-    /// Cross-references the last refresh's cached items against the current pull list
-    /// (archived titles excluded - Boot Hill isn't watching for new issues). Recomputed
-    /// from the cache on every call, so pull-list changes show up without needing a new
-    /// crawl.
+    /// Cross-references the persisted crawl against the current pull list (archived
+    /// titles excluded - Boot Hill isn't watching for new issues). Recomputed on every
+    /// call, so pull-list changes show up without needing a new crawl.
     /// </summary>
     [HttpGet("candidates")]
     public async Task<ActionResult<SolicitationCandidateList>> Candidates(CancellationToken cancellationToken)
@@ -50,6 +51,6 @@ public sealed class SolicitationsController : ControllerBase
             .Where(e => e.ArchivedAt == null)
             .ToListAsync(cancellationToken);
 
-        return Ok(_solicitations.BuildCandidateList(trackedEntries));
+        return Ok(await _solicitations.BuildCandidateListAsync(trackedEntries, cancellationToken));
     }
 }
