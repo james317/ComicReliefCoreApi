@@ -46,4 +46,14 @@ public interface IDcbsClient
     /// check after pasting in a fresh cookie.
     /// </summary>
     Task<bool> IsSessionValidAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Diagnostic-only raw GET, for probing DCBS's actual behavior before committing to a
+    /// real endpoint contract (e.g. whether the documented ProductsPerPage cookie values
+    /// of 10/20/30/50/100 are a hard server-side cap or just what the site's own UI
+    /// dropdown offers). extraCookies are appended to the session cookie already on file,
+    /// not a replacement for it. Never used by any real feature - just exploration.
+    /// </summary>
+    Task<(int StatusCode, string Body)> GetRawAsync(
+        string relativeUrl, IReadOnlyDictionary<string, string>? extraCookies = null, CancellationToken ct = default);
 }

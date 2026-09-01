@@ -115,4 +115,49 @@ public sealed class PullListController : ControllerBase
         var results = await _dcbs.SearchSeriesAsync(term, cancellationToken);
         return Ok(results);
     }
+
+    /// <summary>
+    /// Diagnostic-only raw GET against any DCBS relative path, with an optional
+    /// ProductsPerPage cookie override - built specifically to test whether that cookie
+    /// actually accepts values beyond the 100 documented from DCBS's own UI dropdown, or
+    /// whether it's capped server-side. Read-only. Returns a summary, not the full body,
+    /// to keep responses small while exploring.
+    /// </summary>
+    [HttpGet("dcbs-raw")]
+    public async Task<ActionResult> DcbsRaw(
+        [FromQuery] string path, [FromQuery] int? productsPerPage, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return BadRequest("path is required.");
+        }
+
+        var extraCookies = productsPerPage is { } n
+            ? new Dictionary<string, string> { ["ProductsPerPage"] = n.ToString() }
+            : null;
+
+        var (statusCode, body) = await _dcbs.GetRawAsync(path, extraCookies, cancellationToken);
+
+        return Ok(new
+        {
+            statusCode,
+            bodyLength = body.Length,
+            dcbsPriceCount = CountOccurrences(body, "dcbsprice"),
+            cartImgCount = CountOccurrences(body, "cartimg"),
+            productLinkCount = CountOccurrences(body, "/product/"),
+            snippet = body.Length > 4000 ? body[..4000] : body,
+        });
+    }
+
+    private static int CountOccurrences(string haystack, string needle)
+    {
+        var count = 0;
+        var index = 0;
+        while ((index = haystack.IndexOf(needle, index, StringComparison.OrdinalIgnoreCase)) >= 0)
+        {
+            count++;
+            index += needle.Length;
+        }
+        return count;
+    }
 }

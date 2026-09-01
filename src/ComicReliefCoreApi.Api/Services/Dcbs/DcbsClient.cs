@@ -62,6 +62,29 @@ public class DcbsClient : IDcbsClient
         return await _http.SendAsync(request, ct);
     }
 
+    public async Task<(int StatusCode, string Body)> GetRawAsync(
+        string relativeUrl, IReadOnlyDictionary<string, string>? extraCookies = null, CancellationToken ct = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, relativeUrl);
+        var cookie = await _sessionStore.GetCookieAsync(ct);
+        var combined = cookie ?? "";
+        if (extraCookies is not null)
+        {
+            foreach (var (name, value) in extraCookies)
+            {
+                combined += (combined.Length > 0 ? "; " : "") + $"{name}={value}";
+            }
+        }
+        if (combined.Length > 0)
+        {
+            request.Headers.TryAddWithoutValidation("Cookie", combined);
+        }
+
+        using var response = await _http.SendAsync(request, ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+        return ((int)response.StatusCode, body);
+    }
+
     public async Task<IReadOnlyList<DcbsSeriesSearchResult>> SearchSeriesAsync(string term, CancellationToken ct = default)
     {
         using var content = new FormUrlEncodedContent(new Dictionary<string, string> { ["search"] = term });
