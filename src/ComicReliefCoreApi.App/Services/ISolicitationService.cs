@@ -17,23 +17,26 @@ public record SolicitationCandidateList(
 public record SolicitationCacheStatus(
     DateTime? LastRefreshedAt,
     int TotalItems,
-    IReadOnlyDictionary<string, int> PublisherItemCounts,
-    IReadOnlyDictionary<string, string> PublisherErrors);
+    IReadOnlyDictionary<string, int> PublisherItemCounts);
+
+/// <summary>Errors are only ever about the refresh call that just ran - never persisted, since a failed publisher just leaves its last-known-good rows in place (see IDcbsSolicitationStore).</summary>
+public record SolicitationRefreshResult(SolicitationCacheStatus Status, IReadOnlyDictionary<string, string> PublisherErrors);
 
 /// <summary>
 /// Crawls every non-manga DCBS publisher category (one request each, see
-/// DcbsPublisherCategories) and caches the result in memory - refreshed on demand, not on
-/// every request, since a full crawl hits ~20 real DCBS pages. Cross-referencing against
-/// the pull list is pure/stateless (BuildCandidateList) so callers pass in whatever pull-
-/// list entries they've already loaded rather than this service touching the database
-/// itself - keeps a Singleton (needed so the cache survives across requests) from ever
-/// holding a scoped DbContext.
+/// DcbsPublisherCategories) and persists the result via IDcbsSolicitationStore - refreshed
+/// on demand, not on every request or server restart, since a full crawl hits ~20 real DCBS
+/// pages and the underlying catalog itself only turns over about once a month. Cross-
+/// referencing against the pull list is otherwise the only logic here; callers pass in
+/// whatever pull-list entries they've already loaded rather than this service querying the
+/// database for them directly.
 /// </summary>
 public interface ISolicitationService
 {
-    Task<SolicitationCacheStatus> RefreshAsync(CancellationToken ct = default);
+    Task<SolicitationRefreshResult> RefreshAsync(CancellationToken ct = default);
 
-    SolicitationCacheStatus GetStatus();
+    Task<SolicitationCacheStatus> GetStatusAsync(CancellationToken ct = default);
 
-    SolicitationCandidateList BuildCandidateList(IReadOnlyCollection<PullListEntry> trackedEntries);
+    Task<SolicitationCandidateList> BuildCandidateListAsync(
+        IReadOnlyCollection<PullListEntry> trackedEntries, CancellationToken ct = default);
 }

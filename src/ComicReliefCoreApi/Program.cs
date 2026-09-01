@@ -23,11 +23,12 @@ builder.Services.AddScoped<IPullListService, PullListService>();
 builder.Services.AddScoped<IClzImportStore, ClzImportStore>();
 builder.Services.AddScoped<IClzCollectionService, ClzCollectionService>();
 
-// Singleton (not Scoped) so the crawled-solicitations cache survives across requests -
-// it's refreshed on demand via POST /api/solicitations/refresh, not on every request.
-// Never touches the database itself (see ISolicitationService's doc comment) so there's
-// no risk of holding a Scoped DbContext past its request's lifetime.
-builder.Services.AddSingleton<ISolicitationService, SolicitationService>();
+// Both Scoped (not Singleton): the crawl is now persisted via IDcbsSolicitationStore
+// rather than cached in memory, so there's no in-process state that needs to outlive a
+// request - and a Scoped DbContext-backed store couldn't be safely held by a Singleton
+// anyway. Persisting means a code deploy no longer wipes crawled data (see docs/BACKLOG.md).
+builder.Services.AddScoped<IDcbsSolicitationStore, DcbsSolicitationStore>();
+builder.Services.AddScoped<ISolicitationService, SolicitationService>();
 
 // SQLite path comes from config (appsettings.json locally, the Data__SqlitePath env var
 // in fly.toml for production) so it can point at the Fly volume mount without code
@@ -82,6 +83,27 @@ using (var scope = app.Services.CreateScope())
         """);
     db.Database.ExecuteSqlRaw(
         "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_ClzSeriesSummaries_NormalizedSeries\" ON \"ClzSeriesSummaries\" (\"NormalizedSeries\")");
+
+    // Same EnsureCreated() limitation, third occurrence: DcbsSolicitationEntries persists
+    // the crawled-solicitations data that used to live only in an in-memory cache (wiped by
+    // every deploy). No unique index needed - rows are replaced per-publisher wholesale
+    // (see DcbsSolicitationStore.ReplacePublisherAsync), never upserted by key.
+    db.Database.ExecuteSqlRaw("""
+        CREATE TABLE IF NOT EXISTS "DcbsSolicitationEntries" (
+            "Id" INTEGER NOT NULL CONSTRAINT "PK_DcbsSolicitationEntries" PRIMARY KEY AUTOINCREMENT,
+            "Publisher" TEXT NOT NULL,
+            "ProductCode" TEXT NOT NULL,
+            "Title" TEXT NOT NULL,
+            "ProductUrl" TEXT NOT NULL,
+            "ThumbnailUrl" TEXT NULL,
+            "CreatorsAndDescription" TEXT NULL,
+            "Price" TEXT NULL,
+            "IsRelisted" INTEGER NOT NULL,
+            "RefreshedAt" TEXT NOT NULL
+        )
+        """);
+    db.Database.ExecuteSqlRaw(
+        "CREATE INDEX IF NOT EXISTS \"IX_DcbsSolicitationEntries_Publisher\" ON \"DcbsSolicitationEntries\" (\"Publisher\")");
 }
 
 app.UseDefaultFiles();

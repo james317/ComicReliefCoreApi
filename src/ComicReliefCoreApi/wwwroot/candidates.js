@@ -19,9 +19,9 @@ function formatDateTime(value) {
   return value ? new Date(value).toLocaleString() : null;
 }
 
-function renderStatus(status) {
+function renderStatus(status, publisherErrors) {
   const publishers = Object.keys(status.publisherItemCounts || {});
-  const errorPublishers = Object.keys(status.publisherErrors || {});
+  const errorPublishers = Object.keys(publisherErrors || {});
 
   if (!status.lastRefreshedAt) {
     statusDot.className = 'status-dot unknown';
@@ -297,9 +297,9 @@ refreshBtn.addEventListener('click', async () => {
   showMessage('Crawling every publisher on DCBS - this can take a minute or two…', false);
   try {
     const res = await fetch('/api/solicitations/refresh', { method: 'POST' });
-    const status = await res.json();
-    log('refresh complete', status);
-    renderStatus(status);
+    const result = await res.json();
+    log('refresh complete', result);
+    renderStatus(result.status, result.publisherErrors);
     showMessage('Refreshed.', false);
     await loadCandidates();
   } catch (err) {
