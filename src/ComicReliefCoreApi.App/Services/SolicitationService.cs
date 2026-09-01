@@ -29,15 +29,22 @@ public class SolicitationService : ISolicitationService
     {
         using var throttle = new SemaphoreSlim(MaxConcurrentCrawls);
         var errors = new ConcurrentDictionary<string, string>();
+        var crawled = new ConcurrentDictionary<string, IReadOnlyList<DcbsListingItem>>();
         var refreshedAt = DateTime.UtcNow;
 
+        // Fetching is safe to run concurrently (no shared mutable state - each task's
+        // result lands in its own ConcurrentDictionary slot). Persisting is not: the
+        // DbContext behind _store is Scoped, one instance per request, and EF Core's
+        // DbContext is not thread-safe for concurrent operations - writing here too
+        // produced real "second operation started on this context" and duplicate-tracked-
+        // entity errors live. So crawling stays parallel; writing happens afterward, one
+        // publisher at a time, below.
         var tasks = DcbsPublisherCategories.All.Select(async category =>
         {
             await throttle.WaitAsync(ct);
             try
             {
-                var items = await _dcbs.GetPublisherListingAsync(category.Slug, category.CategoryId, ct);
-                await _store.ReplacePublisherAsync(category.DisplayName, items, refreshedAt, ct);
+                crawled[category.DisplayName] = await _dcbs.GetPublisherListingAsync(category.Slug, category.CategoryId, ct);
             }
             catch (Exception ex)
             {
@@ -54,6 +61,11 @@ public class SolicitationService : ISolicitationService
         });
 
         await Task.WhenAll(tasks);
+
+        foreach (var (publisher, items) in crawled)
+        {
+            await _store.ReplacePublisherAsync(publisher, items, refreshedAt, ct);
+        }
 
         var status = await GetStatusAsync(ct);
         return new SolicitationRefreshResult(status, errors.ToDictionary(kv => kv.Key, kv => kv.Value));
