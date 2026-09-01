@@ -145,6 +145,11 @@ public sealed class PullListController : ControllerBase
             dcbsPriceCount = CountOccurrences(body, "dcbsprice"),
             cartImgCount = CountOccurrences(body, "cartimg"),
             productLinkCount = CountOccurrences(body, "/product/"),
+            categoryLinks = System.Text.RegularExpressions.Regex.Matches(body, "href=\"(/products/[^\"]+)\"")
+                .Select(m => m.Groups[1].Value)
+                .Distinct()
+                .Take(30)
+                .ToList(),
             snippet = body.Length > 4000 ? body[..4000] : body,
         });
     }
