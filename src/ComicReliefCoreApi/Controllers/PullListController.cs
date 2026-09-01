@@ -126,7 +126,7 @@ public sealed class PullListController : ControllerBase
     [HttpGet("dcbs-raw")]
     public async Task<ActionResult> DcbsRaw(
         [FromQuery] string path, [FromQuery] int? productsPerPage, [FromQuery] int snippetOffset = 0,
-        CancellationToken cancellationToken = default)
+        [FromQuery] string? find = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -153,8 +153,28 @@ public sealed class PullListController : ControllerBase
                 .Distinct()
                 .Take(30)
                 .ToList(),
+            findResults = (find ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(term => new
+                {
+                    term,
+                    count = CountOccurrences(body, term),
+                    firstContext = FirstContext(body, term),
+                })
+                .ToList(),
             snippet = body.Substring(start, length),
         });
+    }
+
+    private static string? FirstContext(string haystack, string needle)
+    {
+        var index = haystack.IndexOf(needle, StringComparison.OrdinalIgnoreCase);
+        if (index < 0)
+        {
+            return null;
+        }
+        var start = Math.Max(0, index - 100);
+        var length = Math.Min(300, haystack.Length - start);
+        return haystack.Substring(start, length);
     }
 
     private static int CountOccurrences(string haystack, string needle)
