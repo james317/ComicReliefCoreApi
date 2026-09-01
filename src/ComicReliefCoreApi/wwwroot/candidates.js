@@ -152,15 +152,15 @@ function renderTracked(matches) {
     title.textContent = match.pullListTitle;
     info.appendChild(title);
 
-    const meta = document.createElement('div');
-    meta.className = 'pull-meta';
-    meta.textContent = match.items
-      .map((i) => {
-        const priceText = i.item.price != null ? ` ($${i.item.price.toFixed(2)})` : '';
-        return `${i.item.title}${priceText}${i.item.isRelisted ? ' [Relisted]' : ''}`;
-      })
-      .join(' • ');
-    info.appendChild(meta);
+    // Same card treatment as the publisher sections below - covers shown eagerly here
+    // (not deferred like buildGroupCards) since this list is always visible, never
+    // inside a collapsed <details>.
+    const ul = document.createElement('ul');
+    ul.className = 'comic-list';
+    for (const group of groupByIssue(match.items)) {
+      ul.appendChild(issueCard(group));
+    }
+    info.appendChild(ul);
 
     li.appendChild(info);
     trackedList.appendChild(li);

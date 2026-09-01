@@ -523,6 +523,10 @@ details summary { cursor: pointer; color: var(--accent); }
   font-weight: 600;
 }
 
+.pull-info .comic-list {
+  margin-top: 8px;
+}
+
 .pull-meta {
   font-size: 0.76rem;
   color: var(--text-muted);
