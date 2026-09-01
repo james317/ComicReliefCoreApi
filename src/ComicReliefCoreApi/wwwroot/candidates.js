@@ -39,15 +39,23 @@ function renderStatus(status) {
   statusText.textContent = parts.join(' ');
 }
 
-// DCBS's own title convention inserts "Cvr X" (or "Cover X") right after the
-// series/issue identity for every variant of the same issue - splitting there groups
-// "Absolute Batman #25 Cvr F..." and "...Cvr G..." under one "Absolute Batman #25" card
-// instead of one card per cover. Items with no cover marker (most TPBs/HCs, one-shots
-// without variants) just fall back to their own single-item group - no special-casing
-// needed since a group of one renders identically to the old one-card-per-item layout.
+// Primary strategy: everything up to and including the issue number ("#1002", optionally
+// with a trailing "(of N)" for minis) is the issue identity - DCBS includes this on every
+// single-issue title regardless of publisher. This has to be tried first, not "Cvr X"/
+// "Cover X": Marvel's own variant titles often skip that marker entirely (e.g. "Amazing
+// Spider-Man #1002 Todd Nauck 4-Part Connecting Legacy Variant" has no "Cvr" anywhere),
+// which meant every Marvel variant was getting its own card until this was caught live.
+// Falls back to the "Cvr X"/"Cover X" split for one-shots/TPBs with no issue number at
+// all (still using that marker there since DCBS does use it for those); with neither, the
+// full title is its own single-item group - a group of one renders identically to the old
+// one-card-per-item layout, so no special-casing needed.
 function extractIssueIdentity(title) {
-  const match = title.match(/^(.*?)\s+(cvr|cover)\b/i);
-  return match ? match[1].trim() : title.trim();
+  const issueMatch = title.match(/^(.*?#\d+(?:\.\d+)?(?:\s*\(of\s*\d+\))?)/i);
+  if (issueMatch) {
+    return issueMatch[1].trim();
+  }
+  const coverMatch = title.match(/^(.*?)\s+(cvr|cover)\b/i);
+  return coverMatch ? coverMatch[1].trim() : title.trim();
 }
 
 function groupByIssue(items) {
