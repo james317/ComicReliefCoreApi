@@ -99,11 +99,25 @@ using (var scope = app.Services.CreateScope())
             "CreatorsAndDescription" TEXT NULL,
             "Price" TEXT NULL,
             "IsRelisted" INTEGER NOT NULL,
+            "IsFacsimileOrReprint" INTEGER NOT NULL DEFAULT 0,
             "RefreshedAt" TEXT NOT NULL
         )
         """);
     db.Database.ExecuteSqlRaw(
         "CREATE INDEX IF NOT EXISTS \"IX_DcbsSolicitationEntries_Publisher\" ON \"DcbsSolicitationEntries\" (\"Publisher\")");
+
+    // DcbsSolicitationEntries already shipped and deployed once without this column - the
+    // CREATE TABLE IF NOT EXISTS above no-ops against that existing table, so it needs the
+    // same hand-written ALTER TABLE treatment as PullListEntries.ArchivedAt above.
+    try
+    {
+        db.Database.ExecuteSqlRaw(
+            "ALTER TABLE DcbsSolicitationEntries ADD COLUMN IsFacsimileOrReprint INTEGER NOT NULL DEFAULT 0");
+    }
+    catch (Exception ex) when (ex.Message.Contains("duplicate column", StringComparison.OrdinalIgnoreCase))
+    {
+        // Already applied.
+    }
 }
 
 app.UseDefaultFiles();

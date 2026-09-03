@@ -28,6 +28,7 @@ public class DcbsSolicitationStore : IDcbsSolicitationStore
             CreatorsAndDescription = i.CreatorsAndDescription,
             Price = i.Price,
             IsRelisted = i.IsRelisted,
+            IsFacsimileOrReprint = i.IsFacsimileOrReprint,
             RefreshedAt = refreshedAt,
         }));
         await _db.SaveChangesAsync(ct);
@@ -38,7 +39,8 @@ public class DcbsSolicitationStore : IDcbsSolicitationStore
         var rows = await _db.DcbsSolicitationEntries.AsNoTracking().ToListAsync(ct);
         return rows
             .Select(r => (r.Publisher, new DcbsListingItem(
-                r.ProductCode, r.Title, r.ProductUrl, r.ThumbnailUrl, r.CreatorsAndDescription, r.Price, r.IsRelisted)))
+                r.ProductCode, r.Title, r.ProductUrl, r.ThumbnailUrl, r.CreatorsAndDescription, r.Price,
+                r.IsRelisted, r.IsFacsimileOrReprint)))
             .ToList();
     }
 

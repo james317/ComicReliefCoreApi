@@ -19,7 +19,12 @@ public record DcbsOrderLine(string ProductCode, string Title);
 /// product page itself (ProductUrl). IsRelisted reflects DCBS's own "Relisted" banner - a small
 /// minority of items on an otherwise-current preorders page turned out to carry this (confirmed
 /// live 9/2026: 3 of 325 on the DC Comics page), so it's surfaced as a raw fact rather than
-/// silently filtered.
+/// silently filtered. IsFacsimileOrReprint reflects DCBS's own "Facsimile Edition" wording in
+/// the title - checked live (9/2026) against the product page for both a facsimile and a
+/// current issue: neither page exposes any volume/series-generation field anywhere, so this
+/// text marker is the only signal DCBS gives for "this isn't the current volume's new issue,
+/// it's a reprint of an old one" (e.g. three Batman items solicited the same month - #14 is the
+/// real new issue, #227 and #423 are both "Facsimile Edition" reprints of classic issues).
 /// </summary>
 public record DcbsListingItem(
     string ProductCode,
@@ -28,7 +33,8 @@ public record DcbsListingItem(
     string? ThumbnailUrl,
     string? CreatorsAndDescription,
     decimal? Price,
-    bool IsRelisted);
+    bool IsRelisted,
+    bool IsFacsimileOrReprint);
 
 /// <summary>One DCBS publisher category page, as linked from the site's own nav.</summary>
 public record DcbsPublisherCategory(string Slug, int CategoryId, string DisplayName);
