@@ -88,8 +88,15 @@ public class SolicitationService : ISolicitationService
 
         foreach (var entry in trackedEntries)
         {
+            // Facsimile/reprint editions of an old issue are excluded here even when they
+            // match the series name - a plain pull-list entry like "Batman" means "the
+            // current ongoing series," not every historical reprint DCBS happens to
+            // resolicit the same month (real case: Batman #14, #227 Facsimile Edition, and
+            // #423 Facsimile Edition all solicited together - only #14 belongs here). They
+            // still show up in the full by-publisher browse (Solicitations tab), just not
+            // as a pull-list match.
             var matchingItems = items
-                .Where(i => TitleNormalizer.IsLikelySeriesMatch(i.Item.Title, entry.Title))
+                .Where(i => !i.Item.IsFacsimileOrReprint && TitleNormalizer.IsLikelySeriesMatch(i.Item.Title, entry.Title))
                 .ToList();
 
             if (matchingItems.Count == 0)
@@ -107,5 +114,11 @@ public class SolicitationService : ISolicitationService
         var untracked = items.Where(i => !matched.Contains(i)).ToList();
         var (lastRefreshedAt, _) = await _store.GetStatusAsync(ct);
         return new SolicitationCandidateList(lastRefreshedAt, matches, untracked);
+    }
+
+    public async Task<IReadOnlyList<SolicitationItem>> GetAllItemsAsync(CancellationToken ct = default)
+    {
+        var rows = await _store.GetAllAsync(ct);
+        return rows.Select(r => new SolicitationItem(r.Publisher, r.Item)).ToList();
     }
 }

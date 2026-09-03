@@ -1,12 +1,11 @@
-const log = (...args) => console.log('[candidates]', ...args);
+const log = (...args) => console.log('[solicitations]', ...args);
 
 const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
 const refreshBtn = document.getElementById('refreshBtn');
 const message = document.getElementById('message');
-const results = document.getElementById('results');
-const trackedHeading = document.getElementById('trackedHeading');
-const trackedList = document.getElementById('trackedList');
+const filterInput = document.getElementById('filterInput');
+const publisherGroups = document.getElementById('publisherGroups');
 
 function showMessage(text, isError) {
   message.textContent = text;
@@ -37,43 +36,6 @@ function renderStatus(status, publisherErrors) {
   statusText.textContent = parts.join(' ');
 }
 
-// extractIssueIdentity, groupByIssue, and issueCard come from solicitation-cards.js -
-// shared with the Solicitations tab's full by-publisher browse.
-function renderTracked(matches) {
-  trackedHeading.textContent = `On Your Pull List (${matches.length})`;
-  trackedList.innerHTML = '';
-
-  for (const match of matches) {
-    const li = document.createElement('li');
-    li.className = 'pull-card';
-
-    const badge = document.createElement('span');
-    badge.className = 'pull-badge ' + (match.status === 'Sticky' ? 'corralled' : match.status === 'Unsticky' ? 'wanted' : 'unresolved');
-    badge.textContent = match.items.length;
-    li.appendChild(badge);
-
-    const info = document.createElement('div');
-    info.className = 'pull-info';
-
-    const title = document.createElement('div');
-    title.className = 'pull-title';
-    title.textContent = match.pullListTitle;
-    info.appendChild(title);
-
-    // Same card treatment as the Solicitations tab - covers shown eagerly here (this
-    // list is short and always visible, never inside a collapsed <details>).
-    const ul = document.createElement('ul');
-    ul.className = 'comic-list';
-    for (const group of groupByIssue(match.items)) {
-      ul.appendChild(issueCard(group));
-    }
-    info.appendChild(ul);
-
-    li.appendChild(info);
-    trackedList.appendChild(li);
-  }
-}
-
 async function loadStatus() {
   try {
     const res = await fetch('/api/solicitations/status');
@@ -87,22 +49,25 @@ async function loadStatus() {
   }
 }
 
-async function loadCandidates() {
+async function loadItems() {
   try {
-    const res = await fetch('/api/solicitations/candidates');
-    const data = await res.json();
-    log('candidates loaded', data.trackedMatches.length, 'tracked matches');
+    const res = await fetch('/api/solicitations/items');
+    const items = await res.json();
+    log('items loaded', items.length);
 
-    if (!data.generatedAt) {
-      results.hidden = true;
+    if (items.length === 0) {
+      filterInput.hidden = true;
+      publisherGroups.innerHTML = '';
       return;
     }
 
-    renderTracked(data.trackedMatches);
-    results.hidden = false;
+    renderByPublisher(publisherGroups, items);
+    filterInput.hidden = false;
   } catch (err) {
-    log('loadCandidates failed', err);
-    showMessage('Could not load candidates.', true);
+    log('loadItems failed', err);
+    showMessage('Could not load solicitations.', true);
+  } finally {
+    window.dismissSplash?.();
   }
 }
 
@@ -115,7 +80,7 @@ refreshBtn.addEventListener('click', async () => {
     log('refresh complete', result);
     renderStatus(result.status, result.publisherErrors);
     showMessage('Refreshed.', false);
-    await loadCandidates();
+    await loadItems();
   } catch (err) {
     log('refresh failed', err);
     showMessage('Refresh failed - check the console.', true);
@@ -124,7 +89,11 @@ refreshBtn.addEventListener('click', async () => {
   }
 });
 
+filterInput.addEventListener('input', () => {
+  filterByPublisher(publisherGroups, filterInput.value.trim().toLowerCase());
+});
+
 (async () => {
   await loadStatus();
-  await loadCandidates();
+  await loadItems();
 })();

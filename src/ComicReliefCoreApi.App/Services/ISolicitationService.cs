@@ -39,4 +39,7 @@ public interface ISolicitationService
 
     Task<SolicitationCandidateList> BuildCandidateListAsync(
         IReadOnlyCollection<PullListEntry> trackedEntries, CancellationToken ct = default);
+
+    /// <summary>Every crawled item, unfiltered - the full by-publisher browse (Solicitations tab) doesn't care about pull-list status at all.</summary>
+    Task<IReadOnlyList<SolicitationItem>> GetAllItemsAsync(CancellationToken ct = default);
 }
