@@ -29,6 +29,8 @@ public class DcbsSolicitationEntry
 
     public bool IsRelisted { get; set; }
 
+    public bool IsFacsimileOrReprint { get; set; }
+
     /// <summary>When this publisher's most recent successful crawl ran - every row from one publisher's refresh shares the same timestamp.</summary>
     public DateTime RefreshedAt { get; set; }
 }

@@ -660,6 +660,10 @@ details summary { cursor: pointer; color: var(--accent); }
   gap: 8px;
 }
 
+.issue-card.facsimile {
+  opacity: 0.6;
+}
+
 .cover-strip {
   display: flex;
   gap: 6px;

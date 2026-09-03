@@ -139,10 +139,11 @@ public class DcbsClient : IDcbsClient
             var price = priceMatch.Success && decimal.TryParse(priceMatch.Groups[1].Value, out var parsedPrice)
                 ? parsedPrice
                 : (decimal?)null;
+            var title = WebUtility.HtmlDecode(titleMatch.Groups[1].Value.Trim());
 
             items.Add(new DcbsListingItem(
                 ProductCode: linkMatch.Groups[2].Value,
-                Title: WebUtility.HtmlDecode(titleMatch.Groups[1].Value.Trim()),
+                Title: title,
                 ProductUrl: _options.BaseUrl + linkMatch.Groups[1].Value,
                 ThumbnailUrl: thumbnailMatch.Success ? thumbnailMatch.Groups[1].Value : null,
                 CreatorsAndDescription: descriptionMatch.Success
@@ -153,7 +154,12 @@ public class DcbsClient : IDcbsClient
                 // start of the chunk since we split on "<li " - a plain substring check on
                 // the whole chunk would also match if that text ever showed up inside a
                 // solicitation blurb, so this is scoped to just the opening tag.
-                IsRelisted: chunk.TrimStart().StartsWith("class=relist", StringComparison.OrdinalIgnoreCase)));
+                IsRelisted: chunk.TrimStart().StartsWith("class=relist", StringComparison.OrdinalIgnoreCase),
+                // Checked live (9/2026): DCBS exposes no volume/series-generation field
+                // anywhere, on the listing or product page. "Facsimile Edition" in the
+                // title itself is the only marker it gives for "this is a reprint of an
+                // old issue, not the current volume's new one."
+                IsFacsimileOrReprint: title.Contains("Facsimile Edition", StringComparison.OrdinalIgnoreCase)));
         }
         return items;
     }

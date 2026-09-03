@@ -897,6 +897,21 @@ Every card in the fuzzy-pulls/new-#1s report links to a Google search for
   informational (e.g. a real upcoming reprint).
 - Writer field: `<li>Writer:</li>` on the product page. Price:
   `<li class="dcbsprice">DCBS Price: $X.XX</li>`.
+- **No volume/series-generation field anywhere** — checked live 9/2026
+  on both a current issue's product page and a facsimile reprint's,
+  neither exposes anything like "Volume 3" or a generation number. This
+  matters because DCBS's own pull-list matching doesn't distinguish a
+  genuinely new issue from a same-month facsimile reprint of an old one
+  (e.g. Batman #14 solicited alongside Batman #227 and #423 "Facsimile
+  Edition" reprints, all three same month) — the only signal DCBS gives
+  for this is the literal phrase "Facsimile Edition" in the title
+  itself. Surfaced as `DcbsListingItem.IsFacsimileOrReprint`, computed
+  at scrape time same as `IsRelisted`. Nearby text that looked like it
+  might also signal a reprint but doesn't: "Anniversary" (e.g. "Kingdom
+  Come 30th Anniversary" is a cover-variant theme on an otherwise
+  perfectly current issue, not a reprint marker) and bare `(20XX)` year
+  mentions (show up on ordinary current-year variant titles too) — both
+  ruled out live against the full crawl before shipping this.
 - Cover images: `https://media.dcbservice.com/{small|xlarge}/{CODE}.jpg`
   — no hotlink protection, but iOS Quick Look still needs them
   base64-embedded (see above).

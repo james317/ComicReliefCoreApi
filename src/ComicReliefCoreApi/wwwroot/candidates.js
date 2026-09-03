@@ -75,6 +75,12 @@ function issueCard(group) {
 
   const card = document.createElement('div');
   card.className = 'comic-card issue-card';
+  if (group.some((g) => g.item.isFacsimileOrReprint)) {
+    // Dimmed so a genuinely new issue (e.g. Batman #14) visually stands out at a glance
+    // from same-month facsimile/reprint editions of old issues (e.g. Batman #227, #423) -
+    // DCBS pull-list matching doesn't distinguish these, so this is the fix for that.
+    card.classList.add('facsimile');
+  }
   card.dataset.title = group.map((g) => g.item.title.toLowerCase()).join(' ');
 
   const coverStrip = document.createElement('div');
@@ -128,6 +134,9 @@ function issueCard(group) {
   }
   if (group.some((g) => g.item.isRelisted)) {
     metaParts.push('Relisted');
+  }
+  if (group.some((g) => g.item.isFacsimileOrReprint)) {
+    metaParts.push('Facsimile/Reprint');
   }
   const meta = document.createElement('div');
   meta.className = 'comic-meta';
