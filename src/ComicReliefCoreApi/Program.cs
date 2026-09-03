@@ -122,14 +122,17 @@ using (var scope = app.Services.CreateScope())
 
 app.UseDefaultFiles();
 // This app is deployed and re-checked live constantly during active development - without
-// this, a browser (especially an iOS home-screen PWA, which caches more aggressively than
-// a normal tab) can keep serving an old .js/.css file after a deploy with no visible sign
-// anything's wrong. no-cache still lets the browser keep a local copy, but forces a
-// conditional revalidation (If-None-Match) against the server on every request instead of
-// trusting the cached copy blindly.
+// this, a browser (an iOS home-screen PWA especially - confirmed live 9/2026 to keep
+// serving stale HTML/JS across a full close-and-reopen, worse than a normal Safari tab)
+// can keep serving old pages after a deploy with no visible sign anything's wrong.
+// no-cache (tried first) still permits caching and just asks for revalidation - not
+// strong enough here, so this is no-store: don't cache the response at all. Note this
+// only affects requests made from here on - a client already holding a stale copy needs
+// a real cache-clear (or a fresh URL) to see it, no server-side header can reach back and
+// un-cache what's already stuck on a device.
 app.UseStaticFiles(new StaticFileOptions
 {
-    OnPrepareResponse = ctx => ctx.Context.Response.Headers["Cache-Control"] = "no-cache",
+    OnPrepareResponse = ctx => ctx.Context.Response.Headers["Cache-Control"] = "no-store",
 });
 
 app.MapControllers();
