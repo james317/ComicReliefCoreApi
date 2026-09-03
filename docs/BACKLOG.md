@@ -929,6 +929,47 @@ Every card in the fuzzy-pulls/new-#1s report links to a Google search for
   completion reliably needs to check the solicitation description, not
   just pattern-match the title.
 
+### Page reorg: Solicitations tab retired the Comic Vine browse (9/2026)
+
+The "Solicitations" nav tab (`index.html`) originally showed a Comic
+Vine-backed monthly browse (prev/next month, "On Your List" badges) -
+this session's own findings ruled Comic Vine out as a data source
+entirely (stale/missing data for the actually-relevant month, wrong
+issue numbers, coverage gaps - see the Comic Vine section above). User
+feedback: "the full listings by publisher really belongs under the
+solicitations tab. We haven't put anything there" - confirmed as a
+full replacement (not a toggle/dual view) when asked directly, since
+the tab wasn't seen as carrying real content anyway.
+
+`index.html` now shows the full unfiltered by-publisher DCBS crawl
+(same data as Candidates, via new `GET /api/solicitations/items` -
+no pull-list cross-referencing, just everything). Candidates keeps
+only the pull-list-matched view. Card-rendering logic
+(`extractIssueIdentity`/`groupByIssue`/`issueCard`/`buildGroupCards`/
+`renderByPublisher`/`filterByPublisher`) was pulled out to a shared
+`solicitation-cards.js` rather than staying duplicated across both
+pages' scripts. The splash screen (generic app-launch UX, never
+Comic-Vine-specific) moved to its own `splash.js` with a
+`window.dismissSplash()` hook the page's own loader calls.
+
+Comic Vine's backend (`ComicVineService`, `/api/comics/upcoming`) was
+deliberately left in place, unused - only `app.js` (now fully
+superseded) was deleted. Revisit if the backend code itself should go
+too.
+
+**Also changed the same session**: facsimile/reprint editions are now
+excluded from tracked pull-list matches entirely (see the
+`IsFacsimileOrReprint` entry above) - a plain pull-list entry like
+"Batman" means "the current ongoing series," not every historical
+reprint DCBS resolicits the same month. They still appear in the full
+by-publisher browse un-filtered, just not counted as a match. Also
+added a `Cache-Control: no-cache` header to static file serving
+(Program.cs) - this app is checked against its live deploy constantly
+during development, and a browser (especially an iOS home-screen PWA)
+silently serving a stale cached .js/.css file after a deploy had
+already caused one "I don't see the change" report that turned out to
+need a hard refresh to resolve.
+
 ## Open questions for a real implementation
 - Where does pull-list/order-history/CLZ data live persistently, and how
   does it get updated (re-upload each month vs. an integration)?

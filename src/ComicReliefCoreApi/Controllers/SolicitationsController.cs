@@ -53,4 +53,11 @@ public sealed class SolicitationsController : ControllerBase
 
         return Ok(await _solicitations.BuildCandidateListAsync(trackedEntries, cancellationToken));
     }
+
+    /// <summary>Every crawled item, unfiltered - backs the full by-publisher browse (Solicitations tab). No pull-list dependency at all.</summary>
+    [HttpGet("items")]
+    public async Task<ActionResult<IReadOnlyList<SolicitationItem>>> Items(CancellationToken cancellationToken)
+    {
+        return Ok(await _solicitations.GetAllItemsAsync(cancellationToken));
+    }
 }

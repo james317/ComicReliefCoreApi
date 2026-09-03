@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>If You Pull, Don't Miss</title>
+  <title>Solicitations — If You Pull, Don't Miss</title>
 
   <meta name="theme-color" content="#3a2214" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -34,21 +34,33 @@
     <a href="/dcbs-session.html">DCBS Session</a>
   </nav>
 
-  <header class="app-header">
-    <button id="prevMonth" class="nav-btn" aria-label="Previous month">‹</button>
-    <div class="header-title">
-      <h1 class="masthead">If You Pull, Don't Miss</h1>
-      <p id="monthTitle" class="month-title">Loading…</p>
-      <p id="subTitle" class="subtitle"></p>
-    </div>
-    <button id="nextMonth" class="nav-btn" aria-label="Next month">›</button>
-  </header>
+  <main class="content">
+    <h1 class="page-heading">Solicitations</h1>
+    <p class="page-intro">
+      Everything currently solicited on DCBS, crawled straight from each
+      publisher's own preorders page - not a third-party database, so
+      it's exactly what's actually on offer right now. For whether a
+      title matches your pull list, see the Candidates tab instead.
+    </p>
 
-  <main id="content" class="content">
-    <div id="status" class="status" hidden></div>
-    <ul id="comicList" class="comic-list" hidden></ul>
+    <div class="status-card" id="statusCard">
+      <span class="status-dot unknown" id="statusDot"></span>
+      <span id="statusText">Checking…</span>
+    </div>
+
+    <div class="actions">
+      <button id="refreshBtn">Refresh from DCBS</button>
+    </div>
+
+    <div class="message" id="message"></div>
+
+    <input type="text" id="filterInput" placeholder="Filter by title…" autocomplete="off" style="margin-top:16px;" hidden />
+
+    <div id="publisherGroups"></div>
   </main>
 
-  <script src="/app.js"></script>
+  <script src="/splash.js"></script>
+  <script src="/solicitation-cards.js"></script>
+  <script src="/solicitations.js"></script>
 </body>
 </html>

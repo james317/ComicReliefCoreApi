@@ -167,71 +167,6 @@ body {
   border-color: rgba(255, 217, 160, 0.8);
 }
 
-.app-header {
-  position: sticky;
-  /* Sits right below .trail-nav, which already accounts for the safe area itself - stacking
-     two "top: 0" sticky elements would make this one cover the nav instead of sitting under it. */
-  top: calc(env(safe-area-inset-top, 0px) + 40px);
-  z-index: 9;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 14px 12px;
-  background: var(--accent);
-  color: var(--accent-contrast);
-  border-bottom: 3px solid var(--brass);
-}
-
-.header-title {
-  flex: 1;
-  text-align: center;
-  min-width: 0;
-}
-
-.masthead {
-  margin: 0;
-  font-family: "Rye", "Georgia", serif;
-  font-weight: 400;
-  font-size: 1.15rem;
-  line-height: 1.25;
-  letter-spacing: 0.02em;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
-}
-
-.month-title {
-  margin: 4px 0 0;
-  font-size: 0.82rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  opacity: 0.9;
-}
-
-.subtitle {
-  margin: 2px 0 0;
-  font-size: 0.76rem;
-  opacity: 0.85;
-  min-height: 1.1em;
-}
-
-.nav-btn {
-  flex-shrink: 0;
-  margin-top: 2px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid var(--brass);
-  background: rgba(0, 0, 0, 0.18);
-  color: var(--accent-contrast);
-  font-size: 1.4rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.nav-btn:active {
-  background: rgba(0, 0, 0, 0.32);
-}
-
 .trail-nav {
   position: sticky;
   top: 0;
@@ -541,19 +476,6 @@ details summary { cursor: pointer; color: var(--accent); }
   accent-color: var(--accent);
 }
 
-.on-list-badge {
-  display: inline-block;
-  margin-top: 4px;
-  padding: 1px 7px;
-  border-radius: 999px;
-  border: 1px solid var(--brass);
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--accent);
-}
-
 .status {
   text-align: center;
   color: var(--text-muted);
@@ -573,19 +495,6 @@ details summary { cursor: pointer; color: var(--accent); }
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-
-.date-heading {
-  margin: 18px 4px 6px;
-  font-family: "Rye", "Georgia", serif;
-  font-weight: 400;
-  font-size: 0.92rem;
-  letter-spacing: 0.03em;
-  color: var(--accent);
-}
-
-.date-heading:first-child {
-  margin-top: 4px;
 }
 
 .comic-card {

@@ -20,10 +20,12 @@
 <main class="content">
   <h1 class="page-heading">Candidates</h1>
   <p class="page-intro">
-    Crawled straight from each publisher's own current-preorders page on
-    DCBS - not a third-party database, so it's exactly what's actually
-    solicited right now. Anything that doesn't match a title already on
-    your pull list shows up below as a candidate worth a look.
+    Cross-references what's currently solicited on DCBS (see the
+    Solicitations tab for the full by-publisher listing) against your
+    pull list, so you can confirm each title's current issue is
+    actually being solicited - facsimile/reprint editions of old issues
+    are excluded here, since they're never the thing a plain pull-list
+    entry actually wants.
   </p>
 
   <div class="status-card" id="statusCard">
@@ -37,16 +39,14 @@
 
   <div class="message" id="message"></div>
 
-  <input type="text" id="filterInput" placeholder="Filter by title…" autocomplete="off" style="margin-top:16px;" hidden />
-
   <div id="results" hidden>
     <div class="posse-group">
       <h2 id="trackedHeading">On Your Pull List (0)</h2>
       <ul class="posse-list" id="trackedList"></ul>
     </div>
-    <div id="untrackedGroups"></div>
   </div>
 </main>
+<script src="/solicitation-cards.js"></script>
 <script src="/candidates.js"></script>
 </body>
 </html>
