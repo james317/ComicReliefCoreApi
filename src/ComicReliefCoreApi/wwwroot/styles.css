@@ -536,6 +536,19 @@ details summary { cursor: pointer; color: var(--accent); }
   color: var(--text-muted);
 }
 
+.comic-credits {
+  font-size: 0.76rem;
+  font-style: italic;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.comic-description {
+  font-size: 0.8rem;
+  line-height: 1.35;
+  margin-top: 4px;
+}
+
 .footer-note {
   text-align: center;
   color: var(--text-muted);

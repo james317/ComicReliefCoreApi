@@ -22,6 +22,19 @@ function extractIssueIdentity(title) {
   return coverMatch ? coverMatch[1].trim() : title.trim();
 }
 
+// DCBS's listing-page format is consistently "(W) X (A) Y (CA) Z\r\n\r\n<truncated blurb>"
+// - a blank-line gap separates the credits line from the solicitation text.
+function splitCreatorsAndDescription(text) {
+  if (!text) {
+    return { credits: null, description: null };
+  }
+  const parts = text.split(/\r?\n\r?\n/);
+  if (parts.length >= 2) {
+    return { credits: parts[0].trim(), description: parts.slice(1).join(' ').trim() };
+  }
+  return { credits: null, description: text.trim() };
+}
+
 function groupByIssue(items) {
   const groups = new Map();
   for (const solicitationItem of items) {
@@ -85,6 +98,25 @@ function issueCard(group) {
   title.rel = 'noopener';
   title.textContent = extractIssueIdentity(group[0].item.title);
   info.appendChild(title);
+
+  // Credits/description come from the listing page (already scraped into
+  // CreatorsAndDescription, just never displayed until now) - "(W) X (A) Y (CA) Z\r\n\r\n
+  // <truncated blurb>". Only the cover-artist credit actually varies between a group's
+  // variants (the story and its writer/artist don't), so showing group[0]'s is
+  // representative enough - not worth reconciling per-variant differences here.
+  const { credits, description } = splitCreatorsAndDescription(group[0].item.creatorsAndDescription);
+  if (credits) {
+    const creditsEl = document.createElement('div');
+    creditsEl.className = 'comic-credits';
+    creditsEl.textContent = credits;
+    info.appendChild(creditsEl);
+  }
+  if (description) {
+    const descriptionEl = document.createElement('div');
+    descriptionEl.className = 'comic-description';
+    descriptionEl.textContent = description;
+    info.appendChild(descriptionEl);
+  }
 
   const prices = group.map((g) => g.item.price).filter((p) => p != null);
   const metaParts = [group[0].publisher];
