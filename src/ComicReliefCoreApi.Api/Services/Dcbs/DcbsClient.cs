@@ -45,6 +45,14 @@ public class DcbsClient : IDcbsClient
     private static readonly Regex ListingPriceRegex = new(
         "DCBS Price: </span>\\$([\\d.]+)", RegexOptions.Compiled);
 
+    // Second reprint marker found live 9/2026, alongside "Facsimile Edition": DCBS also
+    // marks additional print runs of a still-selling issue as "2nd Ptg"/"3rd Ptg"/etc
+    // ("printing") - same problem (this isn't the current volume's new issue) with
+    // different wording. Caught via a real case: Crowbound #1 "2nd Ptg" was showing up as
+    // a pull-list match alongside the genuinely new Crowbound #2 that same month.
+    private static readonly Regex ReprintMarkerRegex = new(
+        "facsimile edition|\\bptg\\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     public DcbsClient(HttpClient http, IOptions<DcbsOptions> options, IDcbsSessionStore sessionStore)
     {
         _options = options.Value;
@@ -156,10 +164,10 @@ public class DcbsClient : IDcbsClient
                 // solicitation blurb, so this is scoped to just the opening tag.
                 IsRelisted: chunk.TrimStart().StartsWith("class=relist", StringComparison.OrdinalIgnoreCase),
                 // Checked live (9/2026): DCBS exposes no volume/series-generation field
-                // anywhere, on the listing or product page. "Facsimile Edition" in the
-                // title itself is the only marker it gives for "this is a reprint of an
-                // old issue, not the current volume's new one."
-                IsFacsimileOrReprint: title.Contains("Facsimile Edition", StringComparison.OrdinalIgnoreCase)));
+                // anywhere, on the listing or product page. "Facsimile Edition" and "Nth
+                // Ptg" in the title itself are the only markers it gives for "this isn't
+                // the current volume's new issue" - see ReprintMarkerRegex.
+                IsFacsimileOrReprint: ReprintMarkerRegex.IsMatch(title)));
         }
         return items;
     }
