@@ -3,8 +3,13 @@ using ComicReliefCoreApi.Api.Models.Dcbs;
 
 namespace ComicReliefCoreApi.App.Services;
 
-/// <summary>One listing item plus which publisher category it was crawled from.</summary>
-public record SolicitationItem(string Publisher, DcbsListingItem Item);
+/// <summary>
+/// One listing item plus which publisher category it was crawled from. IsInLatestOrder is
+/// a cross-reference against the synced order snapshot (IOrderSnapshotService), not a
+/// scraped fact about the listing itself - true if this exact product code appears on the
+/// user's most recently synced order.
+/// </summary>
+public record SolicitationItem(string Publisher, DcbsListingItem Item, bool IsInLatestOrder);
 
 /// <summary>Every current-solicitation item matched to one pull-list entry.</summary>
 public record SolicitationMatch(int PullListEntryId, string PullListTitle, PullListStatus Status, IReadOnlyList<SolicitationItem> Items);

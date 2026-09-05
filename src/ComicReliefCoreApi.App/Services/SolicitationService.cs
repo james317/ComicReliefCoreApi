@@ -16,13 +16,25 @@ public class SolicitationService : ISolicitationService
 
     private readonly IDcbsClient _dcbs;
     private readonly IDcbsSolicitationStore _store;
+    private readonly IDcbsOrderSnapshotStore _orderStore;
     private readonly ILogger<SolicitationService> _logger;
 
-    public SolicitationService(IDcbsClient dcbs, IDcbsSolicitationStore store, ILogger<SolicitationService> logger)
+    public SolicitationService(
+        IDcbsClient dcbs, IDcbsSolicitationStore store, IDcbsOrderSnapshotStore orderStore, ILogger<SolicitationService> logger)
     {
         _dcbs = dcbs;
         _store = store;
+        _orderStore = orderStore;
         _logger = logger;
+    }
+
+    private async Task<List<SolicitationItem>> LoadItemsAsync(CancellationToken ct)
+    {
+        var rows = await _store.GetAllAsync(ct);
+        var orderedCodes = await _orderStore.GetProductCodesAsync(ct);
+        return rows
+            .Select(r => new SolicitationItem(r.Publisher, r.Item, orderedCodes.Contains(r.Item.ProductCode.ToUpperInvariant())))
+            .ToList();
     }
 
     public async Task<SolicitationRefreshResult> RefreshAsync(CancellationToken ct = default)
@@ -80,8 +92,7 @@ public class SolicitationService : ISolicitationService
     public async Task<SolicitationCandidateList> BuildCandidateListAsync(
         IReadOnlyCollection<PullListEntry> trackedEntries, CancellationToken ct = default)
     {
-        var rows = await _store.GetAllAsync(ct);
-        var items = rows.Select(r => new SolicitationItem(r.Publisher, r.Item)).ToList();
+        var items = await LoadItemsAsync(ct);
 
         var matched = new HashSet<SolicitationItem>();
         var matches = new List<SolicitationMatch>();
@@ -118,7 +129,6 @@ public class SolicitationService : ISolicitationService
 
     public async Task<IReadOnlyList<SolicitationItem>> GetAllItemsAsync(CancellationToken ct = default)
     {
-        var rows = await _store.GetAllAsync(ct);
-        return rows.Select(r => new SolicitationItem(r.Publisher, r.Item)).ToList();
+        return await LoadItemsAsync(ct);
     }
 }

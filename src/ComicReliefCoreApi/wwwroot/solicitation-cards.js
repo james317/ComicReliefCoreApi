@@ -46,7 +46,10 @@ function groupByIssue(items) {
   return [...groups.values()];
 }
 
-function issueCard(group) {
+// showOrderStatus is only passed true from the tracked-matches view (candidates.js) -
+// "did I already order this" only makes sense to ask about something matching your pull
+// list, not the full unfiltered by-publisher browse.
+function issueCard(group, showOrderStatus) {
   const li = document.createElement('li');
   li.className = 'comic-card-wrap';
 
@@ -138,6 +141,17 @@ function issueCard(group) {
   meta.className = 'comic-meta';
   meta.textContent = metaParts.join(' · ');
   info.appendChild(meta);
+
+  // Its own element (not folded into the meta line) since this is the one thing on the
+  // card actually worth acting on - "in your order" means any variant in the group
+  // matched, since you only ever order one cover of a given issue, not every variant DCBS
+  // solicits, so requiring the exact variant shown here would flag everything as missing.
+  if (showOrderStatus && !group.some((g) => g.isInLatestOrder)) {
+    const orderAlert = document.createElement('div');
+    orderAlert.className = 'comic-order-alert';
+    orderAlert.textContent = 'Not in your last order';
+    info.appendChild(orderAlert);
+  }
 
   card.appendChild(info);
   li.appendChild(card);

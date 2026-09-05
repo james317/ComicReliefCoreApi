@@ -3,6 +3,9 @@ const log = (...args) => console.log('[candidates]', ...args);
 const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
 const refreshBtn = document.getElementById('refreshBtn');
+const orderStatusDot = document.getElementById('orderStatusDot');
+const orderStatusText = document.getElementById('orderStatusText');
+const syncOrderBtn = document.getElementById('syncOrderBtn');
 const message = document.getElementById('message');
 const results = document.getElementById('results');
 const trackedHeading = document.getElementById('trackedHeading');
@@ -37,6 +40,17 @@ function renderStatus(status, publisherErrors) {
   statusText.textContent = parts.join(' ');
 }
 
+function renderOrderStatus(status) {
+  if (!status.orderId) {
+    orderStatusDot.className = 'status-dot unknown';
+    orderStatusText.textContent = 'No order synced yet - click "Sync Latest Order" to compare your pull list against it.';
+    return;
+  }
+  orderStatusDot.className = 'status-dot valid';
+  orderStatusText.textContent =
+    `Comparing against order #${status.orderId} (${status.lineCount} items), synced ${formatDateTime(status.syncedAt)}.`;
+}
+
 // extractIssueIdentity, groupByIssue, and issueCard come from solicitation-cards.js -
 // shared with the Solicitations tab's full by-publisher browse.
 function renderTracked(matches) {
@@ -65,7 +79,7 @@ function renderTracked(matches) {
     const ul = document.createElement('ul');
     ul.className = 'comic-list';
     for (const group of groupByIssue(match.items)) {
-      ul.appendChild(issueCard(group));
+      ul.appendChild(issueCard(group, true));
     }
     info.appendChild(ul);
 
@@ -83,6 +97,19 @@ async function loadStatus() {
   } catch (err) {
     log('loadStatus failed', err);
     statusText.textContent = 'Could not reach the API.';
+    return null;
+  }
+}
+
+async function loadOrderStatus() {
+  try {
+    const res = await fetch('/api/orders/status');
+    const status = await res.json();
+    renderOrderStatus(status);
+    return status;
+  } catch (err) {
+    log('loadOrderStatus failed', err);
+    orderStatusText.textContent = 'Could not reach the API.';
     return null;
   }
 }
@@ -124,7 +151,26 @@ refreshBtn.addEventListener('click', async () => {
   }
 });
 
+syncOrderBtn.addEventListener('click', async () => {
+  syncOrderBtn.disabled = true;
+  showMessage('Fetching your most recent order from DCBS…', false);
+  try {
+    const res = await fetch('/api/orders/sync-latest', { method: 'POST' });
+    const status = await res.json();
+    log('order sync complete', status);
+    renderOrderStatus(status);
+    showMessage(status.orderId ? `Synced order #${status.orderId}.` : 'No recent orders found on DCBS.', !status.orderId);
+    await loadCandidates();
+  } catch (err) {
+    log('order sync failed', err);
+    showMessage('Order sync failed - check the console.', true);
+  } finally {
+    syncOrderBtn.disabled = false;
+  }
+});
+
 (async () => {
   await loadStatus();
+  await loadOrderStatus();
   await loadCandidates();
 })();
