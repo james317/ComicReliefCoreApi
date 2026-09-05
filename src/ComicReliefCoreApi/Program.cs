@@ -29,6 +29,8 @@ builder.Services.AddScoped<IClzCollectionService, ClzCollectionService>();
 // anyway. Persisting means a code deploy no longer wipes crawled data (see docs/BACKLOG.md).
 builder.Services.AddScoped<IDcbsSolicitationStore, DcbsSolicitationStore>();
 builder.Services.AddScoped<ISolicitationService, SolicitationService>();
+builder.Services.AddScoped<IDcbsOrderSnapshotStore, DcbsOrderSnapshotStore>();
+builder.Services.AddScoped<IOrderSnapshotService, OrderSnapshotService>();
 
 // SQLite path comes from config (appsettings.json locally, the Data__SqlitePath env var
 // in fly.toml for production) so it can point at the Fly volume mount without code
@@ -118,6 +120,20 @@ using (var scope = app.Services.CreateScope())
     {
         // Already applied.
     }
+
+    // Same EnsureCreated() limitation, fourth occurrence: DcbsOrderSnapshotLines persists
+    // the user's most recently synced order (see IOrderSnapshotService) so a candidates
+    // rescan can flag "matches your pull list, not in your latest order." Brand new table
+    // on this deploy, so no ALTER TABLE needed yet - CREATE TABLE IF NOT EXISTS is enough.
+    db.Database.ExecuteSqlRaw("""
+        CREATE TABLE IF NOT EXISTS "DcbsOrderSnapshotLines" (
+            "Id" INTEGER NOT NULL CONSTRAINT "PK_DcbsOrderSnapshotLines" PRIMARY KEY AUTOINCREMENT,
+            "OrderId" TEXT NOT NULL,
+            "ProductCode" TEXT NOT NULL,
+            "Title" TEXT NOT NULL,
+            "SyncedAt" TEXT NOT NULL
+        )
+        """);
 }
 
 app.UseDefaultFiles();

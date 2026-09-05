@@ -979,6 +979,39 @@ silently serving a stale cached .js/.css file after a deploy had
 already caused one "I don't see the change" report that turned out to
 need a hard refresh to resolve.
 
+### Order-sync: flag pull-list matches not in your latest order (9/2026)
+
+Real gap found via a real user check: the Candidates page could only
+ever say "this matches your pull list and is currently solicited," not
+"did you actually order it" - so a title solicited late (after the
+user had already placed that month's order) could sit there
+unnoticed. Confirmed live: Altered States: Warlords #4 was a genuine
+late addition the user's order predated; by contrast when the user
+suspected the same about both new Amazing Spider-Man issues, checking
+the actual order (`GET /account/order/{id}` via the existing dcbs-raw
+diagnostic) showed both were already in it.
+
+New `DcbsOrderSnapshotLines` table (.Api) persists the single most
+recently synced order's line items - deliberately only one order at a
+time, not a history, since re-syncing after placing a new order is the
+expected monthly workflow (`IOrderSnapshotService.SyncLatestAsync`
+fetches the newest order id via the existing `GetRecentOrderIdsAsync`
+and stores its lines via `GetOrderLinesAsync`, both already built for
+`PullListService`'s own purchase-lookup). `SolicitationItem` gained
+`IsInLatestOrder`, a cross-reference (not a scraped fact) computed by
+matching product codes - case-insensitively, since DCBS's order page
+uses uppercase codes (`AUG264372`) and its listing pages use lowercase
+(`aug264372`). The "not in order" check happens at the issue-group
+level in the UI (any variant in the group counts as ordered), not per
+exact product code - a user orders one cover of an issue, not every
+variant DCBS solicits, so requiring an exact-variant match would flag
+everything as missing. New `POST /api/orders/sync-latest` and
+`GET /api/orders/status`; UI lives on the Candidates page (sync button
++ status card, "Not in your last order" alert on affected cards) since
+that's the only place the comparison is meaningful - the full
+by-publisher browse (Solicitations tab) doesn't pass `showOrderStatus`
+to `issueCard`, so this never displays there.
+
 ## Open questions for a real implementation
 - Where does pull-list/order-history/CLZ data live persistently, and how
   does it get updated (re-upload each month vs. an integration)?
