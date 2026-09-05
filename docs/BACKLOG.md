@@ -912,6 +912,15 @@ Every card in the fuzzy-pulls/new-#1s report links to a Google search for
   perfectly current issue, not a reprint marker) and bare `(20XX)` year
   mentions (show up on ordinary current-year variant titles too) — both
   ruled out live against the full crawl before shipping this.
+  **Second reprint marker found live 9/2026**: "Nth Ptg" (printing) -
+  an additional print run of a still-selling issue, same problem as a
+  facsimile (not the current volume's new issue) with different
+  wording. Caught via a real user report: Crowbound #1 "2nd Ptg" was
+  showing up as a pull-list match alongside the genuinely new Crowbound
+  #2 the same month. `ReprintMarkerRegex` now catches both
+  `facsimile edition` and `\bptg\b`; checked the full live crawl before
+  shipping - 16 "Ptg" items found, all genuine reprints, no
+  `reprint`/`reissue` wording found anywhere else worth also matching.
 - Cover images: `https://media.dcbservice.com/{small|xlarge}/{CODE}.jpg`
   — no hotlink protection, but iOS Quick Look still needs them
   base64-embedded (see above).
