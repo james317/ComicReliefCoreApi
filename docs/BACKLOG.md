@@ -979,38 +979,58 @@ silently serving a stale cached .js/.css file after a deploy had
 already caused one "I don't see the change" report that turned out to
 need a hard refresh to resolve.
 
-### Order-sync: flag pull-list matches not in your latest order (9/2026)
+### Order-sync: flag pull-list matches not in your order history (9/2026)
 
 Real gap found via a real user check: the Candidates page could only
 ever say "this matches your pull list and is currently solicited," not
-"did you actually order it" - so a title solicited late (after the
-user had already placed that month's order) could sit there
-unnoticed. Confirmed live: Altered States: Warlords #4 was a genuine
-late addition the user's order predated; by contrast when the user
-suspected the same about both new Amazing Spider-Man issues, checking
-the actual order (`GET /account/order/{id}` via the existing dcbs-raw
-diagnostic) showed both were already in it.
+"did you actually order it."
 
-New `DcbsOrderSnapshotLines` table (.Api) persists the single most
-recently synced order's line items - deliberately only one order at a
-time, not a history, since re-syncing after placing a new order is the
-expected monthly workflow (`IOrderSnapshotService.SyncLatestAsync`
-fetches the newest order id via the existing `GetRecentOrderIdsAsync`
-and stores its lines via `GetOrderLinesAsync`, both already built for
-`PullListService`'s own purchase-lookup). `SolicitationItem` gained
-`IsInLatestOrder`, a cross-reference (not a scraped fact) computed by
-matching product codes - case-insensitively, since DCBS's order page
-uses uppercase codes (`AUG264372`) and its listing pages use lowercase
-(`aug264372`). The "not in order" check happens at the issue-group
+**First cut (superseded within the same session, see below): tracked
+only the single most recent order.** Built after the user suspected
+Altered States: Warlords #4 was a late addition their August order
+predated - initially looked confirmed (the single-order check found it
+missing), but turned out to be **wrong**: checking the real order page
+directly (`GET /account/order/{id}` via the existing dcbs-raw
+diagnostic) showed the exact opposite - the user's memory was right,
+both new Amazing Spider-Man issues were already on the order. The
+single-order design's real failure mode showed up next: DCBS
+resolicited a *new cover variant* of Warlords #4 in a later cycle: the
+single-order check correctly found it missing from the *latest* order
+(true), but the user had actually already ordered a *different* cover
+of the same issue on an *earlier* order - invisible to a check that
+only ever remembers one order at a time. Result: a real duplicate
+order, exactly what this feature exists to prevent.
+
+**Fixed same session**: `DcbsOrderSnapshotLines` now accumulates every
+synced order (`IDcbsOrderSnapshotStore.UpsertOrderAsync` replaces only
+that one order's rows, scoped by `OrderId` - never a wholesale wipe),
+and `GetProductCodesAsync` aggregates product codes across the entire
+stored history, not one order. `IOrderSnapshotService.SyncRecentAsync`
+fetches up to `maxOrders` (default 24, comfortably past this account's
+entire ~20-order lifetime - confirmed live, `/account/orders` lists
+the whole history on one page, no pagination to handle) via the
+existing `GetRecentOrderIdsAsync`/`GetOrderLinesAsync` (both already
+built for `PullListService`'s own purchase-lookup), fetching
+concurrently but writing sequentially - same DbContext-concurrency
+fix as `SolicitationService.RefreshAsync`, applied proactively this
+time rather than re-hitting the bug. One button ("Sync Order History")
+covers both the initial backfill and every future incremental sync -
+re-running it is cheap and idempotent, existing orders just get
+refreshed in place.
+
+`SolicitationItem` gained `IsInLatestOrder` (name kept from the first
+cut; means "in any synced order," not just the latest) - a cross-
+reference, not a scraped fact, computed by case-insensitive product-
+code matching (DCBS's order page uses uppercase codes, its listing
+pages lowercase). The "not in order" check happens at the issue-group
 level in the UI (any variant in the group counts as ordered), not per
 exact product code - a user orders one cover of an issue, not every
 variant DCBS solicits, so requiring an exact-variant match would flag
-everything as missing. New `POST /api/orders/sync-latest` and
-`GET /api/orders/status`; UI lives on the Candidates page (sync button
-+ status card, "Not in your last order" alert on affected cards) since
-that's the only place the comparison is meaningful - the full
-by-publisher browse (Solicitations tab) doesn't pass `showOrderStatus`
-to `issueCard`, so this never displays there.
+everything as missing. `POST /api/orders/sync-recent` and
+`GET /api/orders/status`; UI lives on the Candidates page only (sync
+button + status card, "Not in your last order" alert on affected
+cards) - the full by-publisher browse (Solicitations tab) doesn't pass
+`showOrderStatus` to `issueCard`, so this never displays there.
 
 ## Open questions for a real implementation
 - Where does pull-list/order-history/CLZ data live persistently, and how

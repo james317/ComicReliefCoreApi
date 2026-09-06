@@ -4,9 +4,11 @@ using Microsoft.AspNetCore.Mvc;
 namespace ComicReliefCoreApi.Controllers;
 
 /// <summary>
-/// Syncs the user's single most recent DCBS order so candidates can flag "matches your pull
-/// list, not in your latest order" - see IOrderSnapshotService for why this only ever
-/// tracks one order at a time.
+/// Syncs the user's DCBS order history so candidates can flag "matches your pull list,
+/// not in anything you've ordered" - checked against every synced order, not just the
+/// most recent one. See IOrderSnapshotService for why that distinction is real: a
+/// different cover of an already-ordered issue can get resolicited later, and comparing
+/// against only the latest order misses that it's already covered.
 /// </summary>
 [ApiController]
 [Route("api/orders")]
@@ -19,11 +21,11 @@ public sealed class OrdersController : ControllerBase
         _orders = orders;
     }
 
-    /// <summary>Fetches the most recent order from DCBS and replaces the stored snapshot with it.</summary>
-    [HttpPost("sync-latest")]
-    public async Task<ActionResult<OrderSnapshotStatus>> SyncLatest(CancellationToken cancellationToken)
+    /// <summary>Fetches up to maxOrders most recent orders from DCBS and upserts each into the stored history (default 24 - comfortably covers this account's entire ~20-order lifetime).</summary>
+    [HttpPost("sync-recent")]
+    public async Task<ActionResult<OrderSyncResult>> SyncRecent([FromQuery] int? maxOrders, CancellationToken cancellationToken)
     {
-        return Ok(await _orders.SyncLatestAsync(cancellationToken));
+        return Ok(await _orders.SyncRecentAsync(maxOrders ?? 24, cancellationToken));
     }
 
     [HttpGet("status")]
