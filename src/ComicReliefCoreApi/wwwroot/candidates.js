@@ -40,15 +40,22 @@ function renderStatus(status, publisherErrors) {
   statusText.textContent = parts.join(' ');
 }
 
-function renderOrderStatus(status) {
-  if (!status.orderId) {
+function renderOrderStatus(status, orderErrors) {
+  const errorOrders = Object.keys(orderErrors || {});
+
+  if (!status.lastSyncedAt) {
     orderStatusDot.className = 'status-dot unknown';
-    orderStatusText.textContent = 'No order synced yet - click "Sync Latest Order" to compare your pull list against it.';
+    orderStatusText.textContent = 'No orders synced yet - click "Sync Order History" to compare your pull list against everything you\'ve ordered.';
     return;
   }
-  orderStatusDot.className = 'status-dot valid';
-  orderStatusText.textContent =
-    `Comparing against order #${status.orderId} (${status.lineCount} items), synced ${formatDateTime(status.syncedAt)}.`;
+  orderStatusDot.className = errorOrders.length > 0 ? 'status-dot invalid' : 'status-dot valid';
+  const parts = [
+    `Comparing against ${status.orderCount} orders (${status.totalLineCount} items total), last synced ${formatDateTime(status.lastSyncedAt)}.`,
+  ];
+  if (errorOrders.length > 0) {
+    parts.push(`Failed to fetch orders: ${errorOrders.join(', ')}.`);
+  }
+  orderStatusText.textContent = parts.join(' ');
 }
 
 // extractIssueIdentity, groupByIssue, and issueCard come from solicitation-cards.js -
@@ -153,13 +160,13 @@ refreshBtn.addEventListener('click', async () => {
 
 syncOrderBtn.addEventListener('click', async () => {
   syncOrderBtn.disabled = true;
-  showMessage('Fetching your most recent order from DCBS…', false);
+  showMessage('Fetching your order history from DCBS - this can take a little while…', false);
   try {
-    const res = await fetch('/api/orders/sync-latest', { method: 'POST' });
-    const status = await res.json();
-    log('order sync complete', status);
-    renderOrderStatus(status);
-    showMessage(status.orderId ? `Synced order #${status.orderId}.` : 'No recent orders found on DCBS.', !status.orderId);
+    const res = await fetch('/api/orders/sync-recent', { method: 'POST' });
+    const result = await res.json();
+    log('order sync complete', result);
+    renderOrderStatus(result.status, result.orderErrors);
+    showMessage(`Synced ${result.status.orderCount} orders.`, false);
     await loadCandidates();
   } catch (err) {
     log('order sync failed', err);
