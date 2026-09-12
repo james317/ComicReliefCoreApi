@@ -17,4 +17,7 @@ public interface IDcbsOrderSnapshotStore
     Task<IReadOnlySet<string>> GetProductCodesAsync(CancellationToken ct = default);
 
     Task<(int OrderCount, int TotalLineCount, DateTime? LastSyncedAt)> GetStatusAsync(CancellationToken ct = default);
+
+    /// <summary>Every synced line across every order (OrderId, Title, and last-known Status) - the raw material for cross-title checks like issue-continuity gaps, which need the full history, not just product codes.</summary>
+    Task<IReadOnlyList<(string OrderId, string Title, DcbsShipmentStatus? Status)>> GetAllLinesAsync(CancellationToken ct = default);
 }

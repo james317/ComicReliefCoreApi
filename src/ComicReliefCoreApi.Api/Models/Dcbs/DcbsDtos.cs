@@ -6,8 +6,45 @@ public record DcbsSeriesSearchResult(string SeriesCode, string SeriesTitle, stri
 /// <summary>One row from the real, persistent /account/pulllist page.</summary>
 public record DcbsPullListRow(string Title, int Qty, string PullListId);
 
-/// <summary>One purchased line item as it appears on an order detail page.</summary>
-public record DcbsOrderLine(string ProductCode, string Title);
+/// <summary>
+/// One purchased line item as it appears on an order detail page. Status is null for the
+/// small number of rows that carry no status icon at all (confirmed live: free items like
+/// Comic Shop News/DC Connect/monthly catalogs) rather than guessed as any particular value.
+/// </summary>
+public record DcbsOrderLine(string ProductCode, string Title, DcbsShipmentStatus? Status);
+
+/// <summary>
+/// An order detail page's own "Shipment Status Legend" - confirmed live to have exactly these
+/// four values, one item-row icon per status plus one more of each in the legend explanation
+/// itself (distinguished by icon filename casing: real rows use "Processing.png" etc., the
+/// legend explanation always "processing.png" lowercase). An item completes a preorder month's
+/// order this account has open by moving Processing -&gt; Filled -&gt; Shipped, or Cancelled if
+/// DCBS can't fulfill it - "Shipped" here doesn't mean "in the box I'm holding", it means "DCBS
+/// has shipped it in some shipment", possibly a different one than the box being unboxed right now.
+/// </summary>
+public enum DcbsShipmentStatus
+{
+    Processing,
+    Filled,
+    Shipped,
+    Cancelled,
+}
+
+/// <summary>
+/// One row from /account/shipments - a real box mailed to the user, distinct from a DCBS
+/// "order" (the running monthly preorder for one Diamond order-form cycle - see
+/// DcbsShipmentLine). PacklistNumber is the number printed on the physical packing slip
+/// inside the box (e.g. "001235696"), the only thing the user can see without opening a
+/// browser, so it's the natural key for matching "the box I'm holding" to this record.
+/// </summary>
+public record DcbsShipmentSummary(string ShipmentId, string PacklistNumber, DateOnly ShippedAt);
+
+/// <summary>
+/// One line item as it appears on a shipment's own detail page. No status field - unlike an
+/// order line, every row on a shipment page is by definition already shipped (that's what
+/// makes it a shipment rather than an order).
+/// </summary>
+public record DcbsShipmentLine(string ProductCode, string Title);
 
 /// <summary>
 /// One item from a publisher's current-preorders listing page (/products/&lt;slug&gt;/&lt;id&gt;).

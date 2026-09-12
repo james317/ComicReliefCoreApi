@@ -39,6 +39,9 @@ public interface IPullListService
     /// Purely a display decision - never touches DCBS. Returns null if no entry with that id exists.
     /// </summary>
     Task<PullListEntry?> SetArchivedAsync(int id, bool archived, CancellationToken ct = default);
+
+    /// <summary>Every non-archived tracked entry, any status - for callers cross-referencing the whole pull list against some other data source (e.g. issue-continuity checks against order history). Archived titles are excluded, same as the default pull-list view - a series the user marked done shouldn't keep getting flagged.</summary>
+    Task<IReadOnlyList<PullListEntry>> GetAllAsync(CancellationToken ct = default);
 }
 
 public sealed record PullListImportRow(string Title, PullListStatus Status, string? Notes);

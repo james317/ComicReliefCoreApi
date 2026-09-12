@@ -216,6 +216,11 @@ public class PullListService : IPullListService
         return entry;
     }
 
+    public async Task<IReadOnlyList<PullListEntry>> GetAllAsync(CancellationToken ct = default)
+    {
+        return await _db.PullListEntries.Where(e => e.ArchivedAt == null).ToListAsync(ct);
+    }
+
     private static string Truncate(string value, int max = 2000) =>
         value.Length <= max ? value : value[..max];
 }

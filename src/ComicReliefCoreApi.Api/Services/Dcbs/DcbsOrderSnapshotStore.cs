@@ -29,6 +29,7 @@ public class DcbsOrderSnapshotStore : IDcbsOrderSnapshotStore
             OrderId = orderId,
             ProductCode = l.ProductCode,
             Title = l.Title,
+            Status = l.Status,
             SyncedAt = syncedAt,
         }));
         await _db.SaveChangesAsync(ct);
@@ -49,5 +50,11 @@ public class DcbsOrderSnapshotStore : IDcbsOrderSnapshotStore
         var totalLineCount = await _db.DcbsOrderSnapshotLines.CountAsync(ct);
         var lastSyncedAt = await _db.DcbsOrderSnapshotLines.MaxAsync(l => (DateTime?)l.SyncedAt, ct);
         return (orderCount, totalLineCount, lastSyncedAt);
+    }
+
+    public async Task<IReadOnlyList<(string OrderId, string Title, DcbsShipmentStatus? Status)>> GetAllLinesAsync(CancellationToken ct = default)
+    {
+        var rows = await _db.DcbsOrderSnapshotLines.Select(l => new { l.OrderId, l.Title, l.Status }).ToListAsync(ct);
+        return rows.Select(r => (r.OrderId, r.Title, r.Status)).ToList();
     }
 }

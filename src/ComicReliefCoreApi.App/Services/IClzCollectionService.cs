@@ -1,3 +1,4 @@
+using ComicReliefCoreApi.Api.Models;
 using ComicReliefCoreApi.Api.Services.Clz;
 
 namespace ComicReliefCoreApi.App.Services;
@@ -20,4 +21,7 @@ public interface IClzCollectionService
     /// </summary>
     Task<IReadOnlyDictionary<string, DateOnly?>> GetLastKnownIssueDatesAsync(
         IEnumerable<string> normalizedTitles, CancellationToken ct = default);
+
+    /// <summary>Every per-issue release-date row on file (see ClzIssueRelease), for matching a shipment's lines to when each issue actually came out.</summary>
+    Task<IReadOnlyList<ClzIssueRelease>> GetAllIssueReleasesAsync(CancellationToken ct = default);
 }

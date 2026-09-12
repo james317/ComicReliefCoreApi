@@ -1032,6 +1032,114 @@ button + status card, "Not in your last order" alert on affected
 cards) - the full by-publisher browse (Solicitations tab) doesn't pass
 `showOrderStatus` to `issueCard`, so this never displays there.
 
+## Missed-issue continuity check (9/12/2026)
+Automates a manual step in the user's own shipment-processing routine: a
+running note of each ongoing title's next-expected issue, incremented on
+receipt, investigated whenever a received issue skips ahead (real example
+that prompted this: expecting Batman #23, receiving #24). `IIssueContinuityService`
+(.App) cross-references the pull list against the full synced order
+history (`IDcbsOrderSnapshotStore.GetAllLinesAsync`, added alongside this),
+using `IssueNumberParser` (.Api) to pull the whole-number issue out of each
+order line's title and `TitleNormalizer.IsLikelySeriesMatch` to attribute
+it to a pull-list title. `GET /api/missed-issues` returns the flags; no UI
+yet.
+
+Deliberately whole-number issues only - a decimal issue ("#12.5") is an
+interlude, not part of the normal numbering sequence, so `IssueNumberParser`
+leaves it unparsed rather than truncating it to a misleading integer.
+
+The one real design problem: telling a genuine gap apart from a
+volume relaunch (issue number drops back to #1) using only order-line
+titles, which carry no volume/series-generation field (confirmed absent
+site-wide earlier this session). Resolved by walking each title's matched
+issue numbers in chronological purchase order (DCBS order ids are
+sequential, so ascending numeric order id works as a chronology - no
+need to trust page position) and tracking a running `runMax`:
+- next number is `runMax + 1` -> normal continuation.
+- next number is `> runMax + 1` -> real gap, flag every number in between.
+- next number is `runMax - 1` -> shipped out of order by one (e.g. #10
+  arrives before #9); left alone, `runMax` doesn't move, so a real gap
+  right after it still gets caught.
+- next number is `< runMax - 1` -> treated as a relaunch, not a gap;
+  `runMax` resets there with nothing flagged for the drop itself, but a
+  gap _within_ the new volume still gets caught.
+
+Verified against synthetic scenarios (not real order data - this needs a
+merge to master before it can run against the live account) covering
+each branch above, including the relaunch case correctly finding a gap
+inside the new volume rather than either false-flagging the reboot or
+going blind after it.
+
+## Per-item shipment status (9/12/2026)
+`GetOrderLinesAsync` now also scrapes each line's own Processing/Filled/Shipped/Cancelled
+icon (DCBS's own "Shipment Status Legend" on every order detail page) as `DcbsOrderLine.Status`,
+persisted on `DcbsOrderSnapshotLine` and fed into the missed-issue check (only `Shipped`
+lines count as actually-received - a still-`Processing` or `Filled` line isn't in hand yet,
+and a `Cancelled` one never will be).
+
+Real finding while verifying this against the live account: an "order" here is DCBS's
+monthly running preorder for that Diamond order-form cycle (product codes are literally
+prefixed with it, e.g. "JUL26...") - not the same thing as a shipment. Its items don't all
+ship that month - they ship whenever their own on-sale date and stock line up, sometimes
+2-3 months later. So most `Processing` rows on a recent order are just "not due yet," not a backorder
+problem - only `Processing`/`Filled` rows on an *old* order (should have shipped by now)
+are a real signal. The user's actual received box (matching a DCBS "shipment", a different
+entity - `/account/shipment/{id}`, no status icons at all since everything in it is by
+definition already shipped) draws its items from whichever orders happen to be ready, not
+from one single order.
+
+Also replaced the order-line parser's old approach (three independent flat regex
+match-lists zipped by position - title/code/status counts disagreed on the same real page:
+40/40/38) with per-`<tr>` chunk parsing, so a field that's missing on one row (free items
+like Comic Shop News/monthly catalogs don't get a pull-list-add form or a status icon) just
+comes back null for that row instead of silently shifting every later row's fields out of
+alignment. Known remaining gap: a row whose markup embeds its own nested `<tr>...</tr>`
+before its real close is invisible to a plain non-greedy regex and gets dropped entirely
+rather than misattributed (confirmed on one real order: 2 of 40 rows, both free items) - a
+real HTML parser would be the actual fix if this is ever seen on a real series title.
+
+## Box-shipment tracking: reading order by ship date (9/12/2026)
+Automates the read-order half of the user's shipment-processing routine (see the missed-
+issue-continuity section above for the other half). Deliberately skips the "upload the
+packing list" step the user described - a shipment's own detail page
+(`/account/shipment/{id}`, linked from `/account/shipments`) already has every line's title
+and product code, the same information a physical packlist has, so `IDcbsClient` just scrapes
+it directly (`GetRecentShipmentsAsync`/`GetShipmentLinesAsync`) the same way it already
+scrapes orders. One real structural difference from an order's row markup, confirmed live:
+a shipment row's `cartimg alt` holds the long creators/description blurb, not the title - the
+real title is the plain text immediately before the `productcode` div instead, so this needed
+its own `ShipmentRowTitleRegex` rather than reusing the order parser's title regex.
+
+`IShipmentTrackingService.GetReadingOrderAsync` cross-references each line's issue number
+(`IssueNumberParser`) and title (`TitleNormalizer.IsLikelySeriesMatch`) against a new
+per-issue CLZ table (`ClzIssueRelease` - the existing `ClzSeriesSummary` throws away
+per-issue dates by aggregating to one row per series, so this needed a parallel table
+populated from the same CSV upload) to group items by release date. No interest ranking -
+the user was explicit that this doesn't belong in the app, since it's a personal judgment
+call made fresh each shipment, not something to derive from data.
+
+Missed-issue detection deliberately reuses the existing order-based Shipped-status
+pipeline rather than building a parallel implementation for shipments - a shipment's items
+are definitionally already `Shipped` on whatever order they came from, so re-running
+`/api/orders/sync-recent` then `/api/missed-issues` already covers "check what was
+received" without this feature needing its own copy of that logic.
+
+Verified against the user's real shipment #1244667 (51 items) and CLZ export: 33 of the
+37 items with a real issue number matched to the correct CLZ release date, zero wrong
+matches. The 4 misses are a genuine gap in `IsLikelySeriesMatch`, not a bug in this
+feature: CLZ's series name for "Batman/Superman: World's Finest" hits the apostrophe
+inconsistency already documented on `TitleNormalizer` ("World's" vs DCBS's own "Worlds"
+becomes "world s" vs "worlds" once the word-boundary normalizer turns the apostrophe into
+a space instead of dropping it); "X-Men '97" and "Madame Tarantula" both have an extra
+descriptive word between series and issue number that only DCBS's title carries ("Season
+Two", "Magazine") which `IsLikelySeriesMatch` requires to be the issue number itself.
+Loosening that requirement to allow one extra word would reintroduce the exact false-positive
+class it was built to prevent (e.g. "Batman Beyond #1" wrongly matching a plain "Batman"
+entry), so this is left as an accepted false negative - the item just lands in an "unknown
+date" group instead of a wrong one. Also expected and correct: Comic Shop News, DC Connect,
+the monthly catalogs, and Psycho #2 all land in "unknown" too, since none of them were ever
+scanned into CLZ with a real per-issue date to match.
+
 ## Open questions for a real implementation
 - Where does pull-list/order-history/CLZ data live persistently, and how
   does it get updated (re-upload each month vs. an integration)?
