@@ -166,6 +166,17 @@ using (var scope = app.Services.CreateScope())
         """);
     db.Database.ExecuteSqlRaw(
         "CREATE INDEX IF NOT EXISTS \"IX_ClzIssueReleases_NormalizedSeries\" ON \"ClzIssueReleases\" (\"NormalizedSeries\")");
+
+    // One-time cleanup for a real incident: before ParsePerIssueRows deduped its own output,
+    // a full collection export whose owner has multiple covers of the same issue (confirmed
+    // real and common) produced duplicate (NormalizedSeries, IssueNumber) rows here, which
+    // then crashed the next upsert's dictionary build. Idempotent - a no-op once already clean.
+    db.Database.ExecuteSqlRaw("""
+        DELETE FROM ClzIssueReleases
+        WHERE Id NOT IN (
+            SELECT MIN(Id) FROM ClzIssueReleases GROUP BY NormalizedSeries, IssueNumber
+        )
+        """);
 }
 
 app.UseDefaultFiles();

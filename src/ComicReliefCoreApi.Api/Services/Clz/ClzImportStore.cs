@@ -49,8 +49,14 @@ public class ClzImportStore : IClzImportStore
         // the former would wipe out every other series' history. Confirmed live this session
         // as a real incident: uploading a shipment-only CSV through the old ReplaceAllAsync-
         // style path collapsed the whole collection down to that shipment's ~37 series.
+        // GroupBy...First() rather than a plain ToDictionary - defensive against any
+        // duplicate-keyed rows already sitting in the table (ParsePerIssueRows now dedupes
+        // its own output, but this guards against already-corrupted historical data, and a
+        // plain ToDictionary throws outright on a duplicate key rather than degrading gracefully).
         var existing = await _db.ClzIssueReleases.ToListAsync(ct);
-        var byKey = existing.ToDictionary(r => (r.NormalizedSeries, r.IssueNumber));
+        var byKey = existing
+            .GroupBy(r => (r.NormalizedSeries, r.IssueNumber))
+            .ToDictionary(g => g.Key, g => g.First());
 
         foreach (var row in rows)
         {

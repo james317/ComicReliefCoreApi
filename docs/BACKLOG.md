@@ -1177,3 +1177,26 @@ snapshot vs. frequent shipment-scoped additions. Fixed by:
 Remediation for the account itself: the user needs to re-upload their real full CLZ
 collection export once via the (now correctly labeled) full-collection button to restore
 what got wiped - this fix prevents a repeat, it doesn't undo the one that already happened.
+
+## Follow-on bug from the fix above: duplicate-cover crash (9/12/2026, same day)
+Restoring the full collection export (3644 rows) via the newly-fixed full-import endpoint
+crashed with a 500 on the very next upload attempt. Root cause: this account genuinely owns
+multiple covers of some issues (confirmed real earlier this session with two different owned
+"Vampirella #6" covers) - `ParsePerIssueRows` produced one row per *owned copy*, not per
+issue, so two covers of the same issue produced two rows with the identical
+(NormalizedSeries, IssueNumber) key. The first full-import call succeeded (nothing read that
+key set back yet), silently inserting the duplicates; the *next* upsert call's
+`existing.ToDictionary(...)` then threw `ArgumentException` on the duplicate key it had
+itself created, which the controller didn't catch (only `InvalidDataException` was handled),
+surfacing as an unhandled 500 - after the series aggregate had already committed its own
+replace, which is why the UI showed an updated series count and timestamp alongside a
+failed-upload message.
+
+Fixed at the source: `ParsePerIssueRows` now dedupes by (NormalizedSeries, IssueNumber)
+during parsing - the release date is a fact about the issue, not about which cover is
+sitting in the collection, so multiple owned covers collapse to one row. `UpsertIssuesAsync`
+also switched its dictionary build to `GroupBy(...).First()` instead of a plain
+`ToDictionary`, so it degrades gracefully instead of throwing if duplicate-keyed rows are
+ever present regardless of how they got there. Startup migrations added a one-time cleanup
+(`DELETE ... WHERE Id NOT IN (SELECT MIN(Id) ... GROUP BY ...)`) to remove the duplicates
+this incident already wrote into the live table.

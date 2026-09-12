@@ -19,11 +19,17 @@ public static class ClzCsvParser
     private static readonly Regex LeadingIssueNumberRegex = new(@"^(\d+)", RegexOptions.Compiled);
 
     /// <summary>
-    /// One row per owned issue, keeping the per-issue release date ParseAndAggregate throws
-    /// away - needed to match a specific shipment line (a specific issue number) to when it
-    /// actually came out, not just the series' latest release overall. Rows whose "Issue"
-    /// value has no leading digit (a TP/HC/magazine with no issue number, e.g. "TP") are
-    /// skipped rather than guessed at, same as IssueNumberParser's own whole-number-only rule.
+    /// One row per (series, issue number) - keeping the per-issue release date
+    /// ParseAndAggregate throws away, needed to match a specific shipment line (a specific
+    /// issue number) to when it actually came out, not just the series' latest release
+    /// overall. Deliberately collapses multiple owned covers of the same issue to a single
+    /// row (confirmed a real, common case - e.g. two different owned covers of one
+    /// Vampirella issue): the release date is a fact about the issue, not about which cover
+    /// happens to be sitting in the collection, and a downstream consumer keying on (series,
+    /// issue number) - as this whole feature does - can't have two rows answering the same
+    /// key. Rows whose "Issue" value has no leading digit (a TP/HC/magazine with no issue
+    /// number, e.g. "TP") are skipped rather than guessed at, same as IssueNumberParser's own
+    /// whole-number-only rule.
     /// </summary>
     public static List<ClzIssueRelease> ParsePerIssueRows(TextReader reader, DateTime importedAt)
     {
@@ -41,7 +47,7 @@ public static class ClzCsvParser
             throw new InvalidDataException("CSV is missing a \"Series\" or \"Issue\" column - is this a CLZ comics export?");
         }
 
-        var rows = new List<ClzIssueRelease>();
+        var byKey = new Dictionary<(string NormalizedSeries, int IssueNumber), ClzIssueRelease>();
         List<string>? row;
         while ((row = ReadRow(reader)) is not null)
         {
@@ -61,16 +67,28 @@ public static class ClzCsvParser
                 ? ParseDate(row[releaseDateIndex])
                 : null;
 
-            rows.Add(new ClzIssueRelease
+            var normalizedSeries = TitleNormalizer.Normalize(series);
+            var key = (normalizedSeries, issueNumber);
+
+            // Another owned cover of the same issue already seen - keep the first row's date
+            // unless it was missing and this one has one, rather than adding a second row
+            // under the same key.
+            if (byKey.TryGetValue(key, out var existingRow))
+            {
+                existingRow.ReleaseDate ??= releaseDate;
+                continue;
+            }
+
+            byKey[key] = new ClzIssueRelease
             {
                 Series = series,
-                NormalizedSeries = TitleNormalizer.Normalize(series),
+                NormalizedSeries = normalizedSeries,
                 IssueNumber = issueNumber,
                 ReleaseDate = releaseDate,
                 ImportedAt = importedAt,
-            });
+            };
         }
-        return rows;
+        return byKey.Values.ToList();
     }
 
     public static List<ClzSeriesSummary> ParseAndAggregate(TextReader reader, DateTime importedAt)
