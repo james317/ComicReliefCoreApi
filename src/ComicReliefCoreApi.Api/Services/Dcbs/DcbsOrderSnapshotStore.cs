@@ -50,4 +50,10 @@ public class DcbsOrderSnapshotStore : IDcbsOrderSnapshotStore
         var lastSyncedAt = await _db.DcbsOrderSnapshotLines.MaxAsync(l => (DateTime?)l.SyncedAt, ct);
         return (orderCount, totalLineCount, lastSyncedAt);
     }
+
+    public async Task<IReadOnlyList<(string OrderId, string Title)>> GetAllLinesAsync(CancellationToken ct = default)
+    {
+        var rows = await _db.DcbsOrderSnapshotLines.Select(l => new { l.OrderId, l.Title }).ToListAsync(ct);
+        return rows.Select(r => (r.OrderId, r.Title)).ToList();
+    }
 }

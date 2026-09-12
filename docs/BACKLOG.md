@@ -1032,6 +1032,44 @@ button + status card, "Not in your last order" alert on affected
 cards) - the full by-publisher browse (Solicitations tab) doesn't pass
 `showOrderStatus` to `issueCard`, so this never displays there.
 
+## Missed-issue continuity check (9/12/2026)
+Automates a manual step in the user's own shipment-processing routine: a
+running note of each ongoing title's next-expected issue, incremented on
+receipt, investigated whenever a received issue skips ahead (real example
+that prompted this: expecting Batman #23, receiving #24). `IIssueContinuityService`
+(.App) cross-references the pull list against the full synced order
+history (`IDcbsOrderSnapshotStore.GetAllLinesAsync`, added alongside this),
+using `IssueNumberParser` (.Api) to pull the whole-number issue out of each
+order line's title and `TitleNormalizer.IsLikelySeriesMatch` to attribute
+it to a pull-list title. `GET /api/missed-issues` returns the flags; no UI
+yet.
+
+Deliberately whole-number issues only - a decimal issue ("#12.5") is an
+interlude, not part of the normal numbering sequence, so `IssueNumberParser`
+leaves it unparsed rather than truncating it to a misleading integer.
+
+The one real design problem: telling a genuine gap apart from a
+volume relaunch (issue number drops back to #1) using only order-line
+titles, which carry no volume/series-generation field (confirmed absent
+site-wide earlier this session). Resolved by walking each title's matched
+issue numbers in chronological purchase order (DCBS order ids are
+sequential, so ascending numeric order id works as a chronology - no
+need to trust page position) and tracking a running `runMax`:
+- next number is `runMax + 1` -> normal continuation.
+- next number is `> runMax + 1` -> real gap, flag every number in between.
+- next number is `runMax - 1` -> shipped out of order by one (e.g. #10
+  arrives before #9); left alone, `runMax` doesn't move, so a real gap
+  right after it still gets caught.
+- next number is `< runMax - 1` -> treated as a relaunch, not a gap;
+  `runMax` resets there with nothing flagged for the drop itself, but a
+  gap _within_ the new volume still gets caught.
+
+Verified against synthetic scenarios (not real order data - this needs a
+merge to master before it can run against the live account) covering
+each branch above, including the relaunch case correctly finding a gap
+inside the new volume rather than either false-flagging the reboot or
+going blind after it.
+
 ## Open questions for a real implementation
 - Where does pull-list/order-history/CLZ data live persistently, and how
   does it get updated (re-upload each month vs. an integration)?

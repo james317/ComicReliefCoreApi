@@ -31,6 +31,7 @@ builder.Services.AddScoped<IDcbsSolicitationStore, DcbsSolicitationStore>();
 builder.Services.AddScoped<ISolicitationService, SolicitationService>();
 builder.Services.AddScoped<IDcbsOrderSnapshotStore, DcbsOrderSnapshotStore>();
 builder.Services.AddScoped<IOrderSnapshotService, OrderSnapshotService>();
+builder.Services.AddScoped<IIssueContinuityService, IssueContinuityService>();
 
 // SQLite path comes from config (appsettings.json locally, the Data__SqlitePath env var
 // in fly.toml for production) so it can point at the Fly volume mount without code
