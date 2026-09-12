@@ -57,6 +57,12 @@ public interface IDcbsClient
     Task<(int StatusCode, string Body)> GetRawAsync(
         string relativeUrl, IReadOnlyDictionary<string, string>? extraCookies = null, CancellationToken ct = default);
 
+    /// <summary>Recent shipments, newest first, from /account/shipments - real boxes mailed to the user, not orders (see DcbsShipmentSummary).</summary>
+    Task<IReadOnlyList<DcbsShipmentSummary>> GetRecentShipmentsAsync(int max = 12, CancellationToken ct = default);
+
+    /// <summary>Every line item on one shipment's own detail page (/account/shipment/{id}), each already shipped by definition.</summary>
+    Task<IReadOnlyList<DcbsShipmentLine>> GetShipmentLinesAsync(string shipmentId, CancellationToken ct = default);
+
     /// <summary>
     /// Fetches and parses one publisher's current-preorders listing page in a single
     /// request (ProductsPerPage set high internally - confirmed live 9/2026 to return the

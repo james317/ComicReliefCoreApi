@@ -31,6 +31,22 @@ public enum DcbsShipmentStatus
 }
 
 /// <summary>
+/// One row from /account/shipments - a real box mailed to the user, distinct from a DCBS
+/// "order" (the running monthly preorder for one Diamond order-form cycle - see
+/// DcbsShipmentLine). PacklistNumber is the number printed on the physical packing slip
+/// inside the box (e.g. "001235696"), the only thing the user can see without opening a
+/// browser, so it's the natural key for matching "the box I'm holding" to this record.
+/// </summary>
+public record DcbsShipmentSummary(string ShipmentId, string PacklistNumber, DateOnly ShippedAt);
+
+/// <summary>
+/// One line item as it appears on a shipment's own detail page. No status field - unlike an
+/// order line, every row on a shipment page is by definition already shipped (that's what
+/// makes it a shipment rather than an order).
+/// </summary>
+public record DcbsShipmentLine(string ProductCode, string Title);
+
+/// <summary>
 /// One item from a publisher's current-preorders listing page (/products/&lt;slug&gt;/&lt;id&gt;).
 /// Title includes the issue number and variant description as DCBS writes it (e.g. "Absolute
 /// Batman #25 Cvr F Jonboy Meyers Glow-In-The-Dark Card Stock Var") - callers needing just the

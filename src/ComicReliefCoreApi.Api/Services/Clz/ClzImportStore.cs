@@ -40,4 +40,17 @@ public class ClzImportStore : IClzImportStore
         var all = await _db.ClzSeriesSummaries.ToListAsync(ct);
         return all.ToDictionary(s => s.NormalizedSeries);
     }
+
+    public async Task<int> ReplaceAllIssuesAsync(IReadOnlyList<ClzIssueRelease> rows, CancellationToken ct = default)
+    {
+        await _db.ClzIssueReleases.ExecuteDeleteAsync(ct);
+        _db.ClzIssueReleases.AddRange(rows);
+        await _db.SaveChangesAsync(ct);
+        return rows.Count;
+    }
+
+    public async Task<IReadOnlyList<ClzIssueRelease>> GetAllIssuesAsync(CancellationToken ct = default)
+    {
+        return await _db.ClzIssueReleases.ToListAsync(ct);
+    }
 }

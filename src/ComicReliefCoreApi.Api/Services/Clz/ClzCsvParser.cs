@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using ComicReliefCoreApi.Api.Models;
 using ComicReliefCoreApi.Api.Services;
 
@@ -15,6 +16,62 @@ namespace ComicReliefCoreApi.Api.Services.Clz;
 public static class ClzCsvParser
 {
     private static readonly string[] DateFormats = { "MMM d, yyyy", "MMM dd, yyyy" };
+    private static readonly Regex LeadingIssueNumberRegex = new(@"^(\d+)", RegexOptions.Compiled);
+
+    /// <summary>
+    /// One row per owned issue, keeping the per-issue release date ParseAndAggregate throws
+    /// away - needed to match a specific shipment line (a specific issue number) to when it
+    /// actually came out, not just the series' latest release overall. Rows whose "Issue"
+    /// value has no leading digit (a TP/HC/magazine with no issue number, e.g. "TP") are
+    /// skipped rather than guessed at, same as IssueNumberParser's own whole-number-only rule.
+    /// </summary>
+    public static List<ClzIssueRelease> ParsePerIssueRows(TextReader reader, DateTime importedAt)
+    {
+        var header = ReadRow(reader);
+        if (header is null)
+        {
+            return new List<ClzIssueRelease>();
+        }
+
+        var seriesIndex = header.IndexOf("Series");
+        var issueIndex = header.IndexOf("Issue");
+        var releaseDateIndex = header.IndexOf("Release Date");
+        if (seriesIndex < 0 || issueIndex < 0)
+        {
+            throw new InvalidDataException("CSV is missing a \"Series\" or \"Issue\" column - is this a CLZ comics export?");
+        }
+
+        var rows = new List<ClzIssueRelease>();
+        List<string>? row;
+        while ((row = ReadRow(reader)) is not null)
+        {
+            if (row.Count <= seriesIndex || row.Count <= issueIndex)
+            {
+                continue;
+            }
+
+            var series = row[seriesIndex].Trim();
+            var issueMatch = LeadingIssueNumberRegex.Match(row[issueIndex].Trim());
+            if (series.Length == 0 || !issueMatch.Success || !int.TryParse(issueMatch.Groups[1].Value, out var issueNumber))
+            {
+                continue;
+            }
+
+            var releaseDate = releaseDateIndex >= 0 && releaseDateIndex < row.Count
+                ? ParseDate(row[releaseDateIndex])
+                : null;
+
+            rows.Add(new ClzIssueRelease
+            {
+                Series = series,
+                NormalizedSeries = TitleNormalizer.Normalize(series),
+                IssueNumber = issueNumber,
+                ReleaseDate = releaseDate,
+                ImportedAt = importedAt,
+            });
+        }
+        return rows;
+    }
 
     public static List<ClzSeriesSummary> ParseAndAggregate(TextReader reader, DateTime importedAt)
     {

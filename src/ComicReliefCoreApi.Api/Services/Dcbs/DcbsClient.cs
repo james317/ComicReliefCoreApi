@@ -56,6 +56,21 @@ public class DcbsClient : IDcbsClient
 
     private static readonly Regex OrderIdLinkRegex = new("href=\"/account/order/(\\d+)\"", RegexOptions.Compiled);
 
+    // /account/shipments row: shipment id, the packlist number printed inside the real box
+    // (the only thing the user can see without a browser), and the ship date. Confirmed
+    // live against every row on this account's real shipment history.
+    private static readonly Regex ShipmentRowRegex = new(
+        "<a href=\"/account/shipment/(\\d+)\">\\d+</a></td>\\s*<td class=\"compactoff\"><a href=\"/account/shipment/\\d+\">([^<]+)</a></td>\\s*<td>([\\d/]+)</td>",
+        RegexOptions.Compiled);
+
+    // A shipment detail page's own row layout differs from an order's: the real title sits
+    // as plain text right before the productcode div (order pages instead carry it in the
+    // cartimg alt, which on a shipment page holds the long creators/description blurb
+    // instead - confirmed live, reusing OrderCartImgAltRegex here would silently grab the
+    // wrong text).
+    private static readonly Regex ShipmentRowTitleRegex = new(
+        ">([^<]+?)<br\\s*/>\\s*<div class=\"productcode\">", RegexOptions.Compiled);
+
     // Publisher listing-page parsing - the real results grid lives inside
     // <ul class="thumblist">, same container class documented for /search pages (see
     // docs/BACKLOG.md). Scoping to that container first, then splitting on "<li " to get
@@ -306,6 +321,52 @@ public class DcbsClient : IDcbsClient
             lines.Add(new DcbsOrderLine(codeMatch.Groups[1].Value, title, status));
         }
         return lines;
+    }
+
+    public async Task<IReadOnlyList<DcbsShipmentSummary>> GetRecentShipmentsAsync(int max = 12, CancellationToken ct = default)
+    {
+        using var response = await GetAsync("/account/shipments", ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+
+        var shipments = new List<DcbsShipmentSummary>();
+        foreach (Match m in ShipmentRowRegex.Matches(body))
+        {
+            if (DateOnly.TryParse(m.Groups[3].Value, out var shippedAt))
+            {
+                shipments.Add(new DcbsShipmentSummary(m.Groups[1].Value, m.Groups[2].Value, shippedAt));
+            }
+        }
+        return shipments.Take(max).ToList();
+    }
+
+    public async Task<IReadOnlyList<DcbsShipmentLine>> GetShipmentLinesAsync(string shipmentId, CancellationToken ct = default)
+    {
+        using var response = await GetAsync($"/account/shipment/{shipmentId}", ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+
+        var lines = new List<DcbsShipmentLine>();
+        foreach (Match row in OrderRowRegex.Matches(body))
+        {
+            var chunk = row.Groups[1].Value;
+            var codeMatch = OrderRowProductCodeRegex.Match(chunk);
+            if (!codeMatch.Success)
+            {
+                continue;
+            }
+
+            var titleMatch = ShipmentRowTitleRegex.Match(chunk);
+            var title = titleMatch.Success ? WebUtility.HtmlDecode(titleMatch.Groups[1].Value.Trim()) : codeMatch.Groups[1].Value;
+
+            lines.Add(new DcbsShipmentLine(codeMatch.Groups[1].Value, title));
+        }
+
+        // Same nested-<tr> limitation as the order parser, manifesting differently here:
+        // confirmed live on a real shipment that one row's own alt-text content (a long
+        // solicitation blurb) can garble the non-greedy match enough to spuriously re-match
+        // a later row's product code with mangled title text, producing a duplicate line for
+        // that code. Keeping the first occurrence (the well-formed one, seen before any
+        // garbling) rather than the garbled duplicate.
+        return lines.GroupBy(l => l.ProductCode).Select(g => g.First()).ToList();
     }
 
     public async Task<bool> TryUpdatePullListFromOrderAsync(

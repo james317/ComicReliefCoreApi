@@ -1098,6 +1098,48 @@ before its real close is invisible to a plain non-greedy regex and gets dropped 
 rather than misattributed (confirmed on one real order: 2 of 40 rows, both free items) - a
 real HTML parser would be the actual fix if this is ever seen on a real series title.
 
+## Box-shipment tracking: reading order by ship date (9/12/2026)
+Automates the read-order half of the user's shipment-processing routine (see the missed-
+issue-continuity section above for the other half). Deliberately skips the "upload the
+packing list" step the user described - a shipment's own detail page
+(`/account/shipment/{id}`, linked from `/account/shipments`) already has every line's title
+and product code, the same information a physical packlist has, so `IDcbsClient` just scrapes
+it directly (`GetRecentShipmentsAsync`/`GetShipmentLinesAsync`) the same way it already
+scrapes orders. One real structural difference from an order's row markup, confirmed live:
+a shipment row's `cartimg alt` holds the long creators/description blurb, not the title - the
+real title is the plain text immediately before the `productcode` div instead, so this needed
+its own `ShipmentRowTitleRegex` rather than reusing the order parser's title regex.
+
+`IShipmentTrackingService.GetReadingOrderAsync` cross-references each line's issue number
+(`IssueNumberParser`) and title (`TitleNormalizer.IsLikelySeriesMatch`) against a new
+per-issue CLZ table (`ClzIssueRelease` - the existing `ClzSeriesSummary` throws away
+per-issue dates by aggregating to one row per series, so this needed a parallel table
+populated from the same CSV upload) to group items by release date. No interest ranking -
+the user was explicit that this doesn't belong in the app, since it's a personal judgment
+call made fresh each shipment, not something to derive from data.
+
+Missed-issue detection deliberately reuses the existing order-based Shipped-status
+pipeline rather than building a parallel implementation for shipments - a shipment's items
+are definitionally already `Shipped` on whatever order they came from, so re-running
+`/api/orders/sync-recent` then `/api/missed-issues` already covers "check what was
+received" without this feature needing its own copy of that logic.
+
+Verified against the user's real shipment #1244667 (51 items) and CLZ export: 33 of the
+37 items with a real issue number matched to the correct CLZ release date, zero wrong
+matches. The 4 misses are a genuine gap in `IsLikelySeriesMatch`, not a bug in this
+feature: CLZ's series name for "Batman/Superman: World's Finest" hits the apostrophe
+inconsistency already documented on `TitleNormalizer` ("World's" vs DCBS's own "Worlds"
+becomes "world s" vs "worlds" once the word-boundary normalizer turns the apostrophe into
+a space instead of dropping it); "X-Men '97" and "Madame Tarantula" both have an extra
+descriptive word between series and issue number that only DCBS's title carries ("Season
+Two", "Magazine") which `IsLikelySeriesMatch` requires to be the issue number itself.
+Loosening that requirement to allow one extra word would reintroduce the exact false-positive
+class it was built to prevent (e.g. "Batman Beyond #1" wrongly matching a plain "Batman"
+entry), so this is left as an accepted false negative - the item just lands in an "unknown
+date" group instead of a wrong one. Also expected and correct: Comic Shop News, DC Connect,
+the monthly catalogs, and Psycho #2 all land in "unknown" too, since none of them were ever
+scanned into CLZ with a real per-issue date to match.
+
 ## Open questions for a real implementation
 - Where does pull-list/order-history/CLZ data live persistently, and how
   does it get updated (re-upload each month vs. an integration)?
