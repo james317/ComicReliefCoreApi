@@ -1216,3 +1216,18 @@ Fixed once, globally, in `ComicReliefDbContext.OnModelCreating` - a value conver
 to every `DateTime`/`DateTime?` property across every entity forces `Kind=Utc` back on read
 (a no-op on write), rather than patching each JS call site or each individual DTO. `DateOnly`
 fields (ReleaseDate, ShippedAt, etc.) were never affected - no time component, no ambiguity.
+
+## Shipments tab (9/12/2026)
+The shipment-tracking backend (reading order by ship date, missed-issue check) shipped
+earlier today with no real UI - just a CLZ upload control bolted onto the Pull List page,
+which the user correctly called out as the wrong home for it. Added a real `Shipments` tab
+(`shipments.html`/`shipments.js`) between Candidates and DCBS Session in the shared nav:
+lists recent shipments straight from DCBS (`GET /api/shipments`, no packing-list upload
+needed - see the box-shipment-tracking section above for why), lets the user upload that
+shipment's own CLZ export inline, shows the reading order grouped by release date, and
+carries a "Sync Order History & Check" action that reuses the existing
+`/api/orders/sync-recent` + `/api/missed-issues` endpoints - one screen matching the user's
+actual physical workflow (pick the shipment, get release dates, read in order, check for
+gaps) instead of scattering its pieces across pages built for a different purpose. Moved the
+shipment-scoped CLZ upload off pull-list.html entirely, which now only carries the full-
+collection upload (with a pointer to the new tab for the other case).

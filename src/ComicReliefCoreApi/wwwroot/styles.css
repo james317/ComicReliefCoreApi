@@ -389,6 +389,49 @@ details summary { cursor: pointer; color: var(--accent); }
   flex: 1;
 }
 
+.section-heading {
+  font-family: "Rye", "Georgia", serif;
+  font-weight: 400;
+  font-size: 1rem;
+  color: var(--accent);
+  margin: 26px 0 10px;
+}
+
+.shipment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.shipment-row.active {
+  border-color: var(--accent);
+}
+
+.reading-group {
+  margin-bottom: 18px;
+}
+
+.reading-group h4 {
+  font-family: "Rye", "Georgia", serif;
+  font-weight: 400;
+  font-size: 0.9rem;
+  color: var(--accent);
+  margin: 0 0 6px;
+}
+
+.reading-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.reading-group li {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
 .posse-group {
   margin-bottom: 26px;
 }

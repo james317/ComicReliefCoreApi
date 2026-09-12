@@ -24,9 +24,6 @@
   const clzStatus = document.getElementById("clzStatus");
   const clzFileInput = document.getElementById("clzFileInput");
   const clzUploadBtn = document.getElementById("clzUploadBtn");
-  const clzShipmentFileInput = document.getElementById("clzShipmentFileInput");
-  const clzShipmentUploadBtn = document.getElementById("clzShipmentUploadBtn");
-  const clzShipmentUploadResult = document.getElementById("clzShipmentUploadResult");
 
   const isBootHill = new URLSearchParams(location.search).get("archived") === "true";
 
@@ -324,35 +321,6 @@
       await loadClzStatus();
     } finally {
       clzUploadBtn.disabled = false;
-    }
-  });
-
-  clzShipmentUploadBtn.addEventListener("click", async () => {
-    const file = clzShipmentFileInput.files[0];
-    if (!file) {
-      showMessage("Choose a CSV file first.", true);
-      return;
-    }
-    log("clz shipment upload: starting", { name: file.name, size: file.size });
-    clzShipmentUploadBtn.disabled = true;
-    clzShipmentUploadResult.textContent = "uploading…";
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/clz/import-shipment-issues", { method: "POST", body: formData });
-      if (!res.ok) {
-        const problem = await res.text().catch(() => "");
-        throw new Error(problem || `Request failed (${res.status})`);
-      }
-      const result = await res.json();
-      log("clz shipment upload: succeeded", result);
-      clzShipmentFileInput.value = "";
-      clzShipmentUploadResult.textContent = `Updated release dates for ${result.issuesUpserted} issue(s). Collection snapshot above was not touched.`;
-    } catch (err) {
-      console.error("[pull-list] clz shipment upload: failed", err);
-      clzShipmentUploadResult.textContent = `Upload failed: ${err.message}`;
-    } finally {
-      clzShipmentUploadBtn.disabled = false;
     }
   });
 

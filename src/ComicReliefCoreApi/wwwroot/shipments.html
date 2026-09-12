@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Shipments — If You Pull, Don't Miss</title>
+<meta name="theme-color" content="#3a2214" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Rye&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<nav class="trail-nav">
+  <a href="/index.html">Solicitations</a>
+  <a href="/pull-list.html">Pull List</a>
+  <a href="/candidates.html">Candidates</a>
+  <a href="/shipments.html" class="active">Shipments</a>
+  <a href="/dcbs-session.html">DCBS Session</a>
+</nav>
+<main class="content">
+  <h1 class="page-heading">Shipments</h1>
+  <p class="page-intro">
+    The steps for a box that just arrived: pick the shipment below (pulled straight
+    from DCBS — no packing-list upload needed), upload that shipment's CLZ export to see
+    each issue's real release date, then read in ship-date order. Once you've scanned
+    everything in, sync your order history to flag anything on your pull list that
+    should have shown up in this shipment but didn't.
+  </p>
+
+  <div id="shipmentListSection">
+    <h2 class="section-heading">Recent shipments</h2>
+    <ul class="posse-list" id="shipmentList"></ul>
+  </div>
+
+  <div id="shipmentDetail" hidden>
+    <h2 class="section-heading" id="shipmentDetailHeading">Shipment</h2>
+
+    <details class="clz-import" id="clzShipmentImport">
+      <summary>Release dates for this shipment's issues</summary>
+      <p class="page-intro clz-intro">
+        Do a CLZ export of just this shipment's issues (not your whole collection) and
+        upload it here — this only adds/updates those issues' release dates and never
+        touches your full collection snapshot on the Pull List page.
+      </p>
+      <div class="clz-upload-row">
+        <input type="file" id="clzShipmentFileInput" accept=".csv" />
+        <button type="button" id="clzShipmentUploadBtn">Upload shipment export</button>
+      </div>
+      <div id="clzShipmentUploadResult"></div>
+    </details>
+
+    <h3 class="section-heading">Reading order</h3>
+    <div id="readingOrder"></div>
+  </div>
+
+  <div id="missedIssuesSection">
+    <h2 class="section-heading">Missed issues</h2>
+    <p class="page-intro">
+      Flags a gap in a pull-list title's issue numbering (e.g. owning #12 and #14 but
+      never #13), checked against every order DCBS has actually marked Shipped -
+      re-sync first so anything from this shipment counts.
+    </p>
+    <div class="status-card" id="orderStatusCard">
+      <span class="status-dot unknown" id="orderStatusDot"></span>
+      <span id="orderStatusText">Checking…</span>
+    </div>
+    <div class="actions">
+      <button id="syncOrderBtn">Sync Order History &amp; Check</button>
+    </div>
+    <div class="message" id="message"></div>
+    <ul class="posse-list" id="missedIssuesList"></ul>
+  </div>
+</main>
+<script src="/shipments.js"></script>
+</body>
+</html>
