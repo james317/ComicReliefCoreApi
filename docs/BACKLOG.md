@@ -1200,3 +1200,19 @@ also switched its dictionary build to `GroupBy(...).First()` instead of a plain
 ever present regardless of how they got there. Startup migrations added a one-time cleanup
 (`DELETE ... WHERE Id NOT IN (SELECT MIN(Id) ... GROUP BY ...)`) to remove the duplicates
 this incident already wrote into the live table.
+
+## Timestamps displaying in UTC instead of local (9/12/2026)
+Every "imported"/"synced"/"refreshed" timestamp across the app was silently showing UTC
+wall-clock time in a browser that was already correctly calling `.toLocaleString()` on it.
+Root cause: SQLite has no timezone-aware datetime type, so EF Core reads every `DateTime`
+back with `Kind=Unspecified` regardless of what was written. System.Text.Json serializes an
+`Unspecified`-kind `DateTime` without a trailing "Z"/offset, and a browser's `new Date(...)`
+treats an offset-less ISO string as already being in the *local* time zone rather than UTC -
+so the UTC number got displayed unconverted instead of shifted to local time. Every
+`DateTime` in this app is `DateTime.UtcNow` by convention, so this affected every one of
+them, not just the CLZ import timestamp that surfaced it.
+
+Fixed once, globally, in `ComicReliefDbContext.OnModelCreating` - a value converter applied
+to every `DateTime`/`DateTime?` property across every entity forces `Kind=Utc` back on read
+(a no-op on write), rather than patching each JS call site or each individual DTO. `DateOnly`
+fields (ReleaseDate, ShippedAt, etc.) were never affected - no time component, no ambiguity.

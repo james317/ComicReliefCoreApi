@@ -1,5 +1,6 @@
 using ComicReliefCoreApi.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace ComicReliefCoreApi.Api.Data;
 
@@ -46,5 +47,36 @@ public class ComicReliefDbContext : DbContext
         {
             entity.HasIndex(e => e.Publisher);
         });
+
+        // SQLite has no timezone-aware datetime type, so EF reads every DateTime back with
+        // Kind=Unspecified regardless of what was written - System.Text.Json then serializes
+        // it without a trailing "Z"/offset, and a browser's `new Date(...)` treats an
+        // offset-less ISO string as LOCAL time rather than UTC. Every DateTime in this app is
+        // UTC by convention (DateTime.UtcNow throughout), so every displayed timestamp
+        // (imported/synced/refreshed/etc.) was silently mis-converted - confirmed live this
+        // session as "the upload time shows in UTC" when it should show local. Forcing
+        // Kind=Utc back on read fixes serialization (and therefore every toLocaleString() call
+        // across the whole app) in one place instead of patching each JS call site.
+        var utcConverter = new ValueConverter<DateTime, DateTime>(
+            v => v,
+            v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+        var nullableUtcConverter = new ValueConverter<DateTime?, DateTime?>(
+            v => v,
+            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entityType.GetProperties())
+            {
+                if (property.ClrType == typeof(DateTime))
+                {
+                    property.SetValueConverter(utcConverter);
+                }
+                else if (property.ClrType == typeof(DateTime?))
+                {
+                    property.SetValueConverter(nullableUtcConverter);
+                }
+            }
+        }
     }
 }
