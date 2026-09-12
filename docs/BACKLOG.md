@@ -1070,6 +1070,34 @@ each branch above, including the relaunch case correctly finding a gap
 inside the new volume rather than either false-flagging the reboot or
 going blind after it.
 
+## Per-item shipment status (9/12/2026)
+`GetOrderLinesAsync` now also scrapes each line's own Processing/Filled/Shipped/Cancelled
+icon (DCBS's own "Shipment Status Legend" on every order detail page) as `DcbsOrderLine.Status`,
+persisted on `DcbsOrderSnapshotLine` and fed into the missed-issue check (only `Shipped`
+lines count as actually-received - a still-`Processing` or `Filled` line isn't in hand yet,
+and a `Cancelled` one never will be).
+
+Real finding while verifying this against the live account: an "order" here is DCBS's
+monthly running preorder for that Diamond order-form cycle (product codes are literally
+prefixed with it, e.g. "JUL26...") - not the same thing as a shipment. Its items don't all
+ship that month - they ship whenever their own on-sale date and stock line up, sometimes
+2-3 months later. So most `Processing` rows on a recent order are just "not due yet," not a backorder
+problem - only `Processing`/`Filled` rows on an *old* order (should have shipped by now)
+are a real signal. The user's actual received box (matching a DCBS "shipment", a different
+entity - `/account/shipment/{id}`, no status icons at all since everything in it is by
+definition already shipped) draws its items from whichever orders happen to be ready, not
+from one single order.
+
+Also replaced the order-line parser's old approach (three independent flat regex
+match-lists zipped by position - title/code/status counts disagreed on the same real page:
+40/40/38) with per-`<tr>` chunk parsing, so a field that's missing on one row (free items
+like Comic Shop News/monthly catalogs don't get a pull-list-add form or a status icon) just
+comes back null for that row instead of silently shifting every later row's fields out of
+alignment. Known remaining gap: a row whose markup embeds its own nested `<tr>...</tr>`
+before its real close is invisible to a plain non-greedy regex and gets dropped entirely
+rather than misattributed (confirmed on one real order: 2 of 40 rows, both free items) - a
+real HTML parser would be the actual fix if this is ever seen on a real series title.
+
 ## Open questions for a real implementation
 - Where does pull-list/order-history/CLZ data live persistently, and how
   does it get updated (re-upload each month vs. an integration)?

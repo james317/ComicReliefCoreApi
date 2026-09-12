@@ -123,18 +123,31 @@ using (var scope = app.Services.CreateScope())
     }
 
     // Same EnsureCreated() limitation, fourth occurrence: DcbsOrderSnapshotLines persists
-    // the user's most recently synced order (see IOrderSnapshotService) so a candidates
-    // rescan can flag "matches your pull list, not in your latest order." Brand new table
-    // on this deploy, so no ALTER TABLE needed yet - CREATE TABLE IF NOT EXISTS is enough.
+    // every synced order (see IOrderSnapshotService) so a candidates rescan can flag
+    // "matches your pull list, not in anything you've ordered."
     db.Database.ExecuteSqlRaw("""
         CREATE TABLE IF NOT EXISTS "DcbsOrderSnapshotLines" (
             "Id" INTEGER NOT NULL CONSTRAINT "PK_DcbsOrderSnapshotLines" PRIMARY KEY AUTOINCREMENT,
             "OrderId" TEXT NOT NULL,
             "ProductCode" TEXT NOT NULL,
             "Title" TEXT NOT NULL,
+            "Status" INTEGER NULL,
             "SyncedAt" TEXT NOT NULL
         )
         """);
+
+    // DcbsOrderSnapshotLines already shipped and deployed once without this column - same
+    // ALTER TABLE treatment as IsFacsimileOrReprint above. Stores the DcbsShipmentStatus enum
+    // as its underlying int (EF's default enum mapping), nullable for the pre-existing rows
+    // synced before this column existed as well as the free items that never carry a status.
+    try
+    {
+        db.Database.ExecuteSqlRaw("ALTER TABLE DcbsOrderSnapshotLines ADD COLUMN Status INTEGER NULL");
+    }
+    catch (Exception ex) when (ex.Message.Contains("duplicate column", StringComparison.OrdinalIgnoreCase))
+    {
+        // Already applied.
+    }
 }
 
 app.UseDefaultFiles();

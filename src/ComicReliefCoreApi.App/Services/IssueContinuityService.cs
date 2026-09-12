@@ -1,3 +1,4 @@
+using ComicReliefCoreApi.Api.Models.Dcbs;
 using ComicReliefCoreApi.Api.Services;
 using ComicReliefCoreApi.Api.Services.Dcbs;
 
@@ -23,11 +24,15 @@ public class IssueContinuityService : IIssueContinuityService
 
         foreach (var entry in entries)
         {
-            // Match this title's order lines, parse each one's issue number, sort by OrderId
-            // ascending (DCBS order ids are sequential, so this is chronological purchase
-            // order), and dedupe same-issue-number lines (variant covers of one issue) down
-            // to the earliest purchase of that number.
+            // Only count lines DCBS has actually marked Shipped - a still-Processing or
+            // Filled line isn't in the user's hands yet (and the whole point of this check
+            // is real received issues), and a Cancelled one never will be. Match this
+            // title's order lines, parse each one's issue number, sort by OrderId ascending
+            // (DCBS order ids are sequential, so this is chronological purchase order), and
+            // dedupe same-issue-number lines (variant covers of one issue) down to the
+            // earliest purchase of that number.
             var points = lines
+                .Where(l => l.Status == DcbsShipmentStatus.Shipped)
                 .Where(l => TitleNormalizer.IsLikelySeriesMatch(l.Title, entry.Title))
                 .Select(l => new
                 {
