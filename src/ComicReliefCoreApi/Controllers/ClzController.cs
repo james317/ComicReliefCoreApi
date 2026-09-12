@@ -28,6 +28,7 @@ public sealed class ClzController : ControllerBase
         return Ok(status);
     }
 
+    /// <summary>Full collection export only - wholesale replaces the stored snapshot. See wwwroot/pull-list.html for the warning shown next to this upload; a shipment-scoped export belongs on ImportShipmentIssues instead.</summary>
     [HttpPost("import")]
     [RequestSizeLimit(50_000_000)]
     public async Task<ActionResult> Import(IFormFile? file, CancellationToken cancellationToken)
@@ -43,6 +44,28 @@ public sealed class ClzController : ControllerBase
             await _clzService.ImportAsync(stream, cancellationToken);
             var status = await _clzService.GetStatusAsync(cancellationToken);
             return Ok(status);
+        }
+        catch (InvalidDataException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    /// <summary>A shipment-scoped export (just the issues in one box) - merges into the per-issue release-date table only, never touches the full collection snapshot Import maintains.</summary>
+    [HttpPost("import-shipment-issues")]
+    [RequestSizeLimit(50_000_000)]
+    public async Task<ActionResult> ImportShipmentIssues(IFormFile? file, CancellationToken cancellationToken)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest("File is required.");
+        }
+
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            var count = await _clzService.ImportShipmentIssuesAsync(stream, cancellationToken);
+            return Ok(new { issuesUpserted = count });
         }
         catch (InvalidDataException ex)
         {

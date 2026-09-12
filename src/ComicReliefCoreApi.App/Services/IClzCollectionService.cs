@@ -5,8 +5,11 @@ namespace ComicReliefCoreApi.App.Services;
 
 public interface IClzCollectionService
 {
-    /// <summary>Parses the uploaded CSV and replaces the stored collection snapshot entirely. Returns the number of distinct series imported.</summary>
+    /// <summary>Parses a full CLZ collection export and replaces the stored collection snapshot entirely. Returns the number of distinct series imported. Never call this with a shipment-scoped export - use ImportShipmentIssuesAsync instead, or every other series' history gets wiped.</summary>
     Task<int> ImportAsync(Stream csvStream, CancellationToken ct = default);
+
+    /// <summary>Parses a shipment-scoped CLZ export (just the issues in one box) and merges its per-issue release dates in - safe to call as often as you like, never touches the full-collection snapshot ImportAsync maintains.</summary>
+    Task<int> ImportShipmentIssuesAsync(Stream csvStream, CancellationToken ct = default);
 
     Task<ClzImportStatus> GetStatusAsync(CancellationToken ct = default);
 

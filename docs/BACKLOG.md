@@ -1150,3 +1150,30 @@ scanned into CLZ with a real per-issue date to match.
   scrape job) or stay a periodically-generated report?
 - Reviews feature: static search link (current stopgap) vs. real
   summarization via a backend endpoint or an Artifact with Claude access?
+
+## Real incident: shipment-scoped CLZ upload wiped the full collection snapshot (9/12/2026)
+Same day the per-issue CLZ table shipped, the user uploaded a shipment-scoped CLZ export
+(just the ~40 issues in one box) through the existing `/api/clz/import` endpoint - the only
+CLZ upload path that existed. Both a full collection export and a shipment-scoped export
+have the same CSV shape (Series/Issue/Release Date columns), so it parsed "successfully,"
+but `ImportAsync` wholesale-replaces the stored snapshot (`ClzSeriesSummaries` via
+`ReplaceAllAsync`, and until this fix `ClzIssueReleases` the same way) - collapsing the
+account's whole collection down to that shipment's ~37 series. Confirmed live via
+`/api/clz/status` right after: `seriesCount` dropped to 37.
+
+Root cause was mine: the new per-issue feature reused the existing full-replace upload path
+without separating the two upload use cases it now has to serve - an occasional full
+snapshot vs. frequent shipment-scoped additions. Fixed by:
+- `ClzIssueReleases` switched to upsert-by-(NormalizedSeries, IssueNumber) merge semantics
+  (`IClzImportStore.UpsertIssuesAsync`) - safe to call from either a full or shipment-scoped
+  export, since it only ever adds/updates, never deletes.
+- `ClzSeriesSummaries` keeps its wholesale-replace semantics (that's the correct behavior
+  for a genuine full export), but it's now only reachable from `ImportAsync` / the
+  "Upload full collection" button - a new, separate `ImportShipmentIssuesAsync` /
+  `POST /api/clz/import-shipment-issues` / "Upload shipment export" button never touches it.
+- pull-list.html's upload section now explicitly warns which button does the destructive
+  wholesale replace, rather than one unlabeled "Upload" button serving both cases silently.
+
+Remediation for the account itself: the user needs to re-upload their real full CLZ
+collection export once via the (now correctly labeled) full-collection button to restore
+what got wiped - this fix prevents a repeat, it doesn't undo the one that already happened.

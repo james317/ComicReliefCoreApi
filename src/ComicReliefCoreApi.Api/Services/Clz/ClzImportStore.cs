@@ -41,10 +41,31 @@ public class ClzImportStore : IClzImportStore
         return all.ToDictionary(s => s.NormalizedSeries);
     }
 
-    public async Task<int> ReplaceAllIssuesAsync(IReadOnlyList<ClzIssueRelease> rows, CancellationToken ct = default)
+    public async Task<int> UpsertIssuesAsync(IReadOnlyList<ClzIssueRelease> rows, CancellationToken ct = default)
     {
-        await _db.ClzIssueReleases.ExecuteDeleteAsync(ct);
-        _db.ClzIssueReleases.AddRange(rows);
+        // Merge by (NormalizedSeries, IssueNumber) rather than wholesale replace - this table
+        // has to stay safe to update from a shipment-scoped export (a handful of issues) as
+        // well as a full collection export (everything owned), and a wholesale replace from
+        // the former would wipe out every other series' history. Confirmed live this session
+        // as a real incident: uploading a shipment-only CSV through the old ReplaceAllAsync-
+        // style path collapsed the whole collection down to that shipment's ~37 series.
+        var existing = await _db.ClzIssueReleases.ToListAsync(ct);
+        var byKey = existing.ToDictionary(r => (r.NormalizedSeries, r.IssueNumber));
+
+        foreach (var row in rows)
+        {
+            if (byKey.TryGetValue((row.NormalizedSeries, row.IssueNumber), out var found))
+            {
+                found.Series = row.Series;
+                found.ReleaseDate = row.ReleaseDate;
+                found.ImportedAt = row.ImportedAt;
+            }
+            else
+            {
+                _db.ClzIssueReleases.Add(row);
+            }
+        }
+
         await _db.SaveChangesAsync(ct);
         return rows.Count;
     }

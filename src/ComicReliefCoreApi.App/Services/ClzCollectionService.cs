@@ -24,9 +24,21 @@ public class ClzCollectionService : IClzCollectionService
         var seriesRows = ClzCsvParser.ParseAndAggregate(new StringReader(csvText), importedAt);
         var issueRows = ClzCsvParser.ParsePerIssueRows(new StringReader(csvText), importedAt);
 
+        // The per-series aggregate is a genuine wholesale replace - only call this with a
+        // real full collection export, never a shipment-scoped one (see ImportShipmentIssuesAsync).
         var count = await _store.ReplaceAllAsync(seriesRows, ct);
-        await _store.ReplaceAllIssuesAsync(issueRows, ct);
+        await _store.UpsertIssuesAsync(issueRows, ct);
         return count;
+    }
+
+    public async Task<int> ImportShipmentIssuesAsync(Stream csvStream, CancellationToken ct = default)
+    {
+        // Deliberately does NOT touch the per-series aggregate (ClzSeriesSummaries) - a
+        // shipment-scoped export only has this box's handful of series, and replacing the
+        // whole collection snapshot with just those would wipe every other title's history.
+        using var reader = new StreamReader(csvStream);
+        var issueRows = ClzCsvParser.ParsePerIssueRows(reader, DateTime.UtcNow);
+        return await _store.UpsertIssuesAsync(issueRows, ct);
     }
 
     public Task<ClzImportStatus> GetStatusAsync(CancellationToken ct = default) => _store.GetStatusAsync(ct);
