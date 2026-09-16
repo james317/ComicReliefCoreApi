@@ -18,4 +18,7 @@ public interface IReadIssueStore
 
     /// <summary>Most recently logged reads, newest first by Id (insertion order - see ReadIssue's own docs).</summary>
     Task<IReadOnlyList<ReadIssue>> GetRecentAsync(int max, CancellationToken ct = default);
+
+    /// <summary>Removes every logged read for this (series, issue) - for correcting a mis-attributed entry (wrong series name) rather than living with it. Returns how many rows were removed.</summary>
+    Task<int> DeleteAsync(string normalizedSeries, int issueNumber, CancellationToken ct = default);
 }

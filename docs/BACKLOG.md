@@ -1308,3 +1308,24 @@ composes both. New `ReadingLogController`: `GET /api/reading-log/search-owned`,
 `GET /api/reading-log/same-week`, `GET /api/reading-log/recent`. New `Reading Log` tab
 (`reading-log.html`/`.js`) between Shipments and DCBS Session: search box, mark-read buttons,
 a same-week list once something's marked read, and a recent-reads list.
+
+### Backfill, and a real correction (9/16/2026)
+Backfilled 261 issues from the user's own separately-kept reading history, cross-referencing
+every title against the live CLZ data first (see conversation) rather than trusting the
+user's shorthand titles/volumes blindly - resolved real ambiguities this way (three
+different "Alien" volumes matched by which one's total issue count exactly matched the
+given range; a duplicate "Blue Book" / "Blue Book: 1947" entry resolved by which one's dates
+came first; an "Action Comics Annual 2023" with no book actually labeled that resolved by
+finding the one annual whose real release date fell inside the surrounding reading window).
+
+One entry ("Spider-Man: End of the Spider-Verse") had no CLZ record under any spelling
+tried, including via a live DCBS series search - backfilled blind under DCBS's real series
+name ("Spider-Verse") with no release date, the correct call at the time given the
+information available. The user later identified the real source: a plain "Spider-Man, Vol.
+4" (not "Amazing Spider-Man") that a query for "Spider-Man, Vol" would have surfaced
+immediately - it just hadn't been tried, since "Spider-Verse" being a real, independently-
+confirmed DCBS series name looked like enough evidence to stop looking. Correcting it
+exposed a real gap: there was no way to fix a mis-attributed entry other than living with it
+or truncating the whole table. Added `IReadIssueStore.DeleteAsync` /
+`DELETE /api/reading-log/read` (by series + issue number) - a small addition, but the
+backfill process just demonstrated it's not a hypothetical need.

@@ -75,4 +75,17 @@ public sealed class ReadingLogController : ControllerBase
     {
         return Ok(await _readingLog.GetRecentlyReadAsync(max ?? 20, cancellationToken));
     }
+
+    /// <summary>Removes a mis-attributed read entry (e.g. logged under the wrong series name) - see IReadingLogService.DeleteReadAsync.</summary>
+    [HttpDelete("read")]
+    public async Task<ActionResult> DeleteRead(
+        [FromQuery] string series, [FromQuery] int issueNumber, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(series))
+        {
+            return BadRequest("series is required.");
+        }
+        var count = await _readingLog.DeleteReadAsync(series, issueNumber, cancellationToken);
+        return Ok(new { deleted = count });
+    }
 }

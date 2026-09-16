@@ -57,4 +57,11 @@ public class ReadIssueStore : IReadIssueStore
     {
         return await _db.ReadIssues.OrderByDescending(r => r.Id).Take(max).ToListAsync(ct);
     }
+
+    public async Task<int> DeleteAsync(string normalizedSeries, int issueNumber, CancellationToken ct = default)
+    {
+        return await _db.ReadIssues
+            .Where(r => r.NormalizedSeries == normalizedSeries && r.IssueNumber == issueNumber)
+            .ExecuteDeleteAsync(ct);
+    }
 }

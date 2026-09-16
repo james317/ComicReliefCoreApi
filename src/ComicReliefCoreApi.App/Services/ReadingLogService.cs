@@ -52,6 +52,9 @@ public class ReadingLogService : IReadingLogService
     public Task<IReadOnlyList<ReadIssue>> GetRecentlyReadAsync(int max, CancellationToken ct = default) =>
         _readStore.GetRecentAsync(max, ct);
 
+    public Task<int> DeleteReadAsync(string series, int issueNumber, CancellationToken ct = default) =>
+        _readStore.DeleteAsync(TitleNormalizer.Normalize(series), issueNumber, ct);
+
     private static OwnedIssueView ToView(ClzIssueRelease issue, IReadOnlySet<(string NormalizedSeries, int IssueNumber)> readKeys) =>
         new(issue.Series, issue.IssueNumber, issue.ReleaseDate, readKeys.Contains((issue.NormalizedSeries, issue.IssueNumber)));
 }

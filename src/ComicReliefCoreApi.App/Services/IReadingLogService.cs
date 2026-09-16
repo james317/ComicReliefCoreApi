@@ -26,6 +26,9 @@ public interface IReadingLogService
     Task<ReadingLogWeekView?> GetSameWeekAsync(string series, int issueNumber, CancellationToken ct = default);
 
     Task<IReadOnlyList<ReadIssue>> GetRecentlyReadAsync(int max, CancellationToken ct = default);
+
+    /// <summary>Removes a mis-attributed read entry (e.g. logged under the wrong series name) rather than living with it. Returns how many rows were removed.</summary>
+    Task<int> DeleteReadAsync(string series, int issueNumber, CancellationToken ct = default);
 }
 
 public sealed record OwnedIssueView(string Series, int IssueNumber, DateOnly? ReleaseDate, bool AlreadyRead);
