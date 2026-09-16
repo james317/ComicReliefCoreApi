@@ -1263,3 +1263,18 @@ previously-missing items now match their correct release date, and the "unknown"
 dropped to exactly the 14 items with no real CLZ per-issue date to match (catalogs, Comic
 Shop News, and the two TPs/reprint already known to lack one) - 37 of 37 real issue-numbered
 items now match correctly, zero wrong matches.
+
+## Manual ship-date override (9/16/2026)
+A small number of items will never get a clean release date from a CLZ upload - either CLZ
+has no catalog record at all (Lovebunny & Mr. Hell, a small-press one-shot fulfilled outside
+normal Diamond/Lunar distribution) or the only date on file is unhelpful (Psycho #2, a PS
+Artbooks reprint whose CLZ record carries the *original* 1971 printing's date, not this
+2026 reissue's). Decided against automating a web lookup for these - it happened once in
+this account's real history, and building a reliable search-and-parse pipeline for
+something this rare isn't worth the ongoing complexity (see conversation). Instead added
+`POST /api/clz/issue-release` (`IClzImportStore.SetIssueReleaseDateAsync`) to set or correct
+one issue's date directly, and a small form for it on the Shipments tab. The `series` value
+has to read as a prefix of the *DCBS* line's own title up to the issue number, not
+necessarily CLZ's own series field - both Lovebunny and Psycho's real DCBS titles carry a
+publisher/imprint preamble ("Devils Due Presents...", "Ps Artbooks Magazine...") that CLZ's
+series name omits, so CLZ's own value wouldn't have matched the shipment line either way.

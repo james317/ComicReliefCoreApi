@@ -1,4 +1,5 @@
 using ComicReliefCoreApi.Api.Models;
+using ComicReliefCoreApi.Api.Services;
 using ComicReliefCoreApi.Api.Services.Clz;
 
 namespace ComicReliefCoreApi.App.Services;
@@ -45,6 +46,9 @@ public class ClzCollectionService : IClzCollectionService
 
     public Task<IReadOnlyList<ClzIssueRelease>> GetAllIssueReleasesAsync(CancellationToken ct = default) =>
         _store.GetAllIssuesAsync(ct);
+
+    public Task SetIssueReleaseDateAsync(string series, int issueNumber, DateOnly? releaseDate, CancellationToken ct = default) =>
+        _store.SetIssueReleaseDateAsync(series, TitleNormalizer.Normalize(series), issueNumber, releaseDate, ct);
 
     public async Task<IReadOnlyDictionary<string, DateOnly?>> GetLastKnownIssueDatesAsync(
         IEnumerable<string> normalizedTitles, CancellationToken ct = default)

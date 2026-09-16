@@ -80,4 +80,31 @@ public class ClzImportStore : IClzImportStore
     {
         return await _db.ClzIssueReleases.ToListAsync(ct);
     }
+
+    public async Task SetIssueReleaseDateAsync(
+        string series, string normalizedSeries, int issueNumber, DateOnly? releaseDate, CancellationToken ct = default)
+    {
+        var existing = await _db.ClzIssueReleases
+            .FirstOrDefaultAsync(r => r.NormalizedSeries == normalizedSeries && r.IssueNumber == issueNumber, ct);
+
+        if (existing is not null)
+        {
+            existing.Series = series;
+            existing.ReleaseDate = releaseDate;
+            existing.ImportedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            _db.ClzIssueReleases.Add(new ClzIssueRelease
+            {
+                Series = series,
+                NormalizedSeries = normalizedSeries,
+                IssueNumber = issueNumber,
+                ReleaseDate = releaseDate,
+                ImportedAt = DateTime.UtcNow,
+            });
+        }
+
+        await _db.SaveChangesAsync(ct);
+    }
 }

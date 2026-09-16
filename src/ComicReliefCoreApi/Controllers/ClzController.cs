@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ComicReliefCoreApi.Controllers;
 
+public sealed record SetIssueReleaseDateRequest(string Series, int IssueNumber, DateOnly? ReleaseDate);
+
 /// <summary>
 /// Lets the user's CLZ (Comic Book Collector) collection export be uploaded and re-uploaded
 /// at will - each upload fully replaces the stored snapshot, since a CLZ export is always a
@@ -71,5 +73,24 @@ public sealed class ClzController : ControllerBase
         {
             return BadRequest(ex.Message);
         }
+    }
+
+    /// <summary>
+    /// Manually sets one issue's release date - for the handful of items CLZ never has a
+    /// clean date for on its own (no catalog record, or an unhelpful one like an original-
+    /// printing date on a reprint). See IClzCollectionService for what "series" should read
+    /// as here - a prefix of the DCBS shipment line's own title, not necessarily CLZ's field.
+    /// </summary>
+    [HttpPost("issue-release")]
+    public async Task<ActionResult> SetIssueReleaseDate(
+        [FromBody] SetIssueReleaseDateRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Series))
+        {
+            return BadRequest("Series is required.");
+        }
+
+        await _clzService.SetIssueReleaseDateAsync(request.Series, request.IssueNumber, request.ReleaseDate, cancellationToken);
+        return Ok();
     }
 }

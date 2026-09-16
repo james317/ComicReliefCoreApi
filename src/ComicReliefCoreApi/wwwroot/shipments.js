@@ -7,6 +7,11 @@ const readingOrder = document.getElementById('readingOrder');
 const clzShipmentFileInput = document.getElementById('clzShipmentFileInput');
 const clzShipmentUploadBtn = document.getElementById('clzShipmentUploadBtn');
 const clzShipmentUploadResult = document.getElementById('clzShipmentUploadResult');
+const manualDateSeries = document.getElementById('manualDateSeries');
+const manualDateIssueNumber = document.getElementById('manualDateIssueNumber');
+const manualDateValue = document.getElementById('manualDateValue');
+const manualDateSetBtn = document.getElementById('manualDateSetBtn');
+const manualDateResult = document.getElementById('manualDateResult');
 const orderStatusDot = document.getElementById('orderStatusDot');
 const orderStatusText = document.getElementById('orderStatusText');
 const syncOrderBtn = document.getElementById('syncOrderBtn');
@@ -144,6 +149,45 @@ clzShipmentUploadBtn.addEventListener('click', async () => {
     clzShipmentUploadResult.textContent = `Upload failed: ${err.message}`;
   } finally {
     clzShipmentUploadBtn.disabled = false;
+  }
+});
+
+manualDateSetBtn.addEventListener('click', async () => {
+  const series = manualDateSeries.value.trim();
+  const issueNumber = parseInt(manualDateIssueNumber.value, 10);
+  const releaseDate = manualDateValue.value || null;
+
+  if (!series || Number.isNaN(issueNumber)) {
+    manualDateResult.textContent = 'Series and issue number are both required.';
+    return;
+  }
+
+  log('manual date set: starting', { series, issueNumber, releaseDate });
+  manualDateSetBtn.disabled = true;
+  manualDateResult.textContent = 'saving…';
+  try {
+    const res = await fetch('/api/clz/issue-release', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ series, issueNumber, releaseDate }),
+    });
+    if (!res.ok) {
+      const problem = await res.text().catch(() => '');
+      throw new Error(problem || `Request failed (${res.status})`);
+    }
+    log('manual date set: succeeded');
+    manualDateResult.textContent = `Set ${series} #${issueNumber} to ${releaseDate || '(cleared)'}.`;
+    manualDateSeries.value = '';
+    manualDateIssueNumber.value = '';
+    manualDateValue.value = '';
+    if (selectedShipmentId) {
+      await loadReadingOrder(selectedShipmentId);
+    }
+  } catch (err) {
+    log('manual date set: failed', err);
+    manualDateResult.textContent = `Failed: ${err.message}`;
+  } finally {
+    manualDateSetBtn.disabled = false;
   }
 });
 

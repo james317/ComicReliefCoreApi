@@ -27,4 +27,15 @@ public interface IClzCollectionService
 
     /// <summary>Every per-issue release-date row on file (see ClzIssueRelease), for matching a shipment's lines to when each issue actually came out.</summary>
     Task<IReadOnlyList<ClzIssueRelease>> GetAllIssueReleasesAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Manually sets one issue's release date (creating the row if it doesn't exist yet) -
+    /// for the handful of items CLZ never has a clean date for on its own. Pass series text
+    /// that reads as a prefix of the DCBS shipment line's own title up to the issue number
+    /// (e.g. "Devils Due Presents Lovebunny &amp; Mr Hell" for a line titled "Devils Due
+    /// Presents Lovebunny &amp; Mr Hell #1 (One Shot) Cvr B..."), not necessarily CLZ's own
+    /// series field - matching is keyed on the DCBS side, and CLZ's series name sometimes
+    /// omits a publisher preamble DCBS's own title includes.
+    /// </summary>
+    Task SetIssueReleaseDateAsync(string series, int issueNumber, DateOnly? releaseDate, CancellationToken ct = default);
 }

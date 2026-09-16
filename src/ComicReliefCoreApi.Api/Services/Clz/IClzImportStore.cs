@@ -25,4 +25,13 @@ public interface IClzImportStore
 
     /// <summary>Every per-issue row on file, for in-memory matching against a shipment's lines (which need series+issue-number matching, not just a series-name lookup).</summary>
     Task<IReadOnlyList<ClzIssueRelease>> GetAllIssuesAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Directly sets one (NormalizedSeries, IssueNumber) row's release date - creates it if
+    /// missing, updates it in place if present. For the handful of items CLZ never gets a
+    /// clean date for on its own (no catalog record at all, or an unhelpful one like an
+    /// original-printing date on a reprint) and have to be looked up and entered by hand
+    /// instead of coming from a CSV upload.
+    /// </summary>
+    Task SetIssueReleaseDateAsync(string series, string normalizedSeries, int issueNumber, DateOnly? releaseDate, CancellationToken ct = default);
 }

@@ -50,6 +50,26 @@
       <div id="clzShipmentUploadResult"></div>
     </details>
 
+    <details class="clz-import" id="manualDateFix">
+      <summary>Fix a missing or wrong ship date by hand</summary>
+      <p class="page-intro clz-intro">
+        For the odd item CLZ never has a clean date for (no catalog record, or a reprint
+        showing its original printing's date). <strong>Series</strong> should read as the
+        start of the item's own title, up to the issue number — e.g. "Devils Due Presents
+        Lovebunny &amp; Mr Hell" for a line titled "Devils Due Presents Lovebunny &amp; Mr
+        Hell #1 (One Shot) Cvr B…" — not necessarily how CLZ itself lists the series, since
+        this has to match the shipment line's own title text. Leave the date blank to clear
+        one back out.
+      </p>
+      <div class="clz-upload-row" id="manualDateFixRow">
+        <input type="text" id="manualDateSeries" placeholder="Series (title prefix)" />
+        <input type="number" id="manualDateIssueNumber" placeholder="Issue #" min="0" style="width:80px;" />
+        <input type="date" id="manualDateValue" />
+        <button type="button" id="manualDateSetBtn">Set date</button>
+      </div>
+      <div id="manualDateResult"></div>
+    </details>
+
     <h3 class="section-heading">Reading order</h3>
     <div id="readingOrder"></div>
   </div>
