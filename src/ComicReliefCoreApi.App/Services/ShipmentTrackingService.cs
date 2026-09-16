@@ -38,9 +38,14 @@ public class ShipmentTrackingService : IShipmentTrackingService
         var items = lines.Select(line =>
         {
             var issueNumber = IssueNumberParser.TryParseWholeIssueNumber(line.Title);
+            // maxGapWords: 2 - safe here specifically because the exact issue number is
+            // already checked independently (c.IssueNumber == issueNumber) rather than just
+            // "some digit follows," and a wrong match only affects a display grouping, not
+            // which series something gets tracked as (see TitleNormalizer's own docs on why
+            // pull-list/solicitation matching can't afford this same width).
             var match = issueNumber is null
                 ? null
-                : clzIssues.FirstOrDefault(c => c.IssueNumber == issueNumber && TitleNormalizer.IsLikelySeriesMatch(line.Title, CleanClzSeriesName(c.Series)));
+                : clzIssues.FirstOrDefault(c => c.IssueNumber == issueNumber && TitleNormalizer.IsLikelySeriesMatch(line.Title, CleanClzSeriesName(c.Series), maxGapWords: 2));
             return new ShipmentReadingItem(line.ProductCode, line.Title, match?.ReleaseDate);
         }).ToList();
 

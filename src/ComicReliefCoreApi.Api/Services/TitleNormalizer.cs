@@ -15,6 +15,7 @@ public static class TitleNormalizer
 {
     private static readonly Regex LeadingArticle = new("^(the|a)\\s+", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex NonAlphanumeric = new("[^a-z0-9]", RegexOptions.Compiled);
+    private static readonly Regex Apostrophe = new("['’]", RegexOptions.Compiled);
     private static readonly Regex NonAlphanumericKeepSpace = new("[^a-z0-9 ]", RegexOptions.Compiled);
     private static readonly Regex CollapseSpaces = new("\\s+", RegexOptions.Compiled);
 
@@ -29,7 +30,14 @@ public static class TitleNormalizer
     {
         var lowered = title.Trim().ToLowerInvariant();
         var withoutArticle = LeadingArticle.Replace(lowered, "");
-        var alphanumericAndSpaces = NonAlphanumericKeepSpace.Replace(withoutArticle, " ");
+        // Apostrophes are removed (not turned into a space) before the general punctuation
+        // pass, specifically to reconcile a real mismatch confirmed live: CLZ's "World's
+        // Finest" keeps the possessive letter ("world's" -> naively "world s", two tokens),
+        // while DCBS's own title drops it entirely ("Worlds Finest"). Removing the apostrophe
+        // outright merges "world's" into "worlds" too, matching DCBS's own convention, rather
+        // than leaving them as two differently-tokenized words that can never line up.
+        var withoutApostrophes = Apostrophe.Replace(withoutArticle, "");
+        var alphanumericAndSpaces = NonAlphanumericKeepSpace.Replace(withoutApostrophes, " ");
         return CollapseSpaces.Replace(alphanumericAndSpaces, " ").Trim();
     }
 
@@ -39,14 +47,26 @@ public static class TitleNormalizer
     /// seriesTitle. Normalize() alone can't answer this: it strips every space, so "Batman"
     /// becomes a character-prefix of both a real Batman issue AND an unrelated series like
     /// "Batman/Superman" ("batmansuperman..." also starts with "batman"). This keeps word
-    /// boundaries and additionally requires the token right after the series name to be
-    /// numeric (a real issue number) - guarding against exactly the false-positive class this
-    /// session already hit once with CLZ matching ("Archie Meets Batman 66" vs a bare
-    /// "Batman" pull-list entry). Trade-off: one-shots/TPBs/annuals with no issue number right
-    /// after the series name (e.g. "Batman: Killing Joke Deluxe Ed HC") won't match - accepted
-    /// as a false negative rather than risk a false positive.
+    /// boundaries and additionally requires the token right after the series name (allowing
+    /// up to maxGapWords words in between - see below) to be numeric (a real issue number) -
+    /// guarding against exactly the false-positive class this session already hit once with
+    /// CLZ matching ("Archie Meets Batman 66" vs a bare "Batman" pull-list entry). Trade-off:
+    /// one-shots/TPBs/annuals with no issue number right after the series name (e.g. "Batman:
+    /// Killing Joke Deluxe Ed HC") won't match - accepted as a false negative rather than risk
+    /// a false positive.
     /// </summary>
-    public static bool IsLikelySeriesMatch(string listingTitle, string seriesTitle)
+    /// <param name="maxGapWords">
+    /// Default 0 preserves the original strict "issue number immediately follows the series
+    /// name" rule - keep this for any caller matching against an open-ended universe of
+    /// titles (pull-list/solicitation matching), where a false positive silently attaches the
+    /// wrong series. A caller that also independently verifies the exact issue number against
+    /// a specific known value (not just "some digit") - as the shipment-reading-order feature
+    /// does against a specific CLZ row - can afford to widen this: confirmed live this session
+    /// that some real titles carry a subtitle between series and issue number DCBS solicits
+    /// but the CLZ series name doesn't record ("X-Men '97 Season Two #3", "Madame Tarantula
+    /// Magazine #2") - both false negatives under the strict rule, both fixed at maxGapWords=2.
+    /// </param>
+    public static bool IsLikelySeriesMatch(string listingTitle, string seriesTitle, int maxGapWords = 0)
     {
         var listing = NormalizeKeepingWordBoundaries(listingTitle);
         var series = NormalizeKeepingWordBoundaries(seriesTitle);
@@ -64,6 +84,15 @@ public static class TitleNormalizer
         }
 
         var rest = listing[(series.Length + 1)..];
-        return rest.Length > 0 && char.IsDigit(rest[0]);
+        var words = rest.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var wordsToCheck = Math.Min(words.Length, maxGapWords + 1);
+        for (var i = 0; i < wordsToCheck; i++)
+        {
+            if (words[i].Length > 0 && char.IsDigit(words[i][0]))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }

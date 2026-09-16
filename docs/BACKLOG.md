@@ -1231,3 +1231,35 @@ actual physical workflow (pick the shipment, get release dates, read in order, c
 gaps) instead of scattering its pieces across pages built for a different purpose. Moved the
 shipment-scoped CLZ upload off pull-list.html entirely, which now only carries the full-
 collection upload (with a pointer to the new tab for the other case).
+
+## Fixing the shipment-reading-order matching gaps for real (9/16/2026)
+Revisited the 4 "unknown date" false negatives documented earlier this session (Batman/
+Superman: World's Finest, Madame Tarantula, both X-Men '97 issues) after the user correctly
+pushed back that a web search wasn't the right tool - the ship dates already existed in
+their own CLZ export, this was purely a title-matching precision problem. Root-caused each:
+
+- **Apostrophe drop** (World's Finest): CLZ keeps the possessive ("World's" -> naively
+  "world s", two tokens once the word-boundary normalizer turns the apostrophe into a
+  space), DCBS's own title drops the letter entirely ("Worlds", one token) - the two can
+  never line up as written. Fixed in `TitleNormalizer.NormalizeKeepingWordBoundaries`:
+  apostrophes are now removed outright (not turned into a space) before the general
+  punctuation pass, merging "world's" into "worlds" to match DCBS's own convention. General
+  fix, benefits every caller (pull-list/solicitation matching too), no new false-positive
+  risk - removing a character only makes two tokens match more, never less specifically.
+- **Extra subtitle word** (X-Men '97 "Season Two", Madame Tarantula "Magazine"): DCBS's
+  title carries a subtitle CLZ's series name doesn't record, sitting between the series name
+  and the issue number that `IsLikelySeriesMatch` required to be immediate. Fixed with a new
+  optional `maxGapWords` parameter (default 0 - every existing caller's behavior is
+  unchanged) that allows up to N words in the gap. Deliberately NOT loosened for pull-list/
+  solicitation matching itself (an open-ended "does this title belong to any tracked
+  series" check, where a false positive silently mistracks a series - a real past incident
+  with "Archie Meets Batman 66" vs a bare "Batman" entry) - only `ShipmentTrackingService`
+  passes `maxGapWords: 2`, since it independently double-checks the exact issue number
+  against one specific known CLZ row rather than just "some digit follows," and a wrong
+  match there only affects a display grouping, not what a title gets tracked as.
+
+Re-verified against the same real shipment (#1244667) and CLZ export used earlier: all 4
+previously-missing items now match their correct release date, and the "unknown" group
+dropped to exactly the 14 items with no real CLZ per-issue date to match (catalogs, Comic
+Shop News, and the two TPs/reprint already known to lack one) - 37 of 37 real issue-numbered
+items now match correctly, zero wrong matches.
