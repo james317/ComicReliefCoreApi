@@ -55,6 +55,28 @@ public class ReadingLogService : IReadingLogService
     public Task<int> DeleteReadAsync(string series, int issueNumber, CancellationToken ct = default) =>
         _readStore.DeleteAsync(TitleNormalizer.Normalize(series), issueNumber, ct);
 
+    public async Task<IReadOnlyList<SeriesSuggestion>> SuggestSeriesAsync(string query, CancellationToken ct = default)
+    {
+        var owned = await _clzStore.SearchBySeriesAsync(query, ct);
+        var readKeys = await _readStore.GetAllReadKeysAsync(ct);
+
+        return owned
+            .GroupBy(o => o.NormalizedSeries)
+            .Select(g =>
+            {
+                // Lowest-numbered owned issue not yet read - assumes issues get read in
+                // order, same assumption the rest of this feature already makes. Null (no
+                // row) when every owned issue of this series is already read.
+                var nextUnread = g
+                    .Where(o => !readKeys.Contains((o.NormalizedSeries, o.IssueNumber)))
+                    .OrderBy(o => o.IssueNumber)
+                    .FirstOrDefault();
+                return new SeriesSuggestion(g.First().Series, nextUnread?.IssueNumber, nextUnread?.ReleaseDate);
+            })
+            .OrderBy(s => s.Series)
+            .ToList();
+    }
+
     private static OwnedIssueView ToView(ClzIssueRelease issue, IReadOnlySet<(string NormalizedSeries, int IssueNumber)> readKeys) =>
         new(issue.Series, issue.IssueNumber, issue.ReleaseDate, readKeys.Contains((issue.NormalizedSeries, issue.IssueNumber)));
 }

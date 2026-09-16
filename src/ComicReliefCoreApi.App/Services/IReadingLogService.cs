@@ -29,8 +29,18 @@ public interface IReadingLogService
 
     /// <summary>Removes a mis-attributed read entry (e.g. logged under the wrong series name) rather than living with it. Returns how many rows were removed.</summary>
     Task<int> DeleteReadAsync(string series, int issueNumber, CancellationToken ct = default);
+
+    /// <summary>
+    /// Type-ahead suggestions for the search box: one row per matching series (not one per
+    /// issue, unlike SearchOwnedIssuesAsync), each annotated with the lowest-numbered owned
+    /// issue not yet logged read - "the next issue to read", assuming issues get read in
+    /// order. Null when every owned issue of that series is already read (caught up).
+    /// </summary>
+    Task<IReadOnlyList<SeriesSuggestion>> SuggestSeriesAsync(string query, CancellationToken ct = default);
 }
 
 public sealed record OwnedIssueView(string Series, int IssueNumber, DateOnly? ReleaseDate, bool AlreadyRead);
 
 public sealed record ReadingLogWeekView(string Series, int IssueNumber, DateOnly ReleaseDate, IReadOnlyList<OwnedIssueView> SameWeekIssues);
+
+public sealed record SeriesSuggestion(string Series, int? NextUnreadIssueNumber, DateOnly? NextUnreadReleaseDate);

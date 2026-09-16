@@ -2,6 +2,7 @@ const log = (...args) => console.log('[reading-log]', ...args);
 
 const searchInput = document.getElementById('searchInput');
 const searchBtn = document.getElementById('searchBtn');
+const suggestList = document.getElementById('suggestList');
 const searchResults = document.getElementById('searchResults');
 const sameWeekSection = document.getElementById('sameWeekSection');
 const sameWeekHeading = document.getElementById('sameWeekHeading');
@@ -139,11 +140,85 @@ async function loadRecent() {
   }
 }
 
-searchBtn.addEventListener('click', runSearch);
+function hideSuggestions() {
+  suggestList.style.display = 'none';
+  suggestList.innerHTML = '';
+}
+
+function selectSuggestion(series) {
+  searchInput.value = series;
+  hideSuggestions();
+  runSearch();
+}
+
+async function updateSuggestions() {
+  const query = searchInput.value.trim();
+  if (query.length < 2) {
+    hideSuggestions();
+    return;
+  }
+  try {
+    const res = await fetch(`/api/reading-log/suggest?query=${encodeURIComponent(query)}`);
+    if (!res.ok) throw new Error(`Request failed (${res.status})`);
+    const suggestions = await res.json();
+    if (suggestions.length === 0) {
+      hideSuggestions();
+      return;
+    }
+    suggestList.innerHTML = '';
+    for (const s of suggestions) {
+      const li = document.createElement('li');
+      li.className = 'pull-card';
+      li.style.cursor = 'pointer';
+
+      const info = document.createElement('div');
+      info.className = 'pull-info';
+      const title = document.createElement('div');
+      title.className = 'pull-title';
+      title.textContent = s.series;
+      const sub = document.createElement('div');
+      sub.textContent = s.nextUnreadIssueNumber == null
+        ? 'Caught up'
+        : `Next: #${s.nextUnreadIssueNumber}${s.nextUnreadReleaseDate ? ` (${s.nextUnreadReleaseDate})` : ''}`;
+      info.appendChild(title);
+      info.appendChild(sub);
+      li.appendChild(info);
+
+      li.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+        selectSuggestion(s.series);
+      });
+      suggestList.appendChild(li);
+    }
+    suggestList.style.display = '';
+  } catch (err) {
+    log('updateSuggestions failed', err);
+  }
+}
+
+let suggestTimer = null;
+searchInput.addEventListener('input', () => {
+  clearTimeout(suggestTimer);
+  suggestTimer = setTimeout(updateSuggestions, 200);
+});
+searchInput.addEventListener('focus', () => {
+  if (searchInput.value.trim().length >= 2) updateSuggestions();
+});
+searchInput.addEventListener('blur', () => {
+  setTimeout(hideSuggestions, 100);
+});
+
+searchBtn.addEventListener('click', () => {
+  hideSuggestions();
+  runSearch();
+});
 searchInput.addEventListener('keydown', (event) => {
   if (event.key === 'Enter') {
     event.preventDefault();
+    hideSuggestions();
     runSearch();
+  } else if (event.key === 'Escape') {
+    hideSuggestions();
   }
 });
 

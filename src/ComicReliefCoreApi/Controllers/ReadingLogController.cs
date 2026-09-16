@@ -34,6 +34,18 @@ public sealed class ReadingLogController : ControllerBase
         return Ok(await _readingLog.SearchOwnedIssuesAsync(query, cancellationToken));
     }
 
+    /// <summary>Type-ahead suggestions for the search box - one row per matching series with its next unread issue, not one row per issue. See IReadingLogService.SuggestSeriesAsync.</summary>
+    [HttpGet("suggest")]
+    public async Task<ActionResult<IReadOnlyList<SeriesSuggestion>>> Suggest(
+        [FromQuery] string query, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return Ok(Array.Empty<SeriesSuggestion>());
+        }
+        return Ok(await _readingLog.SuggestSeriesAsync(query, cancellationToken));
+    }
+
     [HttpPost("read")]
     public async Task<ActionResult> RecordRead([FromBody] RecordReadRequest request, CancellationToken cancellationToken)
     {
