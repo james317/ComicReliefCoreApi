@@ -1278,3 +1278,33 @@ has to read as a prefix of the *DCBS* line's own title up to the issue number, n
 necessarily CLZ's own series field - both Lovebunny and Psycho's real DCBS titles carry a
 publisher/imprint preamble ("Devils Due Presents...", "Ps Artbooks Magazine...") that CLZ's
 series name omits, so CLZ's own value wouldn't have matched the shipment line either way.
+
+## Reading Log (9/16/2026)
+Automates the last piece of the user's own manual guard-rail process: recording which issue
+of which series they just read, so they don't lose their place or accidentally read out of
+release order while working through a long backlog (reading multiple same-universe series
+in strict release-date order for continuity, and separately reading new standalone 2026
+series each in their own release order).
+
+Deliberately a flat log, not a modeled set of separate "reading threads" (one per
+continuity/series) - the user confirmed this explicitly when asked, since which thread
+something belongs to is a judgment call they make themselves, not something worth the app
+encoding. `ReadIssue` (new table) just records (Series, NormalizedSeries, IssueNumber,
+ReadAt) - ReadAt is nullable because the user's own already-recorded reading history has no
+real per-entry dates, only the order read; backfilling those with fabricated dates would be
+dishonest, so insertion order (auto-increment Id) is the source of truth for ordering
+instead, and every row logged from now on is naturally inserted after all of them regardless
+of whether it also gets a real timestamp.
+
+Reuses existing infrastructure rather than building parallel lookups: "search issues I own"
+is a new permissive substring search over `ClzIssueRelease` (`IClzImportStore.SearchBySeriesAsync`
+- deliberately not `IsLikelySeriesMatch`'s strict rules, since a human visually confirms the
+result here rather than an automated cross-reference risking a wrong match), and "what else
+shipped the same week" is an exact-date lookup against the same table
+(`GetIssuesByReleaseDateAsync`) - DCBS's own release-date granularity already buckets by
+weekly ship day, so exact-date equality already means "same week." `IReadingLogService`
+composes both. New `ReadingLogController`: `GET /api/reading-log/search-owned`,
+`POST /api/reading-log/read`, `POST /api/reading-log/backfill` (one-time import, no dates),
+`GET /api/reading-log/same-week`, `GET /api/reading-log/recent`. New `Reading Log` tab
+(`reading-log.html`/`.js`) between Shipments and DCBS Session: search box, mark-read buttons,
+a same-week list once something's marked read, and a recent-reads list.

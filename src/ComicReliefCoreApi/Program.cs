@@ -3,6 +3,7 @@ using ComicReliefCoreApi.Api.Configuration;
 using ComicReliefCoreApi.Api.Data;
 using ComicReliefCoreApi.Api.Services.Clz;
 using ComicReliefCoreApi.Api.Services.Dcbs;
+using ComicReliefCoreApi.Api.Services.ReadingLog;
 using ComicReliefCoreApi.App.Services;
 using ComicReliefCoreApi.Configuration;
 using ComicReliefCoreApi.Services;
@@ -33,6 +34,8 @@ builder.Services.AddScoped<IDcbsOrderSnapshotStore, DcbsOrderSnapshotStore>();
 builder.Services.AddScoped<IOrderSnapshotService, OrderSnapshotService>();
 builder.Services.AddScoped<IIssueContinuityService, IssueContinuityService>();
 builder.Services.AddScoped<IShipmentTrackingService, ShipmentTrackingService>();
+builder.Services.AddScoped<IReadIssueStore, ReadIssueStore>();
+builder.Services.AddScoped<IReadingLogService, ReadingLogService>();
 
 // SQLite path comes from config (appsettings.json locally, the Data__SqlitePath env var
 // in fly.toml for production) so it can point at the Fly volume mount without code
@@ -177,6 +180,22 @@ using (var scope = app.Services.CreateScope())
             SELECT MIN(Id) FROM ClzIssueReleases GROUP BY NormalizedSeries, IssueNumber
         )
         """);
+
+    // Same EnsureCreated() limitation, sixth occurrence: ReadIssues persists the reading log
+    // (see IReadingLogService) - a guard against reading out of release order or accidentally
+    // skipping an issue. ReadAt is nullable (a backfilled entry with no known real date - Id
+    // insertion order is what carries reading order for those, see ReadIssue's own docs).
+    db.Database.ExecuteSqlRaw("""
+        CREATE TABLE IF NOT EXISTS "ReadIssues" (
+            "Id" INTEGER NOT NULL CONSTRAINT "PK_ReadIssues" PRIMARY KEY AUTOINCREMENT,
+            "Series" TEXT NOT NULL,
+            "NormalizedSeries" TEXT NOT NULL,
+            "IssueNumber" INTEGER NOT NULL,
+            "ReadAt" TEXT NULL
+        )
+        """);
+    db.Database.ExecuteSqlRaw(
+        "CREATE INDEX IF NOT EXISTS \"IX_ReadIssues_NormalizedSeries_IssueNumber\" ON \"ReadIssues\" (\"NormalizedSeries\", \"IssueNumber\")");
 }
 
 app.UseDefaultFiles();

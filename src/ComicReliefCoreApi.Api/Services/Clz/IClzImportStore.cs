@@ -34,4 +34,13 @@ public interface IClzImportStore
     /// instead of coming from a CSV upload.
     /// </summary>
     Task SetIssueReleaseDateAsync(string series, string normalizedSeries, int issueNumber, DateOnly? releaseDate, CancellationToken ct = default);
+
+    /// <summary>Case-insensitive substring search over Series, for a human to pick the right owned issue from - deliberately permissive (unlike IsLikelySeriesMatch's strict matching for automated cross-referencing) since a person visually confirms the result before recording a read.</summary>
+    Task<IReadOnlyList<ClzIssueRelease>> SearchBySeriesAsync(string query, CancellationToken ct = default);
+
+    /// <summary>Every ClzIssueRelease row sharing this exact release date, for "what else shipped the same week" - DCBS's own release-date granularity already buckets by weekly ship day, so exact-date equality is the same thing as "same week."</summary>
+    Task<IReadOnlyList<ClzIssueRelease>> GetIssuesByReleaseDateAsync(DateOnly releaseDate, CancellationToken ct = default);
+
+    /// <summary>One specific (NormalizedSeries, IssueNumber) row, or null if not on file.</summary>
+    Task<ClzIssueRelease?> GetIssueAsync(string normalizedSeries, int issueNumber, CancellationToken ct = default);
 }

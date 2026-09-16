@@ -107,4 +107,27 @@ public class ClzImportStore : IClzImportStore
 
         await _db.SaveChangesAsync(ct);
     }
+
+    public async Task<IReadOnlyList<ClzIssueRelease>> SearchBySeriesAsync(string query, CancellationToken ct = default)
+    {
+        var normalizedQuery = query.Trim().ToLowerInvariant();
+        return await _db.ClzIssueReleases
+            .Where(r => r.Series.ToLower().Contains(normalizedQuery))
+            .OrderBy(r => r.Series).ThenBy(r => r.IssueNumber)
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<ClzIssueRelease>> GetIssuesByReleaseDateAsync(DateOnly releaseDate, CancellationToken ct = default)
+    {
+        return await _db.ClzIssueReleases
+            .Where(r => r.ReleaseDate == releaseDate)
+            .OrderBy(r => r.Series)
+            .ToListAsync(ct);
+    }
+
+    public async Task<ClzIssueRelease?> GetIssueAsync(string normalizedSeries, int issueNumber, CancellationToken ct = default)
+    {
+        return await _db.ClzIssueReleases
+            .FirstOrDefaultAsync(r => r.NormalizedSeries == normalizedSeries && r.IssueNumber == issueNumber, ct);
+    }
 }

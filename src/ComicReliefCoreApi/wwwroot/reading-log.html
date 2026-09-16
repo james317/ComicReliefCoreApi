@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Reading Log — If You Pull, Don't Miss</title>
+<meta name="theme-color" content="#3a2214" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Rye&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<nav class="trail-nav">
+  <a href="/index.html">Solicitations</a>
+  <a href="/pull-list.html">Pull List</a>
+  <a href="/candidates.html">Candidates</a>
+  <a href="/shipments.html">Shipments</a>
+  <a href="/reading-log.html" class="active">Reading Log</a>
+  <a href="/dcbs-session.html">DCBS Session</a>
+</nav>
+<main class="content">
+  <h1 class="page-heading">Reading Log</h1>
+  <p class="page-intro">
+    A guard against reading out of release order or accidentally skipping an issue while
+    working through the backlog. Search for an issue you own, mark it read, and check what
+    else shipped the same week before moving on.
+  </p>
+
+  <h2 class="section-heading">Find an issue</h2>
+  <div class="clz-upload-row">
+    <input type="text" id="searchInput" placeholder="Series title, e.g. Batman" autocomplete="off" />
+    <button type="button" id="searchBtn">Search</button>
+  </div>
+  <ul class="posse-list" id="searchResults"></ul>
+
+  <div id="sameWeekSection" hidden>
+    <h2 class="section-heading" id="sameWeekHeading">Shipped the same week</h2>
+    <ul class="posse-list" id="sameWeekList"></ul>
+  </div>
+
+  <h2 class="section-heading">Recently read</h2>
+  <ul class="posse-list" id="recentList"></ul>
+</main>
+<script src="/reading-log.js"></script>
+</body>
+</html>
