@@ -18,4 +18,16 @@ public static class IssueNumberParser
         var match = WholeIssueNumberRegex.Match(title);
         return match.Success && int.TryParse(match.Groups[1].Value, out var number) ? number : null;
     }
+
+    /// <summary>Everything in the title before the "#&lt;number&gt;" match (e.g. "Batman #12 Cvr A..." -&gt; "Batman"), trimmed. Null if the title has no whole issue number to anchor on.</summary>
+    public static string? TryExtractSeriesTitle(string title)
+    {
+        var match = WholeIssueNumberRegex.Match(title);
+        if (!match.Success)
+        {
+            return null;
+        }
+        var seriesTitle = title[..match.Index].Trim();
+        return seriesTitle.Length == 0 ? null : seriesTitle;
+    }
 }

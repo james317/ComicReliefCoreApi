@@ -17,6 +17,8 @@ const orderStatusText = document.getElementById('orderStatusText');
 const syncOrderBtn = document.getElementById('syncOrderBtn');
 const message = document.getElementById('message');
 const missedIssuesList = document.getElementById('missedIssuesList');
+const newFirstIssuesSection = document.getElementById('newFirstIssuesSection');
+const newFirstIssuesList = document.getElementById('newFirstIssuesList');
 
 let selectedShipmentId = null;
 
@@ -247,6 +249,37 @@ async function loadMissedIssues() {
   }
 }
 
+function renderNewFirstIssues(newFirstIssues) {
+  if (!newFirstIssues || newFirstIssues.length === 0) {
+    newFirstIssuesSection.hidden = true;
+    return;
+  }
+  newFirstIssuesList.innerHTML = '';
+  for (const item of newFirstIssues) {
+    const li = document.createElement('li');
+    li.className = 'pull-card';
+    const info = document.createElement('div');
+    info.className = 'pull-info';
+    const title = document.createElement('div');
+    title.className = 'pull-title';
+    title.textContent = item.title;
+    const sub = document.createElement('div');
+    sub.textContent = item.note || `Order ${item.orderId}`;
+    info.appendChild(title);
+    info.appendChild(sub);
+    li.appendChild(info);
+
+    const badge = document.createElement('span');
+    badge.className = 'pull-badge ' +
+      (item.status === 'Sticky' ? 'corralled' : item.status === 'Unsticky' ? 'wanted' : 'unresolved');
+    badge.textContent = item.status;
+    li.appendChild(badge);
+
+    newFirstIssuesList.appendChild(li);
+  }
+  newFirstIssuesSection.hidden = false;
+}
+
 syncOrderBtn.addEventListener('click', async () => {
   syncOrderBtn.disabled = true;
   showMessage('Fetching your order history from DCBS - this can take a little while…', false);
@@ -255,6 +288,7 @@ syncOrderBtn.addEventListener('click', async () => {
     const result = await res.json();
     log('order sync complete', result);
     renderOrderStatus(result.status, result.orderErrors);
+    renderNewFirstIssues(result.newFirstIssues);
     showMessage(`Synced ${result.status.orderCount} orders.`, false);
     await loadMissedIssues();
   } catch (err) {

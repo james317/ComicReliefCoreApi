@@ -13,12 +13,15 @@ public class OrderSnapshotService : IOrderSnapshotService
 
     private readonly IDcbsClient _dcbs;
     private readonly IDcbsOrderSnapshotStore _store;
+    private readonly IPullListService _pullList;
     private readonly ILogger<OrderSnapshotService> _logger;
 
-    public OrderSnapshotService(IDcbsClient dcbs, IDcbsOrderSnapshotStore store, ILogger<OrderSnapshotService> logger)
+    public OrderSnapshotService(
+        IDcbsClient dcbs, IDcbsOrderSnapshotStore store, IPullListService pullList, ILogger<OrderSnapshotService> logger)
     {
         _dcbs = dcbs;
         _store = store;
+        _pullList = pullList;
         _logger = logger;
     }
 
@@ -57,8 +60,10 @@ public class OrderSnapshotService : IOrderSnapshotService
             await _store.UpsertOrderAsync(orderId, lines, syncedAt, ct);
         }
 
+        var newFirstIssues = await _pullList.DetectAndTrackNewFirstIssuesAsync(ct);
+
         var status = await GetStatusAsync(ct);
-        return new OrderSyncResult(status, errors.ToDictionary(kv => kv.Key, kv => kv.Value));
+        return new OrderSyncResult(status, errors.ToDictionary(kv => kv.Key, kv => kv.Value), newFirstIssues);
     }
 
     public async Task<OrderSnapshotStatus> GetStatusAsync(CancellationToken ct = default)

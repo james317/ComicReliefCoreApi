@@ -166,7 +166,11 @@ syncOrderBtn.addEventListener('click', async () => {
     const result = await res.json();
     log('order sync complete', result);
     renderOrderStatus(result.status, result.orderErrors);
-    showMessage(`Synced ${result.status.orderCount} orders.`, false);
+    const newCount = (result.newFirstIssues || []).length;
+    showMessage(
+      `Synced ${result.status.orderCount} orders.` +
+        (newCount > 0 ? ` ${newCount} new title(s) found and tracked - see the Shipments tab for details.` : ''),
+      false);
     await loadCandidates();
   } catch (err) {
     log('order sync failed', err);

@@ -1329,3 +1329,55 @@ exposed a real gap: there was no way to fix a mis-attributed entry other than li
 or truncating the whole table. Added `IReadIssueStore.DeleteAsync` /
 `DELETE /api/reading-log/read` (by series + issue number) - a small addition, but the
 backfill process just demonstrated it's not a hypothetical need.
+
+### Reading log type-ahead suggestions (9/16/2026)
+`GET /api/reading-log/suggest`: type a few letters of a series and see one row per matching
+series (not one row per issue, unlike `search-owned`) annotated with the lowest-numbered
+owned issue not yet logged read - the actual next thing to read for that book, or "Caught
+up" if every owned issue is already read. `IReadingLogService.SuggestSeriesAsync` groups
+`SearchBySeriesAsync` results by `NormalizedSeries` and picks the min unread issue number per
+group. `reading-log.js` debounces the search box's input event (200ms) and renders results in
+a dropdown under the box; clicking a suggestion fills the box and runs the normal full search.
+
+### Auto-tracking new #1s from order history (9/17/2026)
+Real gap this closes: "You'll Never Leave This Place Alive" #1 was ordered 8/29/2026 but
+never explicitly run through `AddToPullListAsync`, so it sat as "seen in orders only, not on
+either list" in `docs/pull-list.csv` until the user noticed by hand while checking on issue
+#2's solicitation. There was no automation watching order history for a series being ordered
+for the first time.
+
+`IPullListService.DetectAndTrackNewFirstIssuesAsync` now runs automatically at the end of
+every `IOrderSnapshotService.SyncRecentAsync` (both `candidates.html`'s and `shipments.html`'s
+"Sync Order History" buttons already call this). It scans every synced order line
+(`IDcbsOrderSnapshotStore.GetAllLinesAsync`, skipping Cancelled lines - never actually kept)
+for one with issue number 1 (`IssueNumberParser.TryParseWholeIssueNumber`) whose series title
+(new `IssueNumberParser.TryExtractSeriesTitle` - everything before the "#1" match) doesn't
+already match a tracked `PullListEntry`. Anything new is run straight through the existing
+`AddToPullListAsync` - sticky first (DCBS search-and-add, then the order-form route), falling
+back to marking it Unsticky with a reason if neither sticks - exactly the two-tier behavior
+the user asked for, and already what that method did for a manually-triggered add.
+
+A detected title whose extracted series name contains "One-Shot" or "Special" as its own
+word is left `Unresolved` instead of auto-added, matching the existing manual convention in
+`pull-list.csv` of not persistently tracking real one-shots (e.g. "Vampirella X Witchblade
+Special", "Vampirella vs Darkstalkers Special" - both flagged this way in a scratch
+verification run) since there's no next issue to keep pulling. Real annuals ("Batman
+Annual", "Star Wars Poe Dameron Annual") are deliberately not caught by this filter and do
+get auto-tracked, matching those already being persistent Sticky entries in `pull-list.csv`.
+
+**Known, accepted limitation:** this is a title-text heuristic, not a real format signal -
+DCBS's order lines carry no explicit single-issue/one-shot/TP flag. A one-shot with no
+textual cue in its title doesn't get caught: "Devils Due Presents Lovebunny & Mr Hell" (a
+real one-shot already on file, per `pull-list.csv`) verified in the same scratch run as
+*not* triggering the one-shot filter, and would be auto-tracked as if it were an ongoing
+series. The fix once that's noticed is archiving the resulting entry (`SetArchivedAsync`,
+already existed) rather than chasing a perfect heuristic - cheaper, and consistent with how
+the rest of this matching logic already accepts known false negatives/positives over
+guessing wrong silently.
+
+Every line this method evaluates - auto-tracked, marked Unsticky, or skipped as a likely
+one-shot - gets a `PullListEntry` row either way, so a title is only ever evaluated once
+across repeated syncs rather than re-flagged forever. `OrderSyncResult` gained a
+`NewFirstIssues` list surfaced in both calling pages: `shipments.html` gets a full "Newly
+tracked from orders" section, `candidates.html` folds the count into its existing sync
+status message.

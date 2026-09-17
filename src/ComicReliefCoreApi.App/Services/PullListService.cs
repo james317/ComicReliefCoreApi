@@ -1,5 +1,7 @@
+using System.Text.RegularExpressions;
 using ComicReliefCoreApi.Api.Data;
 using ComicReliefCoreApi.Api.Models;
+using ComicReliefCoreApi.Api.Models.Dcbs;
 using ComicReliefCoreApi.Api.Services;
 using ComicReliefCoreApi.Api.Services.Dcbs;
 using Microsoft.EntityFrameworkCore;
@@ -18,14 +20,22 @@ public class PullListService : IPullListService
 
     private const int RecentOrdersToScan = 6;
 
+    // Title-text heuristic only, see DetectAndTrackNewFirstIssuesAsync's doc comment for why
+    // this can't be a real format check.
+    private static readonly Regex OneShotOrSpecialTitle =
+        new(@"\b(one[\s-]?shot|special)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     private readonly ComicReliefDbContext _db;
     private readonly IDcbsClient _dcbs;
+    private readonly IDcbsOrderSnapshotStore _orderStore;
     private readonly ILogger<PullListService> _logger;
 
-    public PullListService(ComicReliefDbContext db, IDcbsClient dcbs, ILogger<PullListService> logger)
+    public PullListService(
+        ComicReliefDbContext db, IDcbsClient dcbs, IDcbsOrderSnapshotStore orderStore, ILogger<PullListService> logger)
     {
         _db = db;
         _dcbs = dcbs;
+        _orderStore = orderStore;
         _logger = logger;
     }
 
@@ -219,6 +229,62 @@ public class PullListService : IPullListService
     public async Task<IReadOnlyList<PullListEntry>> GetAllAsync(CancellationToken ct = default)
     {
         return await _db.PullListEntries.Where(e => e.ArchivedAt == null).ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<NewFirstIssueDetection>> DetectAndTrackNewFirstIssuesAsync(CancellationToken ct = default)
+    {
+        var lines = await _orderStore.GetAllLinesAsync(ct);
+        var existingNormalizedTitles = (await GetTrackedNormalizedTitlesAsync(ct)).ToHashSet();
+        var results = new List<NewFirstIssueDetection>();
+
+        foreach (var line in lines)
+        {
+            if (line.Status == DcbsShipmentStatus.Cancelled)
+            {
+                continue;
+            }
+
+            if (IssueNumberParser.TryParseWholeIssueNumber(line.Title) != 1)
+            {
+                continue;
+            }
+
+            var seriesTitle = IssueNumberParser.TryExtractSeriesTitle(line.Title);
+            if (seriesTitle is null)
+            {
+                continue;
+            }
+
+            var normalized = TitleNormalizer.Normalize(seriesTitle);
+            if (!existingNormalizedTitles.Add(normalized))
+            {
+                // Already tracked (from a prior run, an earlier line this run, or the
+                // original CSV import) - nothing new to do, and this keeps a title from
+                // being re-evaluated on every future sync.
+                continue;
+            }
+
+            if (OneShotOrSpecialTitle.IsMatch(seriesTitle))
+            {
+                var note = "Looks like a one-shot/special from its title - left untracked rather than auto-added. " +
+                    "Add it by hand (POST /api/pull-list) if it's actually an ongoing series.";
+                _db.PullListEntries.Add(new PullListEntry
+                {
+                    Title = seriesTitle,
+                    NormalizedTitle = normalized,
+                    Status = PullListStatus.Unresolved,
+                    Notes = note,
+                });
+                await _db.SaveChangesAsync(ct);
+                results.Add(new NewFirstIssueDetection(seriesTitle, line.OrderId, PullListStatus.Unresolved, note));
+                continue;
+            }
+
+            var entry = await AddToPullListAsync(seriesTitle, ct);
+            results.Add(new NewFirstIssueDetection(seriesTitle, line.OrderId, entry.Status, entry.FailureReason));
+        }
+
+        return results;
     }
 
     private static string Truncate(string value, int max = 2000) =>

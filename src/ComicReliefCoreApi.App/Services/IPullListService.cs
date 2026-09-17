@@ -42,6 +42,33 @@ public interface IPullListService
 
     /// <summary>Every non-archived tracked entry, any status - for callers cross-referencing the whole pull list against some other data source (e.g. issue-continuity checks against order history). Archived titles are excluded, same as the default pull-list view - a series the user marked done shouldn't keep getting flagged.</summary>
     Task<IReadOnlyList<PullListEntry>> GetAllAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Scans every synced order line for a "#1" from a series not already tracked, and
+    /// immediately runs it through <see cref="AddToPullListAsync"/> (sticky first, falling
+    /// back to unsticky) instead of waiting for the gap to be noticed by hand - the real
+    /// case this closes: "You'll Never Leave This Place Alive" #1 was ordered 8/29/2026 but
+    /// never explicitly added, and sat as "seen in orders only, not on either list" until
+    /// someone caught it.
+    ///
+    /// A line whose extracted series title reads as a one-shot/special ("One-Shot" or
+    /// "Special" as its own word) is left Unresolved instead of auto-added, matching the
+    /// existing pull-list.csv convention of not persistently tracking real one-shots (e.g.
+    /// "Vampirella X Witchblade Special") since there's no next issue to keep pulling. This
+    /// is a title-text heuristic only - DCBS's order lines carry no real format flag - so a
+    /// one-shot with no such cue in its title (e.g. "Devils Due Presents Lovebunny & Mr
+    /// Hell") still gets auto-tracked as if ongoing; archiving the resulting entry
+    /// (<see cref="SetArchivedAsync"/>) is the fix once that's noticed, rather than chasing a
+    /// perfect heuristic.
+    ///
+    /// Every line evaluated here - tracked, auto-added, or skipped as a likely one-shot -
+    /// ends up with a <see cref="PullListEntry"/> (Unresolved for the skipped case), so a
+    /// title is only ever evaluated once across repeated calls rather than re-flagged on
+    /// every future sync. Cancelled lines are ignored - never actually kept.
+    /// </summary>
+    Task<IReadOnlyList<NewFirstIssueDetection>> DetectAndTrackNewFirstIssuesAsync(CancellationToken ct = default);
 }
 
 public sealed record PullListImportRow(string Title, PullListStatus Status, string? Notes);
+
+public sealed record NewFirstIssueDetection(string Title, string OrderId, PullListStatus Status, string? Note);
