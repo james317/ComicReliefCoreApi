@@ -97,6 +97,18 @@ public sealed class PullListController : ControllerBase
     }
 
     /// <summary>
+    /// Pulls in any title that's really sticky on DCBS's own /account/pulllist but was
+    /// never tracked by this app - see IPullListService.ReconcileWithDcbsAsync. Returns
+    /// only what was newly discovered.
+    /// </summary>
+    [HttpPost("reconcile")]
+    public async Task<ActionResult<IReadOnlyList<PullListEntryResponse>>> Reconcile(CancellationToken cancellationToken)
+    {
+        var discovered = await _pullListService.ReconcileWithDcbsAsync(cancellationToken);
+        return Ok(discovered.Select(e => PullListEntryResponse.FromEntity(e)).ToList());
+    }
+
+    /// <summary>
     /// Diagnostic-only passthrough to DCBS's own series search - raw facts, no matching
     /// or business decisions. Built to answer a specific question: does DCBS's search
     /// response include a usable "last shipped issue" fact anywhere (the CurrentIssueText

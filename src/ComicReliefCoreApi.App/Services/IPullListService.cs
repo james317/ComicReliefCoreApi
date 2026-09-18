@@ -67,6 +67,21 @@ public interface IPullListService
     /// every future sync. Cancelled lines are ignored - never actually kept.
     /// </summary>
     Task<IReadOnlyList<NewFirstIssueDetection>> DetectAndTrackNewFirstIssuesAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Fetches DCBS's own real, persistent /account/pulllist (every series actually sticky
+    /// on the account, not just what this app has ever been told about) and inserts a
+    /// Sticky PullListEntry for any title with no existing tracked entry - discovered live
+    /// 9/2026 when the account's real list turned out to have 236 series against this app's
+    /// 122 tracked rows, a gap large enough to explain otherwise-mysterious TP/HC/Omnibus
+    /// items showing up on a month's pull-list-order review (an old, long-finished series
+    /// left sticky on DCBS from before this app existed keeps matching new collected
+    /// editions of itself even once it has nothing new to solicit as single issues).
+    /// Each discovered entry is created already Sticky/verified (DCBS's own page is the
+    /// verification), never guessed. Returns only the newly-created entries, not the full
+    /// reconciled list, so a caller can review exactly what was previously invisible.
+    /// </summary>
+    Task<IReadOnlyList<PullListEntry>> ReconcileWithDcbsAsync(CancellationToken ct = default);
 }
 
 public sealed record PullListImportRow(string Title, PullListStatus Status, string? Notes);

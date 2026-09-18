@@ -287,6 +287,39 @@ public class PullListService : IPullListService
         return results;
     }
 
+    public async Task<IReadOnlyList<PullListEntry>> ReconcileWithDcbsAsync(CancellationToken ct = default)
+    {
+        var realList = await _dcbs.GetPullListAsync(ct);
+        var existingNormalizedTitles = (await GetTrackedNormalizedTitlesAsync(ct)).ToHashSet();
+        var discovered = new List<PullListEntry>();
+        var now = DateTime.UtcNow;
+
+        foreach (var row in realList)
+        {
+            var normalized = TitleNormalizer.Normalize(row.Title);
+            if (!existingNormalizedTitles.Add(normalized))
+            {
+                continue;
+            }
+
+            var entry = new PullListEntry
+            {
+                Title = row.Title,
+                NormalizedTitle = normalized,
+                Status = PullListStatus.Sticky,
+                DcbsPullListId = row.PullListId,
+                LastVerifiedStickyAt = now,
+                LastSuccessfulMethod = null,
+                Notes = "Discovered via DCBS pull-list reconciliation - was sticky on the real account but not previously tracked by this app.",
+            };
+            _db.PullListEntries.Add(entry);
+            discovered.Add(entry);
+        }
+
+        await _db.SaveChangesAsync(ct);
+        return discovered;
+    }
+
     private static string Truncate(string value, int max = 2000) =>
         value.Length <= max ? value : value[..max];
 }
