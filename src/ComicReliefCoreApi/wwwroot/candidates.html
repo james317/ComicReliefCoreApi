@@ -53,8 +53,23 @@
 
   <div id="results" hidden>
     <div class="posse-group">
-      <h2 id="trackedHeading">On Your Pull List (0)</h2>
-      <ul class="posse-list" id="trackedList"></ul>
+      <h2 id="unstickyHeading">Unsticky — Add To Cart By Hand (0)</h2>
+      <p class="page-intro">
+        Not on DCBS's real sticky list, so these never auto-populate your cart -
+        but they're solicited this month and on your pull list. Add each to your
+        cart manually.
+      </p>
+      <ul class="posse-list" id="unstickyList"></ul>
+    </div>
+    <div class="posse-group">
+      <details class="clz-import">
+        <summary id="trackedHeading">Sticky / Unresolved matches (0)</summary>
+        <p class="page-intro">
+          Already on DCBS's real sticky list (or not yet attempted) - these should
+          already be in your cart automatically. Shown for reference only.
+        </p>
+        <ul class="posse-list" id="trackedList"></ul>
+      </details>
     </div>
   </div>
 </main>

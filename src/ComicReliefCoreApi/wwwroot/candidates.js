@@ -8,6 +8,8 @@ const orderStatusText = document.getElementById('orderStatusText');
 const syncOrderBtn = document.getElementById('syncOrderBtn');
 const message = document.getElementById('message');
 const results = document.getElementById('results');
+const unstickyHeading = document.getElementById('unstickyHeading');
+const unstickyList = document.getElementById('unstickyList');
 const trackedHeading = document.getElementById('trackedHeading');
 const trackedList = document.getElementById('trackedList');
 
@@ -60,38 +62,55 @@ function renderOrderStatus(status, orderErrors) {
 
 // extractIssueIdentity, groupByIssue, and issueCard come from solicitation-cards.js -
 // shared with the Solicitations tab's full by-publisher browse.
+function renderMatchCard(match, targetList) {
+  const li = document.createElement('li');
+  li.className = 'pull-card';
+
+  const badge = document.createElement('span');
+  badge.className = 'pull-badge ' + (match.status === 'Sticky' ? 'corralled' : match.status === 'Unsticky' ? 'wanted' : 'unresolved');
+  badge.textContent = match.items.length;
+  li.appendChild(badge);
+
+  const info = document.createElement('div');
+  info.className = 'pull-info';
+
+  const title = document.createElement('div');
+  title.className = 'pull-title';
+  title.textContent = match.pullListTitle;
+  info.appendChild(title);
+
+  // Same card treatment as the Solicitations tab - covers shown eagerly here (these
+  // lists are short and always visible, never inside a collapsed <details> themselves).
+  const ul = document.createElement('ul');
+  ul.className = 'comic-list';
+  for (const group of groupByIssue(match.items)) {
+    ul.appendChild(issueCard(group, true));
+  }
+  info.appendChild(ul);
+
+  li.appendChild(info);
+  targetList.appendChild(li);
+}
+
+// Split by status rather than one flat list - the actionable half of a monthly
+// order pass is specifically the Unsticky matches (DCBS's own sticky list never
+// auto-carries these into the cart, so they're easy to forget), while Sticky/
+// Unresolved ones should already be sitting in the cart automatically and are
+// only here for reference.
 function renderTracked(matches) {
-  trackedHeading.textContent = `On Your Pull List (${matches.length})`;
+  const unsticky = matches.filter(m => m.status === 'Unsticky');
+  const rest = matches.filter(m => m.status !== 'Unsticky');
+
+  unstickyHeading.textContent = `Unsticky — Add To Cart By Hand (${unsticky.length})`;
+  unstickyList.innerHTML = '';
+  for (const match of unsticky) {
+    renderMatchCard(match, unstickyList);
+  }
+
+  trackedHeading.textContent = `Sticky / Unresolved matches (${rest.length})`;
   trackedList.innerHTML = '';
-
-  for (const match of matches) {
-    const li = document.createElement('li');
-    li.className = 'pull-card';
-
-    const badge = document.createElement('span');
-    badge.className = 'pull-badge ' + (match.status === 'Sticky' ? 'corralled' : match.status === 'Unsticky' ? 'wanted' : 'unresolved');
-    badge.textContent = match.items.length;
-    li.appendChild(badge);
-
-    const info = document.createElement('div');
-    info.className = 'pull-info';
-
-    const title = document.createElement('div');
-    title.className = 'pull-title';
-    title.textContent = match.pullListTitle;
-    info.appendChild(title);
-
-    // Same card treatment as the Solicitations tab - covers shown eagerly here (this
-    // list is short and always visible, never inside a collapsed <details>).
-    const ul = document.createElement('ul');
-    ul.className = 'comic-list';
-    for (const group of groupByIssue(match.items)) {
-      ul.appendChild(issueCard(group, true));
-    }
-    info.appendChild(ul);
-
-    li.appendChild(info);
-    trackedList.appendChild(li);
+  for (const match of rest) {
+    renderMatchCard(match, trackedList);
   }
 }
 
