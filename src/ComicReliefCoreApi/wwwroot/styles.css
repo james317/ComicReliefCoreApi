@@ -264,7 +264,10 @@ body {
 
 .view-toggle {
   font-size: 0.82rem;
-  color: var(--accent);
+}
+
+.view-toggle.active {
+  color: var(--accent-contrast);
 }
 
 #selectModeBtn {
