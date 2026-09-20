@@ -17,6 +17,15 @@ public class DcbsSolicitationStore : IDcbsSolicitationStore
     public async Task ReplacePublisherAsync(
         string publisher, IReadOnlyList<DcbsListingItem> items, DateTime refreshedAt, CancellationToken ct = default)
     {
+        // FirstSeenAt has to survive this replace - grab whatever's already on file (keyed by
+        // product code, this publisher's rows only) before deleting, so a title that's been
+        // solicited for months doesn't look "new" again just because it went through another
+        // wipe-and-reinsert cycle.
+        var previousFirstSeen = await _db.DcbsSolicitationEntries
+            .Where(e => e.Publisher == publisher)
+            .Select(e => new { e.ProductCode, e.FirstSeenAt })
+            .ToDictionaryAsync(e => e.ProductCode, e => e.FirstSeenAt, ct);
+
         await _db.DcbsSolicitationEntries.Where(e => e.Publisher == publisher).ExecuteDeleteAsync(ct);
         _db.DcbsSolicitationEntries.AddRange(items.Select(i => new DcbsSolicitationEntry
         {
@@ -30,17 +39,18 @@ public class DcbsSolicitationStore : IDcbsSolicitationStore
             IsRelisted = i.IsRelisted,
             IsFacsimileOrReprint = i.IsFacsimileOrReprint,
             RefreshedAt = refreshedAt,
+            FirstSeenAt = previousFirstSeen.GetValueOrDefault(i.ProductCode, refreshedAt),
         }));
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<IReadOnlyList<(string Publisher, DcbsListingItem Item)>> GetAllAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<(string Publisher, DcbsListingItem Item, DateTime FirstSeenAt, DateTime RefreshedAt)>> GetAllAsync(CancellationToken ct = default)
     {
         var rows = await _db.DcbsSolicitationEntries.AsNoTracking().ToListAsync(ct);
         return rows
             .Select(r => (r.Publisher, new DcbsListingItem(
                 r.ProductCode, r.Title, r.ProductUrl, r.ThumbnailUrl, r.CreatorsAndDescription, r.Price,
-                r.IsRelisted, r.IsFacsimileOrReprint)))
+                r.IsRelisted, r.IsFacsimileOrReprint), r.FirstSeenAt, r.RefreshedAt))
             .ToList();
     }
 

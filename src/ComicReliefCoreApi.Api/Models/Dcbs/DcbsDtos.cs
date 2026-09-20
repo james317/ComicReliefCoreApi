@@ -13,6 +13,9 @@ public record DcbsPullListRow(string Title, int Qty, string PullListId);
 /// </summary>
 public record DcbsOrderLine(string ProductCode, string Title, DcbsShipmentStatus? Status);
 
+/// <summary>The most recently placed order's id and its "Order Date" - the only date DCBS exposes anywhere on an order (no separate "last updated" field exists on either /account/orders or an order's own detail page - confirmed live 9/2026).</summary>
+public record DcbsOrderDateInfo(string OrderId, DateOnly OrderDate);
+
 /// <summary>
 /// An order detail page's own "Shipment Status Legend" - confirmed live to have exactly these
 /// four values, one item-row icon per status plus one more of each in the legend explanation

@@ -11,9 +11,17 @@ namespace ComicReliefCoreApi.App.Services;
 /// classification (issue number 1, or no issue number but an explicit "One-Shot" marker),
 /// excluding facsimile/reprint editions - built as an independent, in-app "New #1s" view
 /// (docs/BACKLOG.md "New-issue-#1 tracker") since DCBS's own equivalent listing has been
-/// unreliable.
+/// unreliable. FirstSeenAt is the raw fact (when this product code was first ever crawled -
+/// see DcbsSolicitationEntry); IsNewSinceLastRefresh is the one derived boolean from it
+/// (FirstSeenAt == this row's RefreshedAt), so a "what's new since I last checked" view
+/// doesn't need its own separate timestamp tracking. Comparing FirstSeenAt against an order's
+/// placed date for the "new since I built my order" view is left to the caller (Solicitations
+/// page) - a plain date-range filter over already-fetched items, the same pattern already
+/// used for the New #1s view's own client-side filter.
 /// </summary>
-public record SolicitationItem(string Publisher, DcbsListingItem Item, bool IsInLatestOrder, bool IsNewFirstIssueOrOneShot);
+public record SolicitationItem(
+    string Publisher, DcbsListingItem Item, bool IsInLatestOrder, bool IsNewFirstIssueOrOneShot,
+    DateTime FirstSeenAt, bool IsNewSinceLastRefresh);
 
 /// <summary>Every current-solicitation item matched to one pull-list entry.</summary>
 public record SolicitationMatch(int PullListEntryId, string PullListTitle, PullListStatus Status, IReadOnlyList<SolicitationItem> Items);

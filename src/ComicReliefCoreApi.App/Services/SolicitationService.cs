@@ -62,7 +62,9 @@ public class SolicitationService : ISolicitationService
                 r.Publisher,
                 r.Item,
                 orderedCodes.Contains(r.Item.ProductCode.ToUpperInvariant()),
-                IsNewFirstIssueOrOneShot(r.Item)))
+                IsNewFirstIssueOrOneShot(r.Item),
+                r.FirstSeenAt,
+                r.FirstSeenAt == r.RefreshedAt))
             .ToList();
     }
 

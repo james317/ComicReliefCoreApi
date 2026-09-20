@@ -71,4 +71,7 @@ public class OrderSnapshotService : IOrderSnapshotService
         var (orderCount, totalLineCount, lastSyncedAt) = await _store.GetStatusAsync(ct);
         return new OrderSnapshotStatus(orderCount, totalLineCount, lastSyncedAt);
     }
+
+    public Task<DcbsOrderDateInfo?> GetMostRecentOrderDateAsync(CancellationToken ct = default) =>
+        _dcbs.GetMostRecentOrderDateAsync(ct);
 }

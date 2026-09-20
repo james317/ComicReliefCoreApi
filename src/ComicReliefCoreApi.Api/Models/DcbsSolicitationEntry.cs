@@ -33,4 +33,13 @@ public class DcbsSolicitationEntry
 
     /// <summary>When this publisher's most recent successful crawl ran - every row from one publisher's refresh shares the same timestamp.</summary>
     public DateTime RefreshedAt { get; set; }
+
+    /// <summary>
+    /// When this exact product code was first ever seen, across every refresh - preserved by
+    /// ReplacePublisherAsync rather than reset on every crawl, unlike RefreshedAt. A row is
+    /// "new since the last refresh" exactly when this equals RefreshedAt (both are stamped
+    /// from the same DateTime.UtcNow call in SolicitationService.RefreshAsync, so an exact
+    /// match means this refresh is the first time the code has ever been stored).
+    /// </summary>
+    public DateTime FirstSeenAt { get; set; }
 }

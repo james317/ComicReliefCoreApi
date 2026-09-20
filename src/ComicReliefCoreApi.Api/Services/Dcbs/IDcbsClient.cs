@@ -39,6 +39,9 @@ public interface IDcbsClient
     /// <summary>Recent order ids, newest first, from /account/orders.</summary>
     Task<IReadOnlyList<string>> GetRecentOrderIdsAsync(int max = 6, CancellationToken ct = default);
 
+    /// <summary>The most recently placed order's id and "Order Date", from the top row of /account/orders. Null if no orders exist or the page layout no longer matches.</summary>
+    Task<DcbsOrderDateInfo?> GetMostRecentOrderDateAsync(CancellationToken ct = default);
+
     /// <summary>
     /// The date through which editable orders can still be changed, scraped from
     /// /account/orders' own banner text ("can be edited through M/D/YYYY"). Returns null once

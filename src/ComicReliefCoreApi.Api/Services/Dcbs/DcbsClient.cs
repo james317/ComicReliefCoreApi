@@ -63,6 +63,17 @@ public class DcbsClient : IDcbsClient
     private static readonly Regex OrderEditCutoffRegex = new(
         "can be edited through (\\d{1,2}/\\d{1,2}/\\d{4})", RegexOptions.Compiled);
 
+    // /account/orders' own row layout, confirmed live 9/2026:
+    // <tr><td><a href="/account/order/984545">984545</a> [optional editable-order icon]
+    // </td><td>9/19/2026</td>...</tr> - the lazy ".*?" stops at the first "</td>" it finds
+    // (there's exactly one between the id link and the date cell), so the optional icon
+    // markup in between never has to be matched explicitly. Rows are already newest-first on
+    // this page (same assumption GetRecentOrderIdsAsync makes), so the first match is the
+    // most recently placed order.
+    private static readonly Regex OrderRowIdAndDateRegex = new(
+        "<a href=\"/account/order/(\\d+)\">\\d+</a>.*?</td>\\s*<td>(\\d{1,2}/\\d{1,2}/\\d{4})</td>",
+        RegexOptions.Compiled | RegexOptions.Singleline);
+
     // /account/shipments row: shipment id, the packlist number printed inside the real box
     // (the only thing the user can see without a browser), and the ship date. Confirmed
     // live against every row on this account's real shipment history.
@@ -424,6 +435,20 @@ public class DcbsClient : IDcbsClient
             .Distinct()
             .Take(max)
             .ToList();
+    }
+
+    public async Task<DcbsOrderDateInfo?> GetMostRecentOrderDateAsync(CancellationToken ct = default)
+    {
+        using var response = await GetAsync("/account/orders", ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+        var match = OrderRowIdAndDateRegex.Match(body);
+        if (!match.Success)
+        {
+            return null;
+        }
+        return DateOnly.TryParse(match.Groups[2].Value, out var date)
+            ? new DcbsOrderDateInfo(match.Groups[1].Value, date)
+            : null;
     }
 
     public async Task<DateOnly?> GetOrderEditCutoffDateAsync(CancellationToken ct = default)

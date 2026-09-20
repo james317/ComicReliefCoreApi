@@ -1,3 +1,5 @@
+using ComicReliefCoreApi.Api.Models.Dcbs;
+
 namespace ComicReliefCoreApi.App.Services;
 
 public record OrderSnapshotStatus(int OrderCount, int TotalLineCount, DateTime? LastSyncedAt);
@@ -27,4 +29,12 @@ public interface IOrderSnapshotService
     Task<OrderSyncResult> SyncRecentAsync(int maxOrders = 24, CancellationToken ct = default);
 
     Task<OrderSnapshotStatus> GetStatusAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// The most recently placed order's id and "Order Date" - the reference point for the
+    /// Solicitations page's "new since I built my order" view. Passed through from
+    /// IDcbsClient.GetMostRecentOrderDateAsync rather than derived from the synced snapshot,
+    /// since the snapshot stores line items, not order-level metadata like a placement date.
+    /// </summary>
+    Task<DcbsOrderDateInfo?> GetMostRecentOrderDateAsync(CancellationToken ct = default);
 }

@@ -50,6 +50,11 @@
       <span id="statusText">Checking…</span>
     </div>
 
+    <div class="status-card" id="orderStatusCard">
+      <span class="status-dot unknown" id="orderStatusDot"></span>
+      <span id="orderStatusText">Checking…</span>
+    </div>
+
     <div class="review-flags-banner" id="reviewFlagsBanner" hidden>
       <div class="review-flags-header" id="reviewFlagsHeader"></div>
       <ul class="review-flags-list" id="reviewFlagsList"></ul>
@@ -57,6 +62,7 @@
 
     <div class="actions">
       <button id="refreshBtn">Refresh from DCBS</button>
+      <button id="syncOrderBtn" class="secondary">Sync Order History</button>
     </div>
 
     <div class="message" id="message"></div>
@@ -64,12 +70,15 @@
     <div class="actions" id="viewToggle" hidden>
       <button type="button" id="viewByPublisherBtn" class="view-toggle active">By Publisher</button>
       <button type="button" id="viewNewIssuesBtn" class="view-toggle secondary">New #1s</button>
+      <button type="button" id="viewSinceRefreshBtn" class="view-toggle secondary">New Since Refresh</button>
+      <button type="button" id="viewSinceOrderBtn" class="view-toggle secondary">New Since Order</button>
     </div>
     <p class="page-intro" id="newIssuesIntro" hidden>
       Every "#1" or explicit one-shot currently solicited, across every crawled publisher -
       built independently of DCBS's own #1s listing, which has been unreliable.
       Facsimile/reprint editions are excluded the same way as everywhere else in this app.
     </p>
+    <p class="page-intro" id="deltaIntro" hidden></p>
 
     <input type="text" id="filterInput" placeholder="Filter by title…" autocomplete="off" style="margin-top:16px;" hidden />
 

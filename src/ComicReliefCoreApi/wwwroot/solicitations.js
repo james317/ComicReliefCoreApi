@@ -3,19 +3,29 @@ const log = (...args) => console.log('[solicitations]', ...args);
 const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
 const refreshBtn = document.getElementById('refreshBtn');
+const orderStatusDot = document.getElementById('orderStatusDot');
+const orderStatusText = document.getElementById('orderStatusText');
+const syncOrderBtn = document.getElementById('syncOrderBtn');
 const message = document.getElementById('message');
 const filterInput = document.getElementById('filterInput');
 const publisherGroups = document.getElementById('publisherGroups');
 const viewToggle = document.getElementById('viewToggle');
 const viewByPublisherBtn = document.getElementById('viewByPublisherBtn');
 const viewNewIssuesBtn = document.getElementById('viewNewIssuesBtn');
+const viewSinceRefreshBtn = document.getElementById('viewSinceRefreshBtn');
+const viewSinceOrderBtn = document.getElementById('viewSinceOrderBtn');
 const newIssuesIntro = document.getElementById('newIssuesIntro');
+const deltaIntro = document.getElementById('deltaIntro');
 const reviewFlagsBanner = document.getElementById('reviewFlagsBanner');
 const reviewFlagsHeader = document.getElementById('reviewFlagsHeader');
 const reviewFlagsList = document.getElementById('reviewFlagsList');
 
 let allItems = [];
 let currentView = 'publisher';
+// Fetched once per page load (not per view-switch) - the order's placement date doesn't
+// change without a fresh "Sync Order History" click, and there's no reason to hit the API
+// again just to toggle back and forth between views.
+let mostRecentOrderDate = null;
 
 function showMessage(text, isError) {
   message.textContent = text;
@@ -59,27 +69,111 @@ async function loadStatus() {
   }
 }
 
-// Re-renders whichever view is currently selected from the already-fetched allItems -
-// switching views (or re-filtering) never needs a fresh request.
+// Order data ("In your order" badges, the New Since Order view) is entirely separate from
+// the solicitations crawl above - it only reflects whatever the LAST "Sync Order History"
+// click (here or on the Candidates tab) found, not anything just added to a real DCBS order.
+// Kept as its own status card/button (matching Candidates exactly) rather than folding into
+// "Refresh from DCBS", since the two hit a completely different set of DCBS pages and either
+// one can fail on its own.
+function renderOrderStatus(status, orderErrors) {
+  const errorOrders = Object.keys(orderErrors || {});
+
+  if (!status.lastSyncedAt) {
+    orderStatusDot.className = 'status-dot unknown';
+    orderStatusText.textContent = 'No orders synced yet - click "Sync Order History" so "In your order" badges (and the New Since Order view) reflect what you\'ve actually ordered.';
+    return;
+  }
+  orderStatusDot.className = errorOrders.length > 0 ? 'status-dot invalid' : 'status-dot valid';
+  const parts = [
+    `Comparing against ${status.orderCount} orders (${status.totalLineCount} items total), last synced ${formatDateTime(status.lastSyncedAt)}.`,
+  ];
+  if (errorOrders.length > 0) {
+    parts.push(`Failed to fetch orders: ${errorOrders.join(', ')}.`);
+  }
+  orderStatusText.textContent = parts.join(' ');
+}
+
+async function loadOrderStatus() {
+  try {
+    const res = await fetch('/api/orders/status');
+    const status = await res.json();
+    renderOrderStatus(status);
+    return status;
+  } catch (err) {
+    log('loadOrderStatus failed', err);
+    orderStatusText.textContent = 'Could not reach the API.';
+    return null;
+  }
+}
+
+async function loadMostRecentOrderDate() {
+  try {
+    const res = await fetch('/api/orders/most-recent-date');
+    mostRecentOrderDate = await res.json(); // { orderId, orderDate } or null
+  } catch (err) {
+    log('loadMostRecentOrderDate failed', err);
+    mostRecentOrderDate = null;
+  }
+}
+
+// Every view here (other than "By Publisher", the unfiltered complete list) is a plain
+// client-side filter over the same already-fetched allItems - no separate request per view,
+// matching the New #1s view's own pattern. The two delta views both key off
+// item.firstSeenAt (when DCBS first showed this exact product code, preserved across
+// refreshes - see SolicitationItem/DcbsSolicitationEntry): "Since Refresh" uses the
+// server-computed isNewSinceLastRefresh boolean (true exactly when this refresh is the first
+// time the code was ever seen), "Since Order" instead compares against the most recently
+// placed order's own date, fetched once via loadMostRecentOrderDate - DCBS exposes only an
+// "Order Date" (initial placement), no separate "last updated" field, so that's the one
+// anchor available for this view.
 function applyView() {
   if (allItems.length === 0) {
     filterInput.hidden = true;
     viewToggle.hidden = true;
     newIssuesIntro.hidden = true;
+    deltaIntro.hidden = true;
     publisherGroups.innerHTML = '';
     return;
   }
 
-  const isNewIssuesView = currentView === 'new-issues';
-  newIssuesIntro.hidden = !isNewIssuesView;
-  viewByPublisherBtn.classList.toggle('active', !isNewIssuesView);
-  viewByPublisherBtn.classList.toggle('secondary', isNewIssuesView);
-  viewNewIssuesBtn.classList.toggle('active', isNewIssuesView);
-  viewNewIssuesBtn.classList.toggle('secondary', !isNewIssuesView);
+  const buttonsByView = {
+    publisher: viewByPublisherBtn,
+    'new-issues': viewNewIssuesBtn,
+    'since-refresh': viewSinceRefreshBtn,
+    'since-order': viewSinceOrderBtn,
+  };
+  for (const [view, btn] of Object.entries(buttonsByView)) {
+    btn.classList.toggle('active', view === currentView);
+    btn.classList.toggle('secondary', view !== currentView);
+  }
 
-  const itemsToRender = isNewIssuesView
-    ? allItems.filter((item) => item.isNewFirstIssueOrOneShot)
-    : allItems;
+  newIssuesIntro.hidden = currentView !== 'new-issues';
+
+  let itemsToRender = allItems;
+  if (currentView === 'new-issues') {
+    itemsToRender = allItems.filter((item) => item.isNewFirstIssueOrOneShot);
+  } else if (currentView === 'since-refresh') {
+    itemsToRender = allItems.filter((item) => item.isNewSinceLastRefresh);
+    deltaIntro.hidden = false;
+    deltaIntro.textContent = `Titles first seen in the most recent "Refresh from DCBS" - ${itemsToRender.length} found.`;
+  } else if (currentView === 'since-order') {
+    if (mostRecentOrderDate) {
+      const cutoff = new Date(`${mostRecentOrderDate.orderDate}T00:00:00`);
+      itemsToRender = allItems.filter((item) => new Date(item.firstSeenAt) > cutoff);
+      deltaIntro.hidden = false;
+      deltaIntro.textContent =
+        `Titles first solicited since order ${mostRecentOrderDate.orderId} was placed ` +
+        `(${mostRecentOrderDate.orderDate}) - ${itemsToRender.length} found.`;
+    } else {
+      itemsToRender = [];
+      deltaIntro.hidden = false;
+      deltaIntro.textContent = 'No synced order to compare against yet - click "Sync Order History" above first.';
+    }
+  }
+  if (currentView !== 'since-refresh' && currentView !== 'since-order') {
+    deltaIntro.hidden = true;
+  }
+
   renderByPublisher(publisherGroups, itemsToRender);
   filterInput.value = '';
   filterInput.hidden = false;
@@ -188,6 +282,28 @@ refreshBtn.addEventListener('click', async () => {
   }
 });
 
+syncOrderBtn.addEventListener('click', async () => {
+  syncOrderBtn.disabled = true;
+  showMessage('Fetching your order history from DCBS - this can take a little while…', false);
+  try {
+    const res = await fetch('/api/orders/sync-recent', { method: 'POST' });
+    const result = await res.json();
+    log('order sync complete', result);
+    renderOrderStatus(result.status, result.orderErrors);
+    const newCount = (result.newFirstIssues || []).length;
+    showMessage(
+      `Synced ${result.status.orderCount} orders.` +
+        (newCount > 0 ? ` ${newCount} new title(s) found and tracked - see the Pull List tab for details.` : ''),
+      false);
+    await loadItems();
+  } catch (err) {
+    log('order sync failed', err);
+    showMessage('Order sync failed - check the console.', true);
+  } finally {
+    syncOrderBtn.disabled = false;
+  }
+});
+
 filterInput.addEventListener('input', () => {
   filterByPublisher(publisherGroups, filterInput.value.trim().toLowerCase());
 });
@@ -202,8 +318,20 @@ viewNewIssuesBtn.addEventListener('click', () => {
   applyView();
 });
 
+viewSinceRefreshBtn.addEventListener('click', () => {
+  currentView = 'since-refresh';
+  applyView();
+});
+
+viewSinceOrderBtn.addEventListener('click', () => {
+  currentView = 'since-order';
+  applyView();
+});
+
 (async () => {
   await loadStatus();
+  await loadOrderStatus();
+  await loadMostRecentOrderDate();
   await loadItems();
   await loadReviewFlags();
 })();

@@ -33,4 +33,11 @@ public sealed class OrdersController : ControllerBase
     {
         return Ok(await _orders.GetStatusAsync(cancellationToken));
     }
+
+    /// <summary>The most recently placed order's id/date, for the Solicitations page's "new since I built my order" view. Null if no orders exist.</summary>
+    [HttpGet("most-recent-date")]
+    public async Task<ActionResult> MostRecentDate(CancellationToken cancellationToken)
+    {
+        return Ok(await _orders.GetMostRecentOrderDateAsync(cancellationToken));
+    }
 }

@@ -9,7 +9,7 @@ public interface IDcbsSolicitationStore
     Task ReplacePublisherAsync(
         string publisher, IReadOnlyList<DcbsListingItem> items, DateTime refreshedAt, CancellationToken ct = default);
 
-    Task<IReadOnlyList<(string Publisher, DcbsListingItem Item)>> GetAllAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<(string Publisher, DcbsListingItem Item, DateTime FirstSeenAt, DateTime RefreshedAt)>> GetAllAsync(CancellationToken ct = default);
 
     Task<(DateTime? LastRefreshedAt, IReadOnlyDictionary<string, int> PublisherItemCounts)> GetStatusAsync(CancellationToken ct = default);
 }

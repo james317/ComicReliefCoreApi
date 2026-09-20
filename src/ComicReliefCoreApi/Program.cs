@@ -108,7 +108,8 @@ using (var scope = app.Services.CreateScope())
             "Price" TEXT NULL,
             "IsRelisted" INTEGER NOT NULL,
             "IsFacsimileOrReprint" INTEGER NOT NULL DEFAULT 0,
-            "RefreshedAt" TEXT NOT NULL
+            "RefreshedAt" TEXT NOT NULL,
+            "FirstSeenAt" TEXT NOT NULL
         )
         """);
     db.Database.ExecuteSqlRaw(
@@ -121,6 +122,26 @@ using (var scope = app.Services.CreateScope())
     {
         db.Database.ExecuteSqlRaw(
             "ALTER TABLE DcbsSolicitationEntries ADD COLUMN IsFacsimileOrReprint INTEGER NOT NULL DEFAULT 0");
+    }
+    catch (Exception ex) when (ex.Message.Contains("duplicate column", StringComparison.OrdinalIgnoreCase))
+    {
+        // Already applied.
+    }
+
+    // Same gap, second column: FirstSeenAt (see DcbsSolicitationEntry) needs a real per-row
+    // value, not a shared constant, to support the "new since last refresh"/"new since order
+    // placed" views - SQLite's ALTER TABLE ADD COLUMN only accepts a constant DEFAULT on a
+    // non-empty table, so this adds the column with a throwaway placeholder, then backfills
+    // every existing row to its own RefreshedAt (the only sane guess for "already-solicited
+    // when this migration ran" - it just means nothing already-crawled looks newly-added
+    // until the very next refresh actually proves otherwise, rather than every existing row
+    // flooding both delta views as "new" the moment this ships).
+    try
+    {
+        db.Database.ExecuteSqlRaw(
+            "ALTER TABLE DcbsSolicitationEntries ADD COLUMN FirstSeenAt TEXT NOT NULL DEFAULT '0001-01-01T00:00:00.0000000'");
+        db.Database.ExecuteSqlRaw(
+            "UPDATE DcbsSolicitationEntries SET FirstSeenAt = RefreshedAt WHERE FirstSeenAt = '0001-01-01T00:00:00.0000000'");
     }
     catch (Exception ex) when (ex.Message.Contains("duplicate column", StringComparison.OrdinalIgnoreCase))
     {
