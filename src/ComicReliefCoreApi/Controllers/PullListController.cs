@@ -134,6 +134,28 @@ public sealed class PullListController : ControllerBase
     }
 
     /// <summary>
+    /// Diagnostic-only passthrough to DCBS's own /ajax/AddPullListItem, bypassing
+    /// PullListService's own long-series-code safety skip entirely - built to re-test a
+    /// specific real doubt raised live: the "12-13 digit codes crash AddPullListItem with
+    /// a 500" finding was based on testing done earlier this session, and a real DCBS
+    /// screenshot showed a working search-and-add UI offering exactly this kind of long
+    /// code with no apparent restriction. This is NOT read-only - a success here really
+    /// does add the title to the real sticky pull list, same as the safety-gated path.
+    /// </summary>
+    [HttpPost("dcbs-raw-add")]
+    public async Task<ActionResult> DcbsRawAdd(
+        [FromQuery] string seriesCode, [FromQuery] string title, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(seriesCode) || string.IsNullOrWhiteSpace(title))
+        {
+            return BadRequest("seriesCode and title are required.");
+        }
+
+        var (success, raw) = await _dcbs.TryAddPullListItemAsync(seriesCode, title, ct: cancellationToken);
+        return Ok(new { success, raw = raw.Length > 2000 ? raw[..2000] : raw });
+    }
+
+    /// <summary>
     /// Diagnostic-only passthrough to DCBS's own series search - raw facts, no matching
     /// or business decisions. Built to answer a specific question: does DCBS's search
     /// response include a usable "last shipped issue" fact anywhere (the CurrentIssueText
