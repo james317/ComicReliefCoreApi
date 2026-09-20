@@ -194,6 +194,36 @@ function buildGroupCards(details) {
   details.dataset.built = 'true';
 }
 
+// DCBS's own site-wide footer nav (present on every page, under "Preorders") lists
+// publishers in this exact order - confirmed live 9/2026 by fetching the footer HTML
+// directly, not guessed. This is that list reversed (so "Other" comes first, "DC Comics"
+// last), restricted to the publishers this app actually crawls - DcbsPublisherCategories
+// deliberately excludes the manga-only ones (Kodansha, Seven Seas, Tokyopop, VIZ, Yen
+// Press) and the generic "Manga" category itself, so they never appear as a group here
+// regardless of this list.
+const PUBLISHER_DISPLAY_ORDER = [
+  'Other',
+  'Vault Comics',
+  'Valiant Entertainment',
+  'Udon Entertainment',
+  'TwoMorrows Publishing',
+  'Titan Comics',
+  'Scout Comics',
+  'Papercutz',
+  'Oni Press',
+  'IDW Publishing',
+  'Fantagraphics',
+  'Dynamite Entertainment',
+  'Drawn & Quarterly',
+  'Dark Horse',
+  'Cinebook',
+  'Boom! Studios',
+  'Archie Comics Publications',
+  'Image Comics',
+  'Marvel Comics',
+  'DC Comics',
+];
+
 // Renders one collapsible <details> per publisher into containerEl, cards built lazily on
 // open (see buildGroupCards). Returns nothing - wires up its own toggle listeners.
 function renderByPublisher(containerEl, items) {
@@ -206,7 +236,17 @@ function renderByPublisher(containerEl, items) {
     byPublisher.set(solicitationItem.publisher, list);
   }
 
-  const publishers = [...byPublisher.keys()].sort();
+  // Anything not in PUBLISHER_DISPLAY_ORDER (there shouldn't be any, given the crawl list
+  // above, but a newly-added category would otherwise vanish silently) sorts after every
+  // known publisher, alphabetically among themselves, rather than being dropped.
+  const publishers = [...byPublisher.keys()].sort((a, b) => {
+    const ia = PUBLISHER_DISPLAY_ORDER.indexOf(a);
+    const ib = PUBLISHER_DISPLAY_ORDER.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
   for (const publisher of publishers) {
     const issueGroups = groupByIssue(byPublisher.get(publisher));
     const details = document.createElement('details');
