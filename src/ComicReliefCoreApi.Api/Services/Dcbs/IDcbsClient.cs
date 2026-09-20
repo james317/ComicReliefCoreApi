@@ -40,6 +40,14 @@ public interface IDcbsClient
     Task<IReadOnlyList<string>> GetRecentOrderIdsAsync(int max = 6, CancellationToken ct = default);
 
     /// <summary>
+    /// The date through which editable orders can still be changed, scraped from
+    /// /account/orders' own banner text ("can be edited through M/D/YYYY"). Returns null once
+    /// DCBS has dropped that banner (past the cutoff, only additions allowed) or if the page
+    /// layout no longer matches - never a guessed date.
+    /// </summary>
+    Task<DateOnly?> GetOrderEditCutoffDateAsync(CancellationToken ct = default);
+
+    /// <summary>
     /// Fetches /account/pulllist and reports whether the current session cookie
     /// actually authenticates - DCBS redirects an unauthenticated/expired session to
     /// its login page rather than returning an error, so this is the real signal to

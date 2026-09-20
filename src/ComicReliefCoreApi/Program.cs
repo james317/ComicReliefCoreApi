@@ -36,6 +36,7 @@ builder.Services.AddScoped<IIssueContinuityService, IssueContinuityService>();
 builder.Services.AddScoped<IShipmentTrackingService, ShipmentTrackingService>();
 builder.Services.AddScoped<IReadIssueStore, ReadIssueStore>();
 builder.Services.AddScoped<IReadingLogService, ReadingLogService>();
+builder.Services.AddScoped<IReviewFlagService, ReviewFlagService>();
 
 // SQLite path comes from config (appsettings.json locally, the Data__SqlitePath env var
 // in fly.toml for production) so it can point at the Fly volume mount without code
@@ -196,6 +197,22 @@ using (var scope = app.Services.CreateScope())
         """);
     db.Database.ExecuteSqlRaw(
         "CREATE INDEX IF NOT EXISTS \"IX_ReadIssues_NormalizedSeries_IssueNumber\" ON \"ReadIssues\" (\"NormalizedSeries\", \"IssueNumber\")");
+
+    // Same EnsureCreated() limitation, seventh occurrence: ReviewFlagEntries persists titles
+    // flagged "not enough info yet" from a solicitation card (see IReviewFlagService) - a
+    // reminder to revisit before the DCBS order-edit cutoff, not a pull-list decision.
+    db.Database.ExecuteSqlRaw("""
+        CREATE TABLE IF NOT EXISTS "ReviewFlagEntries" (
+            "Id" INTEGER NOT NULL CONSTRAINT "PK_ReviewFlagEntries" PRIMARY KEY AUTOINCREMENT,
+            "Title" TEXT NOT NULL,
+            "Publisher" TEXT NULL,
+            "ProductCode" TEXT NULL,
+            "ProductUrl" TEXT NULL,
+            "Notes" TEXT NULL,
+            "FlaggedAt" TEXT NOT NULL,
+            "ResolvedAt" TEXT NULL
+        )
+        """);
 }
 
 app.UseDefaultFiles();

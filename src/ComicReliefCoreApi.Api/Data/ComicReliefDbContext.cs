@@ -18,6 +18,7 @@ public class ComicReliefDbContext : DbContext
     public DbSet<DcbsOrderSnapshotLine> DcbsOrderSnapshotLines => Set<DcbsOrderSnapshotLine>();
     public DbSet<ClzIssueRelease> ClzIssueReleases => Set<ClzIssueRelease>();
     public DbSet<ReadIssue> ReadIssues => Set<ReadIssue>();
+    public DbSet<ReviewFlagEntry> ReviewFlagEntries => Set<ReviewFlagEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

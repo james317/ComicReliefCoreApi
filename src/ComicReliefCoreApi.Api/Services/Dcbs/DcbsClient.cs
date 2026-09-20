@@ -56,6 +56,13 @@ public class DcbsClient : IDcbsClient
 
     private static readonly Regex OrderIdLinkRegex = new("href=\"/account/order/(\\d+)\"", RegexOptions.Compiled);
 
+    // /account/orders' own banner: "Orders marked with a [icon] can be edited through
+    // 9/24/2026.  After 9/24/2026, only product additions are allowed." Confirmed live
+    // 9/2026 - this is the same cutoff referenced conversationally this session as the
+    // "Editable Order" pencil-icon date, now actually captured as data instead of eyeballed.
+    private static readonly Regex OrderEditCutoffRegex = new(
+        "can be edited through (\\d{1,2}/\\d{1,2}/\\d{4})", RegexOptions.Compiled);
+
     // /account/shipments row: shipment id, the packlist number printed inside the real box
     // (the only thing the user can see without a browser), and the ship date. Confirmed
     // live against every row on this account's real shipment history.
@@ -417,6 +424,20 @@ public class DcbsClient : IDcbsClient
             .Distinct()
             .Take(max)
             .ToList();
+    }
+
+    public async Task<DateOnly?> GetOrderEditCutoffDateAsync(CancellationToken ct = default)
+    {
+        using var response = await GetAsync("/account/orders", ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+        var match = OrderEditCutoffRegex.Match(body);
+        if (!match.Success)
+        {
+            // Past the cutoff (DCBS drops the banner once only additions are allowed) or the
+            // page layout changed - either way, no date to report rather than a guess.
+            return null;
+        }
+        return DateOnly.TryParse(match.Groups[1].Value, out var date) ? date : null;
     }
 
     public async Task<bool> IsSessionValidAsync(CancellationToken ct = default)

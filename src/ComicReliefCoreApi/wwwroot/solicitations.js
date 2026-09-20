@@ -10,6 +10,9 @@ const viewToggle = document.getElementById('viewToggle');
 const viewByPublisherBtn = document.getElementById('viewByPublisherBtn');
 const viewNewIssuesBtn = document.getElementById('viewNewIssuesBtn');
 const newIssuesIntro = document.getElementById('newIssuesIntro');
+const reviewFlagsBanner = document.getElementById('reviewFlagsBanner');
+const reviewFlagsHeader = document.getElementById('reviewFlagsHeader');
+const reviewFlagsList = document.getElementById('reviewFlagsList');
 
 let allItems = [];
 let currentView = 'publisher';
@@ -83,6 +86,76 @@ function applyView() {
   viewToggle.hidden = false;
 }
 
+// Cutoff date comes back as a bare "yyyy-MM-dd" DateOnly - appending T00:00:00 forces the
+// browser to parse it as local midnight rather than UTC midnight, which would otherwise
+// display a day early/late depending on the viewer's timezone (the same DateTime/DateOnly
+// UTC-vs-local trap documented in ComicReliefDbContext, just on the frontend side this time).
+function daysUntil(isoDate) {
+  const target = new Date(`${isoDate}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((target - today) / 86400000);
+}
+
+function renderReviewFlags(data) {
+  const { flags, orderEditCutoffDate } = data;
+  if (flags.length === 0) {
+    reviewFlagsBanner.hidden = true;
+    return;
+  }
+
+  reviewFlagsBanner.hidden = false;
+  const count = `${flags.length} title${flags.length === 1 ? '' : 's'} flagged for review`;
+  if (orderEditCutoffDate) {
+    const days = daysUntil(orderEditCutoffDate);
+    const when = days > 0 ? `in ${days} day${days === 1 ? '' : 's'}` : days === 0 ? 'today' : 'already passed';
+    reviewFlagsHeader.textContent = `${count} — order edits close ${when} (${orderEditCutoffDate}).`;
+  } else {
+    reviewFlagsHeader.textContent = `${count} — couldn't read the current order-edit cutoff from DCBS.`;
+  }
+
+  reviewFlagsList.innerHTML = '';
+  for (const flag of flags) {
+    const li = document.createElement('li');
+    const link = document.createElement('a');
+    link.href = flag.productUrl || '#';
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = flag.title;
+    li.appendChild(link);
+
+    const resolveBtn = document.createElement('button');
+    resolveBtn.type = 'button';
+    resolveBtn.className = 'secondary';
+    resolveBtn.textContent = 'Resolve';
+    resolveBtn.addEventListener('click', async () => {
+      resolveBtn.disabled = true;
+      try {
+        const res = await fetch(`/api/reviewflags/${flag.id}/resolve`, { method: 'POST' });
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
+        await loadReviewFlags();
+      } catch (err) {
+        console.error('[solicitations] resolve flag failed', err);
+        resolveBtn.disabled = false;
+      }
+    });
+    li.appendChild(resolveBtn);
+
+    reviewFlagsList.appendChild(li);
+  }
+}
+
+async function loadReviewFlags() {
+  try {
+    const res = await fetch('/api/reviewflags');
+    renderReviewFlags(await res.json());
+  } catch (err) {
+    log('loadReviewFlags failed', err);
+  }
+}
+
+document.addEventListener('reviewflag:added', loadReviewFlags);
+
 async function loadItems() {
   try {
     const res = await fetch('/api/solicitations/items');
@@ -132,4 +205,5 @@ viewNewIssuesBtn.addEventListener('click', () => {
 (async () => {
   await loadStatus();
   await loadItems();
+  await loadReviewFlags();
 })();

@@ -211,6 +211,41 @@ function issueCard(group) {
   });
   info.appendChild(addBtn);
 
+  // "Not enough info to decide yet" - separate from the pull-list decision above. Posts the
+  // full listing title (not stripped to a bare series name - a flag is about this specific
+  // solicited item, not a recurring series) to the open-flags list the Solicitations page
+  // banner reads from, so it resurfaces with a days-until-cutoff reminder instead of getting
+  // forgotten once the page is closed.
+  const flagBtn = document.createElement('button');
+  flagBtn.type = 'button';
+  flagBtn.className = 'secondary comic-flag-for-review';
+  flagBtn.textContent = 'Flag for Review';
+  flagBtn.addEventListener('click', async () => {
+    flagBtn.disabled = true;
+    flagBtn.textContent = 'Flagging…';
+    try {
+      const res = await fetch('/api/reviewflags/flag-from-listing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          listingTitle: group[0].item.title,
+          publisher: group[0].publisher,
+          productCode: group[0].item.productCode,
+          productUrl: group[0].item.productUrl,
+        }),
+      });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+      flagBtn.textContent = '🚩 Flagged';
+      flagBtn.classList.add('result-sticky');
+      document.dispatchEvent(new CustomEvent('reviewflag:added'));
+    } catch (err) {
+      console.error('[solicitation-cards] flag-for-review failed', err);
+      flagBtn.textContent = 'Failed - retry';
+      flagBtn.disabled = false;
+    }
+  });
+  info.appendChild(flagBtn);
+
   card.appendChild(info);
   li.appendChild(card);
   return li;

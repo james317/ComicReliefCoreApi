@@ -373,6 +373,52 @@ button:disabled {
 .status-dot.valid { background: #2e6b2e; }
 .status-dot.invalid { background: #8a3324; }
 
+.review-flags-banner {
+  background: var(--surface);
+  border: 1px solid var(--brass);
+  border-left: 4px solid var(--brass);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin: 20px 0;
+  font-size: 0.85rem;
+}
+
+.review-flags-header {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.review-flags-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.review-flags-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.review-flags-list a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.review-flags-list a:hover {
+  text-decoration: underline;
+}
+
+.review-flags-list button {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
 details {
   margin-top: 28px;
   font-size: 0.8rem;
@@ -629,6 +675,18 @@ details summary { cursor: pointer; color: var(--accent); }
 .comic-add-to-pulllist.result-unresolved {
   color: var(--text-muted);
   border-color: var(--border);
+}
+
+.comic-flag-for-review {
+  margin-top: 6px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  align-self: flex-start;
+}
+
+.comic-flag-for-review.result-sticky {
+  color: var(--brass);
+  border-color: var(--brass);
 }
 
 .footer-note {
