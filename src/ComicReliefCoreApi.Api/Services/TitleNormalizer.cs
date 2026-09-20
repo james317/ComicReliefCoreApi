@@ -66,6 +66,29 @@ public static class TitleNormalizer
     /// but the CLZ series name doesn't record ("X-Men '97 Season Two #3", "Madame Tarantula
     /// Magazine #2") - both false negatives under the strict rule, both fixed at maxGapWords=2.
     /// </param>
+    /// <summary>
+    /// True if one of these titles' normalized forms is a truncated prefix of the other,
+    /// off by only a couple of characters - DCBS is known to hard-truncate a series name
+    /// in some contexts (a DB column limit on its own persistent /account/pulllist page,
+    /// confirmed live) while spelling it out in full elsewhere (order-line/product
+    /// titles), which otherwise registers the same real series as two different tracked
+    /// entries - confirmed live 9/2026: "Pathfinder / Vampirella: Blade of Darknes"
+    /// (pull-list page, truncated) vs "Pathfinder Vampirella Blade of Darkness" (order
+    /// line, in full) created separate Sticky and Unsticky rows for one real series.
+    /// Deliberately narrow - a couple of characters, not a general substring/prefix check
+    /// - a wide version would wrongly merge genuinely distinct titles like "Batman" and
+    /// "Batman Beyond" (already normalized inputs expected, e.g. via Normalize()).
+    /// </summary>
+    public static bool IsLikelyTruncatedVariant(string normalizedA, string normalizedB, int maxTruncation = 2)
+    {
+        var (shorter, longer) = normalizedA.Length <= normalizedB.Length ? (normalizedA, normalizedB) : (normalizedB, normalizedA);
+        if (shorter.Length == 0)
+        {
+            return false;
+        }
+        return longer.StartsWith(shorter, StringComparison.Ordinal) && longer.Length - shorter.Length <= maxTruncation;
+    }
+
     public static bool IsLikelySeriesMatch(string listingTitle, string seriesTitle, int maxGapWords = 0)
     {
         var listing = NormalizeKeepingWordBoundaries(listingTitle);

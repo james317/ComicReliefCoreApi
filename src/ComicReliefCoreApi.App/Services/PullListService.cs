@@ -256,13 +256,14 @@ public class PullListService : IPullListService
             }
 
             var normalized = TitleNormalizer.Normalize(seriesTitle);
-            if (!existingNormalizedTitles.Add(normalized))
+            if (IsAlreadyTracked(normalized, existingNormalizedTitles))
             {
                 // Already tracked (from a prior run, an earlier line this run, or the
                 // original CSV import) - nothing new to do, and this keeps a title from
                 // being re-evaluated on every future sync.
                 continue;
             }
+            existingNormalizedTitles.Add(normalized);
 
             if (OneShotOrSpecialTitle.IsMatch(seriesTitle))
             {
@@ -297,10 +298,11 @@ public class PullListService : IPullListService
         foreach (var row in realList)
         {
             var normalized = TitleNormalizer.Normalize(row.Title);
-            if (!existingNormalizedTitles.Add(normalized))
+            if (IsAlreadyTracked(normalized, existingNormalizedTitles))
             {
                 continue;
             }
+            existingNormalizedTitles.Add(normalized);
 
             var entry = new PullListEntry
             {
@@ -319,6 +321,17 @@ public class PullListService : IPullListService
         await _db.SaveChangesAsync(ct);
         return discovered;
     }
+
+    /// <summary>
+    /// Exact match, or a truncated-variant match (see TitleNormalizer.IsLikelyTruncatedVariant)
+    /// against anything already known - real gap this closes: DCBS truncates a series name
+    /// on its own persistent pull-list page in a way its order-line/product titles don't,
+    /// so a plain exact-normalized-equality check let the same real series register twice
+    /// (once via ReconcileWithDcbsAsync, once via DetectAndTrackNewFirstIssuesAsync) under
+    /// two slightly different spellings.
+    /// </summary>
+    private static bool IsAlreadyTracked(string normalizedTitle, IEnumerable<string> existingNormalizedTitles) =>
+        existingNormalizedTitles.Any(t => t == normalizedTitle || TitleNormalizer.IsLikelyTruncatedVariant(t, normalizedTitle));
 
     private static string Truncate(string value, int max = 2000) =>
         value.Length <= max ? value : value[..max];
