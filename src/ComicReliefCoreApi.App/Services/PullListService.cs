@@ -333,6 +333,21 @@ public class PullListService : IPullListService
     private static bool IsAlreadyTracked(string normalizedTitle, IEnumerable<string> existingNormalizedTitles) =>
         existingNormalizedTitles.Any(t => t == normalizedTitle || TitleNormalizer.IsLikelyTruncatedVariant(t, normalizedTitle));
 
+    public async Task<IReadOnlyList<PullListEntry>> RetryAllUnstickyAsync(CancellationToken ct = default)
+    {
+        var titles = await _db.PullListEntries
+            .Where(e => e.Status == PullListStatus.Unsticky && e.ArchivedAt == null)
+            .Select(e => e.Title)
+            .ToListAsync(ct);
+
+        var results = new List<PullListEntry>(titles.Count);
+        foreach (var title in titles)
+        {
+            results.Add(await AddToPullListAsync(title, ct));
+        }
+        return results;
+    }
+
     private static string Truncate(string value, int max = 2000) =>
         value.Length <= max ? value : value[..max];
 }

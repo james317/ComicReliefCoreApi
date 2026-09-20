@@ -18,6 +18,7 @@
   const pageIntro = document.getElementById("pageIntro");
   const viewToggleLink = document.getElementById("viewToggleLink");
   const selectModeBtn = document.getElementById("selectModeBtn");
+  const retryUnstickyBtn = document.getElementById("retryUnstickyBtn");
   const bulkBar = document.getElementById("bulkBar");
   const bulkCount = document.getElementById("bulkCount");
   const bulkActionBtn = document.getElementById("bulkActionBtn");
@@ -354,6 +355,36 @@
       showMessage(`Something went wrong: ${err.message}`, true);
     } finally {
       addBtn.disabled = false;
+    }
+  });
+
+  retryUnstickyBtn.addEventListener("click", async () => {
+    const n = currentEntries.filter((e) => e.status === "Unsticky").length;
+    if (n === 0) {
+      showMessage("Nothing Still Wanted to retry.", false);
+      return;
+    }
+    log("retryUnsticky: starting", { count: n });
+    retryUnstickyBtn.disabled = true;
+    const originalLabel = retryUnstickyBtn.textContent;
+    retryUnstickyBtn.textContent = "Retrying…";
+    showMessage(`Retrying ${n} Still Wanted title${n === 1 ? "" : "s"} against DCBS — this can take a minute…`, false);
+    try {
+      const res = await fetch("/api/pulllist/retry-unsticky", { method: "POST" });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+      const results = await res.json();
+      log("retryUnsticky: results", results);
+      const nowSticky = results.filter((e) => e.status === "Sticky").length;
+      showMessage(
+        `Retried ${results.length} title${results.length === 1 ? "" : "s"} — ${nowSticky} now Corralled.`,
+        false);
+      await loadList();
+    } catch (err) {
+      console.error("[pull-list] retryUnsticky: failed", err);
+      showMessage(`Retry failed: ${err.message}`, true);
+    } finally {
+      retryUnstickyBtn.disabled = false;
+      retryUnstickyBtn.textContent = originalLabel;
     }
   });
 

@@ -69,6 +69,20 @@ public interface IPullListService
     Task<IReadOnlyList<NewFirstIssueDetection>> DetectAndTrackNewFirstIssuesAsync(CancellationToken ct = default);
 
     /// <summary>
+    /// Re-runs AddToPullListAsync (sticky first, falling back to unsticky again if it
+    /// still doesn't stick) for every currently-Unsticky, non-archived entry - the "I just
+    /// got a new order, retry everything that couldn't stick before" action, rather than
+    /// re-typing each title into the add form one at a time. A title's order-form fallback
+    /// specifically depends on a recent purchase existing (FindKnownOrRecentPurchaseAsync),
+    /// so this is exactly what's worth running right after an order goes through. Processed
+    /// sequentially, not concurrently - AddToPullListAsync writes through this same scoped
+    /// DbContext, which (like SolicitationService.RefreshAsync elsewhere in this app) isn't
+    /// safe to share across concurrent calls. Returns every entry retried, whatever the
+    /// outcome.
+    /// </summary>
+    Task<IReadOnlyList<PullListEntry>> RetryAllUnstickyAsync(CancellationToken ct = default);
+
+    /// <summary>
     /// Fetches DCBS's own real, persistent /account/pulllist (every series actually sticky
     /// on the account, not just what this app has ever been told about) and inserts a
     /// Sticky PullListEntry for any title with no existing tracked entry - discovered live

@@ -69,6 +69,19 @@ public sealed class PullListController : ControllerBase
         return Ok(PullListEntryResponse.FromEntity(entry));
     }
 
+    /// <summary>
+    /// One click to retry every currently Still Wanted title - see
+    /// IPullListService.RetryAllUnstickyAsync. Can take a while (one real DCBS round trip
+    /// per title, done sequentially), same order of magnitude as a full solicitations
+    /// refresh.
+    /// </summary>
+    [HttpPost("retry-unsticky")]
+    public async Task<ActionResult<IReadOnlyList<PullListEntryResponse>>> RetryUnsticky(CancellationToken cancellationToken)
+    {
+        var results = await _pullListService.RetryAllUnstickyAsync(cancellationToken);
+        return Ok(results.Select(e => PullListEntryResponse.FromEntity(e)).ToList());
+    }
+
     /// <summary>Archived titles are hidden by default - pass ?archived=true to see only those instead.</summary>
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<PullListEntryResponse>>> GetAll(
