@@ -1,5 +1,6 @@
 using ComicReliefCoreApi.Api.Data;
 using ComicReliefCoreApi.Api.Models.Dcbs;
+using ComicReliefCoreApi.Api.Services;
 using ComicReliefCoreApi.Api.Services.Dcbs;
 using ComicReliefCoreApi.App.Services;
 using ComicReliefCoreApi.Models;
@@ -41,6 +42,30 @@ public sealed class PullListController : ControllerBase
         }
 
         var entry = await _pullListService.AddToPullListAsync(request.Title, cancellationToken);
+        return Ok(PullListEntryResponse.FromEntity(entry));
+    }
+
+    /// <summary>
+    /// Same sticky-then-unsticky attempt as <see cref="Add"/>, but takes a raw DCBS
+    /// listing title (issue number, cover, "(MR)" and all - whatever a solicitation card
+    /// already has) instead of requiring the caller to already know the bare series name.
+    /// Strips the issue number the same way DetectAndTrackNewFirstIssuesAsync does
+    /// (IssueNumberParser.TryExtractSeriesTitle), falling back to the listing title as-is
+    /// for one-shots/TPs with no "#" to anchor on - matches existing behavior for those
+    /// elsewhere in the app rather than inventing a new rule. Built for a one-click "Add
+    /// to Pull List" button directly on a solicitation card.
+    /// </summary>
+    [HttpPost("add-from-listing")]
+    public async Task<ActionResult<PullListEntryResponse>> AddFromListing(
+        [FromBody] AddToPullListFromListingRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.ListingTitle))
+        {
+            return BadRequest("ListingTitle is required.");
+        }
+
+        var seriesTitle = IssueNumberParser.TryExtractSeriesTitle(request.ListingTitle) ?? request.ListingTitle;
+        var entry = await _pullListService.AddToPullListAsync(seriesTitle, cancellationToken);
         return Ok(PullListEntryResponse.FromEntity(entry));
     }
 

@@ -5,6 +5,8 @@ namespace ComicReliefCoreApi.Models;
 
 public record AddToPullListRequest(string Title);
 
+public record AddToPullListFromListingRequest(string ListingTitle);
+
 public record ImportPullListRowRequest(string Title, PullListStatus Status, string? Notes)
 {
     public PullListImportRow ToImportRow() => new(Title, Status, Notes);

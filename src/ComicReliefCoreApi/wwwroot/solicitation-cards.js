@@ -171,6 +171,46 @@ function issueCard(group) {
   }
   info.appendChild(orderStatus);
 
+  // One-click "try to get this onto the pull list" - sticky first, falling back to
+  // unsticky, exactly what AddToPullListAsync already does for a manually-typed title on
+  // pull-list.html. Passes the raw listing title (issue number/cover/"(MR)" and all) -
+  // the backend (IssueNumberParser.TryExtractSeriesTitle) strips it down to a bare series
+  // name, so this never has to duplicate that parsing here. Harmless to click on
+  // something already tracked - AddToPullListAsync just re-confirms it.
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'secondary comic-add-to-pulllist';
+  addBtn.textContent = '+ Add to Pull List';
+  addBtn.addEventListener('click', async () => {
+    addBtn.disabled = true;
+    addBtn.textContent = 'Adding…';
+    try {
+      const res = await fetch('/api/pulllist/add-from-listing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingTitle: group[0].item.title }),
+      });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+      const entry = await res.json();
+      if (entry.status === 'Sticky') {
+        addBtn.textContent = '✓ Sticky';
+        addBtn.className = 'secondary comic-add-to-pulllist result-sticky';
+      } else if (entry.status === 'Unsticky') {
+        addBtn.textContent = 'Unsticky';
+        addBtn.className = 'secondary comic-add-to-pulllist result-unsticky';
+        addBtn.title = entry.failureReason || 'Could not confirm sticky on DCBS.';
+      } else {
+        addBtn.textContent = 'Added';
+        addBtn.className = 'secondary comic-add-to-pulllist result-unresolved';
+      }
+    } catch (err) {
+      console.error('[solicitation-cards] add-to-pull-list failed', err);
+      addBtn.textContent = 'Failed - retry';
+      addBtn.disabled = false;
+    }
+  });
+  info.appendChild(addBtn);
+
   card.appendChild(info);
   li.appendChild(card);
   return li;

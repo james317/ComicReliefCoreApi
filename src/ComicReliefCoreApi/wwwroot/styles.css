@@ -606,6 +606,28 @@ details summary { cursor: pointer; color: var(--accent); }
   color: #2e6b2e;
 }
 
+.comic-add-to-pulllist {
+  margin-top: 8px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  align-self: flex-start;
+}
+
+.comic-add-to-pulllist.result-sticky {
+  color: #2e6b2e;
+  border-color: #2e6b2e;
+}
+
+.comic-add-to-pulllist.result-unsticky {
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
+.comic-add-to-pulllist.result-unresolved {
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
 .footer-note {
   text-align: center;
   color: var(--text-muted);
