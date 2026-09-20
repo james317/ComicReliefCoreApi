@@ -84,7 +84,7 @@ function renderMatchCard(match, targetList) {
   const ul = document.createElement('ul');
   ul.className = 'comic-list';
   for (const group of groupByIssue(match.items)) {
-    ul.appendChild(issueCard(group, true));
+    ul.appendChild(issueCard(group));
   }
   info.appendChild(ul);
 

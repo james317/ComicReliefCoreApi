@@ -46,10 +46,7 @@ function groupByIssue(items) {
   return [...groups.values()];
 }
 
-// showOrderStatus is only passed true from the tracked-matches view (candidates.js) -
-// "did I already order this" only makes sense to ask about something matching your pull
-// list, not the full unfiltered by-publisher browse.
-function issueCard(group, showOrderStatus) {
+function issueCard(group) {
   const li = document.createElement('li');
   li.className = 'comic-card-wrap';
 
@@ -161,18 +158,18 @@ function issueCard(group, showOrderStatus) {
   // solicits, so requiring the exact variant shown here would flag everything as missing.
   // Both states get an explicit element (not just a warning when absent) - a silent card
   // reads the same whether it's confirmed ordered or just hasn't been checked yet, which
-  // defeats the point of syncing order history in the first place.
-  if (showOrderStatus) {
-    const orderStatus = document.createElement('div');
-    if (group.some((g) => g.isInLatestOrder)) {
-      orderStatus.className = 'comic-order-confirmed';
-      orderStatus.textContent = '✓ In your order';
-    } else {
-      orderStatus.className = 'comic-order-alert';
-      orderStatus.textContent = 'Not in your last order';
-    }
-    info.appendChild(orderStatus);
+  // defeats the point of syncing order history in the first place. Shown on every card,
+  // not just pull-list matches (candidates.js) - "did I already order this" is just as
+  // useful while skimming the full by-publisher browse (index.html) for something new.
+  const orderStatus = document.createElement('div');
+  if (group.some((g) => g.isInLatestOrder)) {
+    orderStatus.className = 'comic-order-confirmed';
+    orderStatus.textContent = '✓ In your order';
+  } else {
+    orderStatus.className = 'comic-order-alert';
+    orderStatus.textContent = 'Not in your last order';
   }
+  info.appendChild(orderStatus);
 
   card.appendChild(info);
   li.appendChild(card);
