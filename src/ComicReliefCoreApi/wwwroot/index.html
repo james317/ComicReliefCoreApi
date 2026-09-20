@@ -56,6 +56,16 @@
 
     <div class="message" id="message"></div>
 
+    <div class="actions" id="viewToggle" hidden>
+      <button type="button" id="viewByPublisherBtn" class="view-toggle active">By Publisher</button>
+      <button type="button" id="viewNewIssuesBtn" class="view-toggle secondary">New #1s</button>
+    </div>
+    <p class="page-intro" id="newIssuesIntro" hidden>
+      Every "#1" or explicit one-shot currently solicited, across every crawled publisher -
+      built independently of DCBS's own #1s listing, which has been unreliable.
+      Facsimile/reprint editions are excluded the same way as everywhere else in this app.
+    </p>
+
     <input type="text" id="filterInput" placeholder="Filter by title…" autocomplete="off" style="margin-top:16px;" hidden />
 
     <div id="publisherGroups"></div>

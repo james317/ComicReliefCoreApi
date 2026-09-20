@@ -7,9 +7,13 @@ namespace ComicReliefCoreApi.App.Services;
 /// One listing item plus which publisher category it was crawled from. IsInLatestOrder is
 /// a cross-reference against the synced order snapshot (IOrderSnapshotService), not a
 /// scraped fact about the listing itself - true if this exact product code appears on the
-/// user's most recently synced order.
+/// user's most recently synced order. IsNewFirstIssueOrOneShot is a title-text
+/// classification (issue number 1, or no issue number but an explicit "One-Shot" marker),
+/// excluding facsimile/reprint editions - built as an independent, in-app "New #1s" view
+/// (docs/BACKLOG.md "New-issue-#1 tracker") since DCBS's own equivalent listing has been
+/// unreliable.
 /// </summary>
-public record SolicitationItem(string Publisher, DcbsListingItem Item, bool IsInLatestOrder);
+public record SolicitationItem(string Publisher, DcbsListingItem Item, bool IsInLatestOrder, bool IsNewFirstIssueOrOneShot);
 
 /// <summary>Every current-solicitation item matched to one pull-list entry.</summary>
 public record SolicitationMatch(int PullListEntryId, string PullListTitle, PullListStatus Status, IReadOnlyList<SolicitationItem> Items);

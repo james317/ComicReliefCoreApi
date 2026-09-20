@@ -6,6 +6,13 @@ const refreshBtn = document.getElementById('refreshBtn');
 const message = document.getElementById('message');
 const filterInput = document.getElementById('filterInput');
 const publisherGroups = document.getElementById('publisherGroups');
+const viewToggle = document.getElementById('viewToggle');
+const viewByPublisherBtn = document.getElementById('viewByPublisherBtn');
+const viewNewIssuesBtn = document.getElementById('viewNewIssuesBtn');
+const newIssuesIntro = document.getElementById('newIssuesIntro');
+
+let allItems = [];
+let currentView = 'publisher';
 
 function showMessage(text, isError) {
   message.textContent = text;
@@ -49,20 +56,39 @@ async function loadStatus() {
   }
 }
 
+// Re-renders whichever view is currently selected from the already-fetched allItems -
+// switching views (or re-filtering) never needs a fresh request.
+function applyView() {
+  if (allItems.length === 0) {
+    filterInput.hidden = true;
+    viewToggle.hidden = true;
+    newIssuesIntro.hidden = true;
+    publisherGroups.innerHTML = '';
+    return;
+  }
+
+  const isNewIssuesView = currentView === 'new-issues';
+  newIssuesIntro.hidden = !isNewIssuesView;
+  viewByPublisherBtn.classList.toggle('active', !isNewIssuesView);
+  viewByPublisherBtn.classList.toggle('secondary', isNewIssuesView);
+  viewNewIssuesBtn.classList.toggle('active', isNewIssuesView);
+  viewNewIssuesBtn.classList.toggle('secondary', !isNewIssuesView);
+
+  const itemsToRender = isNewIssuesView
+    ? allItems.filter((item) => item.isNewFirstIssueOrOneShot)
+    : allItems;
+  renderByPublisher(publisherGroups, itemsToRender);
+  filterInput.value = '';
+  filterInput.hidden = false;
+  viewToggle.hidden = false;
+}
+
 async function loadItems() {
   try {
     const res = await fetch('/api/solicitations/items');
-    const items = await res.json();
-    log('items loaded', items.length);
-
-    if (items.length === 0) {
-      filterInput.hidden = true;
-      publisherGroups.innerHTML = '';
-      return;
-    }
-
-    renderByPublisher(publisherGroups, items);
-    filterInput.hidden = false;
+    allItems = await res.json();
+    log('items loaded', allItems.length);
+    applyView();
   } catch (err) {
     log('loadItems failed', err);
     showMessage('Could not load solicitations.', true);
@@ -91,6 +117,16 @@ refreshBtn.addEventListener('click', async () => {
 
 filterInput.addEventListener('input', () => {
   filterByPublisher(publisherGroups, filterInput.value.trim().toLowerCase());
+});
+
+viewByPublisherBtn.addEventListener('click', () => {
+  currentView = 'publisher';
+  applyView();
+});
+
+viewNewIssuesBtn.addEventListener('click', () => {
+  currentView = 'new-issues';
+  applyView();
 });
 
 (async () => {

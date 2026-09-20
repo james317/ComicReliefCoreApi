@@ -9,6 +9,31 @@ namespace ComicReliefCoreApi.App.Services;
 
 public class SolicitationService : ISolicitationService
 {
+    // #1 or an explicit one-shot, per docs/BACKLOG.md's original spec for this feature -
+    // deliberately narrower than PullListService's own OneShotOrSpecialTitle regex, which
+    // also matches "Special" for a different purpose (skipping auto-tracking of a likely
+    // one-off under an existing series' name). A "Special" for an already-ongoing series
+    // isn't a new #1 debut the way a genuine one-shot for a brand-new property is, so it's
+    // deliberately excluded here rather than reusing that regex as-is.
+    private static readonly System.Text.RegularExpressions.Regex OneShotTitle =
+        new(@"\bone[\s-]?shot\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    private static bool IsNewFirstIssueOrOneShot(DcbsListingItem item)
+    {
+        if (item.IsFacsimileOrReprint)
+        {
+            return false;
+        }
+
+        var issueNumber = IssueNumberParser.TryParseWholeIssueNumber(item.Title);
+        if (issueNumber is not null)
+        {
+            return issueNumber == 1;
+        }
+
+        return OneShotTitle.IsMatch(item.Title);
+    }
+
     // Polite to DCBS (this hits ~20 of its real pages per refresh) while still being much
     // faster than sequential - a handful of categories in flight at once is plenty given
     // each response is already several hundred KB.
@@ -33,7 +58,11 @@ public class SolicitationService : ISolicitationService
         var rows = await _store.GetAllAsync(ct);
         var orderedCodes = await _orderStore.GetProductCodesAsync(ct);
         return rows
-            .Select(r => new SolicitationItem(r.Publisher, r.Item, orderedCodes.Contains(r.Item.ProductCode.ToUpperInvariant())))
+            .Select(r => new SolicitationItem(
+                r.Publisher,
+                r.Item,
+                orderedCodes.Contains(r.Item.ProductCode.ToUpperInvariant()),
+                IsNewFirstIssueOrOneShot(r.Item)))
             .ToList();
     }
 
