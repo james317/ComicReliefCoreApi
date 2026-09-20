@@ -12,6 +12,9 @@ const unstickyHeading = document.getElementById('unstickyHeading');
 const unstickyList = document.getElementById('unstickyList');
 const trackedHeading = document.getElementById('trackedHeading');
 const trackedList = document.getElementById('trackedList');
+const favoriteWritersGroup = document.getElementById('favoriteWritersGroup');
+const favoriteWritersHeading = document.getElementById('favoriteWritersHeading');
+const favoriteWritersList = document.getElementById('favoriteWritersList');
 
 function showMessage(text, isError) {
   message.textContent = text;
@@ -114,6 +117,18 @@ function renderTracked(matches) {
   }
 }
 
+// Independent of pull-list status entirely - a favorite writer's new book shows up here
+// whether or not it's also tracked, since the point is surfacing their work, not confirming
+// an existing pull-list decision (see SolicitationCandidateList.FavoriteWriterMatches).
+function renderFavoriteWriters(items) {
+  favoriteWritersHeading.textContent = `Favorite Writers (${items.length})`;
+  favoriteWritersList.innerHTML = '';
+  for (const group of groupByIssue(items)) {
+    favoriteWritersList.appendChild(issueCard(group));
+  }
+  favoriteWritersGroup.hidden = items.length === 0;
+}
+
 async function loadStatus() {
   try {
     const res = await fetch('/api/solicitations/status');
@@ -152,6 +167,7 @@ async function loadCandidates() {
     }
 
     renderTracked(data.trackedMatches);
+    renderFavoriteWriters(data.favoriteWriterMatches || []);
     results.hidden = false;
   } catch (err) {
     log('loadCandidates failed', err);

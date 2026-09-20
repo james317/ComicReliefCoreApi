@@ -19,6 +19,7 @@ public class ComicReliefDbContext : DbContext
     public DbSet<ClzIssueRelease> ClzIssueReleases => Set<ClzIssueRelease>();
     public DbSet<ReadIssue> ReadIssues => Set<ReadIssue>();
     public DbSet<ReviewFlagEntry> ReviewFlagEntries => Set<ReviewFlagEntry>();
+    public DbSet<WriterPreference> WriterPreferences => Set<WriterPreference>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -48,6 +49,12 @@ public class ComicReliefDbContext : DbContext
         modelBuilder.Entity<DcbsSolicitationEntry>(entity =>
         {
             entity.HasIndex(e => e.Publisher);
+        });
+
+        modelBuilder.Entity<WriterPreference>(entity =>
+        {
+            entity.HasIndex(e => e.NormalizedName).IsUnique();
+            entity.Property(e => e.Type).HasConversion<string>();
         });
 
         // SQLite has no timezone-aware datetime type, so EF reads every DateTime back with

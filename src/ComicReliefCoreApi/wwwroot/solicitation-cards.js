@@ -171,6 +171,26 @@ function issueCard(group) {
   }
   info.appendChild(orderStatus);
 
+  // Writer favorite/avoid badges - checked across the whole group (any variant's credits
+  // matching is enough), same as the order-status line above, in case DCBS lists a variant's
+  // credits slightly differently from group[0]'s. A name can only ever be Favorite or Avoid,
+  // never both (see WriterPreference), so these two are mutually exclusive in practice, but
+  // both are rendered independently rather than assuming that invariant holds forever.
+  const favoriteWriters = [...new Set(group.flatMap((g) => g.favoriteWriters || []))];
+  const avoidedWriters = [...new Set(group.flatMap((g) => g.avoidedWriters || []))];
+  if (favoriteWriters.length > 0) {
+    const favoriteBadge = document.createElement('div');
+    favoriteBadge.className = 'comic-writer-favorite';
+    favoriteBadge.textContent = `★ Favorite writer: ${favoriteWriters.join(', ')}`;
+    info.appendChild(favoriteBadge);
+  }
+  if (avoidedWriters.length > 0) {
+    const avoidBadge = document.createElement('div');
+    avoidBadge.className = 'comic-writer-avoid';
+    avoidBadge.textContent = `⚠ Avoid: ${avoidedWriters.join(', ')}`;
+    info.appendChild(avoidBadge);
+  }
+
   // One-click "try to get this onto the pull list" - sticky first, falling back to
   // unsticky, exactly what AddToPullListAsync already does for a manually-typed title on
   // pull-list.html. Passes the raw listing title (issue number/cover/"(MR)" and all) -

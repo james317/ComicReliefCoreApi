@@ -42,29 +42,67 @@ public class SolicitationService : ISolicitationService
     private readonly IDcbsClient _dcbs;
     private readonly IDcbsSolicitationStore _store;
     private readonly IDcbsOrderSnapshotStore _orderStore;
+    private readonly IWriterPreferenceService _writerPreferences;
     private readonly ILogger<SolicitationService> _logger;
 
     public SolicitationService(
-        IDcbsClient dcbs, IDcbsSolicitationStore store, IDcbsOrderSnapshotStore orderStore, ILogger<SolicitationService> logger)
+        IDcbsClient dcbs, IDcbsSolicitationStore store, IDcbsOrderSnapshotStore orderStore,
+        IWriterPreferenceService writerPreferences, ILogger<SolicitationService> logger)
     {
         _dcbs = dcbs;
         _store = store;
         _orderStore = orderStore;
+        _writerPreferences = writerPreferences;
         _logger = logger;
     }
+
+    private static readonly IReadOnlyList<string> NoWriters = Array.Empty<string>();
 
     private async Task<List<SolicitationItem>> LoadItemsAsync(CancellationToken ct)
     {
         var rows = await _store.GetAllAsync(ct);
         var orderedCodes = await _orderStore.GetProductCodesAsync(ct);
+        var writerPrefs = await _writerPreferences.GetAllAsync(ct);
+        var favoriteNames = writerPrefs
+            .Where(w => w.Type == WriterPreferenceType.Favorite)
+            .Select(w => w.NormalizedName)
+            .ToHashSet();
+        var avoidNames = writerPrefs
+            .Where(w => w.Type == WriterPreferenceType.Avoid)
+            .Select(w => w.NormalizedName)
+            .ToHashSet();
+
         return rows
-            .Select(r => new SolicitationItem(
-                r.Publisher,
-                r.Item,
-                orderedCodes.Contains(r.Item.ProductCode.ToUpperInvariant()),
-                IsNewFirstIssueOrOneShot(r.Item),
-                r.FirstSeenAt,
-                r.FirstSeenAt == r.RefreshedAt))
+            .Select(r =>
+            {
+                List<string>? favoriteMatches = null;
+                List<string>? avoidMatches = null;
+                if (favoriteNames.Count > 0 || avoidNames.Count > 0)
+                {
+                    foreach (var writer in CreatorCreditParser.ExtractWriterNames(r.Item.CreatorsAndDescription))
+                    {
+                        var normalized = TitleNormalizer.Normalize(writer);
+                        if (favoriteNames.Contains(normalized))
+                        {
+                            (favoriteMatches ??= new List<string>()).Add(writer);
+                        }
+                        else if (avoidNames.Contains(normalized))
+                        {
+                            (avoidMatches ??= new List<string>()).Add(writer);
+                        }
+                    }
+                }
+
+                return new SolicitationItem(
+                    r.Publisher,
+                    r.Item,
+                    orderedCodes.Contains(r.Item.ProductCode.ToUpperInvariant()),
+                    IsNewFirstIssueOrOneShot(r.Item),
+                    r.FirstSeenAt,
+                    r.FirstSeenAt == r.RefreshedAt,
+                    favoriteMatches ?? NoWriters,
+                    avoidMatches ?? NoWriters);
+            })
             .ToList();
     }
 
@@ -154,8 +192,9 @@ public class SolicitationService : ISolicitationService
         }
 
         var untracked = items.Where(i => !matched.Contains(i)).ToList();
+        var favoriteWriterMatches = items.Where(i => i.FavoriteWriters.Count > 0).ToList();
         var (lastRefreshedAt, _) = await _store.GetStatusAsync(ct);
-        return new SolicitationCandidateList(lastRefreshedAt, matches, untracked);
+        return new SolicitationCandidateList(lastRefreshedAt, matches, favoriteWriterMatches, untracked);
     }
 
     public async Task<IReadOnlyList<SolicitationItem>> GetAllItemsAsync(CancellationToken ct = default)

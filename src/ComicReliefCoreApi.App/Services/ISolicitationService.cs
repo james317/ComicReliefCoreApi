@@ -17,18 +17,29 @@ namespace ComicReliefCoreApi.App.Services;
 /// doesn't need its own separate timestamp tracking. Comparing FirstSeenAt against an order's
 /// placed date for the "new since I built my order" view is left to the caller (Solicitations
 /// page) - a plain date-range filter over already-fetched items, the same pattern already
-/// used for the New #1s view's own client-side filter.
+/// used for the New #1s view's own client-side filter. FavoriteWriters/AvoidedWriters are the
+/// writer name(s) (see CreatorCreditParser) that matched an entry on the tracked writer list
+/// (IWriterPreferenceService) - empty when no writer credit on this item matches either list.
+/// A name can only ever appear in one of the two lists, never both (WriterPreference.Type is
+/// exclusive per normalized name).
 /// </summary>
 public record SolicitationItem(
     string Publisher, DcbsListingItem Item, bool IsInLatestOrder, bool IsNewFirstIssueOrOneShot,
-    DateTime FirstSeenAt, bool IsNewSinceLastRefresh);
+    DateTime FirstSeenAt, bool IsNewSinceLastRefresh,
+    IReadOnlyList<string> FavoriteWriters, IReadOnlyList<string> AvoidedWriters);
 
 /// <summary>Every current-solicitation item matched to one pull-list entry.</summary>
 public record SolicitationMatch(int PullListEntryId, string PullListTitle, PullListStatus Status, IReadOnlyList<SolicitationItem> Items);
 
+/// <summary>
+/// FavoriteWriterMatches and Untracked are independent lenses over the same items, not
+/// mutually exclusive categories - an item can appear in both (a title with a favorite writer
+/// that also isn't on the pull list) or in neither.
+/// </summary>
 public record SolicitationCandidateList(
     DateTime? GeneratedAt,
     IReadOnlyList<SolicitationMatch> TrackedMatches,
+    IReadOnlyList<SolicitationItem> FavoriteWriterMatches,
     IReadOnlyList<SolicitationItem> Untracked);
 
 public record SolicitationCacheStatus(

@@ -539,6 +539,8 @@ details summary { cursor: pointer; color: var(--accent); }
 .pull-badge.corralled { background: #2e6b2e; }
 .pull-badge.wanted { background: var(--accent); }
 .pull-badge.unresolved { background: var(--text-muted); }
+.pull-badge.favorite { background: var(--brass); }
+.pull-badge.avoid { background: #8a3324; }
 
 .pull-info {
   min-width: 0;
@@ -653,6 +655,20 @@ details summary { cursor: pointer; color: var(--accent); }
   font-size: 0.78rem;
   font-weight: 700;
   color: #2e6b2e;
+}
+
+.comic-writer-favorite {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--brass);
+}
+
+.comic-writer-avoid {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #8a3324;
 }
 
 .comic-add-to-pulllist {

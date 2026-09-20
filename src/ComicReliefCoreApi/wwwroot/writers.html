@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Writers — If You Pull, Don't Miss</title>
+<meta name="theme-color" content="#3a2214" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Rye&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<nav class="trail-nav">
+  <a href="/index.html">Solicitations</a>
+  <a href="/pull-list.html">Pull List</a>
+  <a href="/candidates.html">Candidates</a>
+  <a href="/shipments.html">Shipments</a>
+  <a href="/reading-log.html">Reading Log</a>
+  <a href="/writers.html" class="active">Writers</a>
+  <a href="/dcbs-session.html">DCBS Session</a>
+</nav>
+<main class="content">
+  <h1 class="page-heading">Writers</h1>
+  <p class="page-intro">
+    Track writers you want to see more of, and writers to steer clear of. Favorites get
+    a badge on every solicitation card and their own section on the Candidates page;
+    avoided writers get a warning badge on Solicitations. Matching is against DCBS's own
+    "(W)" writer credit on each listing - artists and cover artists aren't tracked here.
+    A name can only be Favorite or Avoid at once - re-adding an existing name with the
+    other type flips it.
+  </p>
+
+  <form id="addForm" class="add-form">
+    <input type="text" id="nameInput" placeholder="Writer name, e.g. Jason Aaron" autocomplete="off" />
+    <select id="typeInput">
+      <option value="Favorite">Favorite</option>
+      <option value="Avoid">Avoid</option>
+    </select>
+    <button type="submit" id="addBtn">Add</button>
+  </form>
+
+  <div class="message" id="message"></div>
+
+  <div id="groups" hidden>
+    <div class="posse-group">
+      <h2 id="favoritesHeading">Favorites (0)</h2>
+      <ul class="posse-list" id="favoritesList"></ul>
+    </div>
+    <div class="posse-group">
+      <h2 id="avoidHeading">Avoid (0)</h2>
+      <ul class="posse-list" id="avoidList"></ul>
+    </div>
+  </div>
+</main>
+<script src="/writers.js"></script>
+</body>
+</html>

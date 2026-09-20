@@ -37,6 +37,7 @@ builder.Services.AddScoped<IShipmentTrackingService, ShipmentTrackingService>();
 builder.Services.AddScoped<IReadIssueStore, ReadIssueStore>();
 builder.Services.AddScoped<IReadingLogService, ReadingLogService>();
 builder.Services.AddScoped<IReviewFlagService, ReviewFlagService>();
+builder.Services.AddScoped<IWriterPreferenceService, WriterPreferenceService>();
 
 // SQLite path comes from config (appsettings.json locally, the Data__SqlitePath env var
 // in fly.toml for production) so it can point at the Fly volume mount without code
@@ -244,6 +245,21 @@ using (var scope = app.Services.CreateScope())
             "ResolvedAt" TEXT NULL
         )
         """);
+
+    // Same EnsureCreated() limitation, eighth occurrence: WriterPreferences persists the
+    // favorite/avoid writer lists (see IWriterPreferenceService). Type stored as its string
+    // name (HasConversion<string>() in ComicReliefDbContext), same as every other enum here.
+    db.Database.ExecuteSqlRaw("""
+        CREATE TABLE IF NOT EXISTS "WriterPreferences" (
+            "Id" INTEGER NOT NULL CONSTRAINT "PK_WriterPreferences" PRIMARY KEY AUTOINCREMENT,
+            "Name" TEXT NOT NULL,
+            "NormalizedName" TEXT NOT NULL,
+            "Type" TEXT NOT NULL,
+            "CreatedAt" TEXT NOT NULL
+        )
+        """);
+    db.Database.ExecuteSqlRaw(
+        "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_WriterPreferences_NormalizedName\" ON \"WriterPreferences\" (\"NormalizedName\")");
 }
 
 app.UseDefaultFiles();
