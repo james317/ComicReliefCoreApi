@@ -7,6 +7,26 @@
   const splashSkipBtn = document.getElementById("splashSkip");
   if (!splashEl) return;
 
+  // This is a multi-page app, not a SPA - every nav-bar click to Solicitations is a real
+  // browser navigation that reloads index.html (and this script) from scratch, with no
+  // built-in way to tell "the app just launched" from "the user tabbed back here." A
+  // sessionStorage flag adds that distinction: it persists across navigations within the
+  // same tab/PWA session but is gone on a fresh tab or a real app relaunch, so the splash
+  // now shows once per session instead of on every single visit to this page.
+  const SESSION_SHOWN_KEY = "splashShownThisSession";
+  let alreadyShownThisSession = false;
+  try {
+    alreadyShownThisSession = sessionStorage.getItem(SESSION_SHOWN_KEY) === "true";
+  } catch { /* ignore - private browsing etc. */ }
+
+  if (alreadyShownThisSession) {
+    splashEl.classList.add("splash-hidden");
+    window.dismissSplash = function dismissSplash() { /* already hidden - no-op */ };
+    return;
+  }
+
+  try { sessionStorage.setItem(SESSION_SHOWN_KEY, "true"); } catch { /* ignore */ }
+
   // How long the splash lingers (minimum) before auto-dismissing, in seconds.
   // Defaults to DEFAULT_SPLASH_SECONDS; override once via ?splashSeconds=N in the URL
   // (e.g. bookmark /index.html?splashSeconds=5) and it's remembered from then on via
