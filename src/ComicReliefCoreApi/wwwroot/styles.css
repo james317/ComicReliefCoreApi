@@ -599,6 +599,13 @@ details summary { cursor: pointer; color: var(--accent); }
   color: var(--accent);
 }
 
+.comic-order-confirmed {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #2e6b2e;
+}
+
 .footer-note {
   text-align: center;
   color: var(--text-muted);
@@ -645,6 +652,7 @@ details summary { cursor: pointer; color: var(--accent); }
 
 .cover-strip a {
   flex-shrink: 0;
+  position: relative;
 }
 
 .cover-thumb {
@@ -654,6 +662,23 @@ details summary { cursor: pointer; color: var(--accent); }
   border-radius: 6px;
   object-fit: cover;
   background: var(--border);
+}
+
+/* Marks a cover priced above the cheapest in its own group (foil/1:25/premium variants
+   etc.) - a small corner tag rather than anything overlaying the art itself, so the
+   thumbnail stays fully visible while skimming. */
+.cover-price-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 999px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .comic-title, .cover-strip a {

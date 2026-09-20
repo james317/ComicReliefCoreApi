@@ -63,6 +63,14 @@ function issueCard(group, showOrderStatus) {
   }
   card.dataset.title = group.map((g) => g.item.title.toLowerCase()).join(' ');
 
+  // Hoisted above the cover strip (rather than computed once for the meta line, as
+  // before) so each thumbnail can be checked against the group's minimum while building
+  // the strip - a variant costing more than the cheapest cover in its own group gets a
+  // small corner badge, so a pricier premium/foil/1:25 cover doesn't get picked by
+  // accident while skimming thumbnails.
+  const prices = group.map((g) => g.item.price).filter((p) => p != null);
+  const minPrice = prices.length > 0 ? Math.min(...prices) : null;
+
   const coverStrip = document.createElement('div');
   coverStrip.className = 'cover-strip';
   for (const solicitationItem of group) {
@@ -84,6 +92,13 @@ function issueCard(group, showOrderStatus) {
       // so it silently never loads even after the group is opened - this is what building
       // the cards on open (rather than upfront) actually fixes, not just a perf nicety.
       a.appendChild(img);
+      if (minPrice != null && item.price != null && item.price > minPrice) {
+        const priceBadge = document.createElement('span');
+        priceBadge.className = 'cover-price-badge';
+        priceBadge.textContent = '$';
+        priceBadge.title = `$${item.price.toFixed(2)} (cheapest cover in this group is $${minPrice.toFixed(2)})`;
+        a.appendChild(priceBadge);
+      }
     } else {
       a.textContent = item.title;
     }
@@ -121,15 +136,13 @@ function issueCard(group, showOrderStatus) {
     info.appendChild(descriptionEl);
   }
 
-  const prices = group.map((g) => g.item.price).filter((p) => p != null);
   const metaParts = [group[0].publisher];
   if (group.length > 1) {
     metaParts.push(`${group.length} covers`);
   }
   if (prices.length > 0) {
-    const min = Math.min(...prices);
     const max = Math.max(...prices);
-    metaParts.push(min === max ? `$${min.toFixed(2)}` : `$${min.toFixed(2)}–$${max.toFixed(2)}`);
+    metaParts.push(minPrice === max ? `$${minPrice.toFixed(2)}` : `$${minPrice.toFixed(2)}–$${max.toFixed(2)}`);
   }
   if (group.some((g) => g.item.isRelisted)) {
     metaParts.push('Relisted');
@@ -146,11 +159,19 @@ function issueCard(group, showOrderStatus) {
   // card actually worth acting on - "in your order" means any variant in the group
   // matched, since you only ever order one cover of a given issue, not every variant DCBS
   // solicits, so requiring the exact variant shown here would flag everything as missing.
-  if (showOrderStatus && !group.some((g) => g.isInLatestOrder)) {
-    const orderAlert = document.createElement('div');
-    orderAlert.className = 'comic-order-alert';
-    orderAlert.textContent = 'Not in your last order';
-    info.appendChild(orderAlert);
+  // Both states get an explicit element (not just a warning when absent) - a silent card
+  // reads the same whether it's confirmed ordered or just hasn't been checked yet, which
+  // defeats the point of syncing order history in the first place.
+  if (showOrderStatus) {
+    const orderStatus = document.createElement('div');
+    if (group.some((g) => g.isInLatestOrder)) {
+      orderStatus.className = 'comic-order-confirmed';
+      orderStatus.textContent = '✓ In your order';
+    } else {
+      orderStatus.className = 'comic-order-alert';
+      orderStatus.textContent = 'Not in your last order';
+    }
+    info.appendChild(orderStatus);
   }
 
   card.appendChild(info);
