@@ -131,22 +131,32 @@ using (var scope = app.Services.CreateScope())
     // Same gap, second column: FirstSeenAt (see DcbsSolicitationEntry) needs a real per-row
     // value, not a shared constant, to support the "new since last refresh"/"new since order
     // placed" views - SQLite's ALTER TABLE ADD COLUMN only accepts a constant DEFAULT on a
-    // non-empty table, so this adds the column with a throwaway placeholder, then backfills
-    // every existing row to its own RefreshedAt (the only sane guess for "already-solicited
-    // when this migration ran" - it just means nothing already-crawled looks newly-added
-    // until the very next refresh actually proves otherwise, rather than every existing row
-    // flooding both delta views as "new" the moment this ships).
+    // non-empty table, so this adds the column with a fixed sentinel far in the past
+    // (deliberately never touched again) rather than trying to guess a real date for
+    // already-solicited rows. A sentinel has to be older than any real date for both
+    // consumers of this column: it must never equal a real RefreshedAt (or every legacy row
+    // reads as "new since last refresh" - the bug an earlier version of this migration
+    // actually shipped, backfilling to RefreshedAt itself, which trivially made the equality
+    // true for every single row), and it must sort before any real order-placed date (so
+    // legacy rows don't also flood "new since order").
     try
     {
         db.Database.ExecuteSqlRaw(
-            "ALTER TABLE DcbsSolicitationEntries ADD COLUMN FirstSeenAt TEXT NOT NULL DEFAULT '0001-01-01T00:00:00.0000000'");
-        db.Database.ExecuteSqlRaw(
-            "UPDATE DcbsSolicitationEntries SET FirstSeenAt = RefreshedAt WHERE FirstSeenAt = '0001-01-01T00:00:00.0000000'");
+            "ALTER TABLE DcbsSolicitationEntries ADD COLUMN FirstSeenAt TEXT NOT NULL DEFAULT '2000-01-01T00:00:00.0000000'");
     }
     catch (Exception ex) when (ex.Message.Contains("duplicate column", StringComparison.OrdinalIgnoreCase))
     {
         // Already applied.
     }
+
+    // One-time correction for the bug described above, which did ship and run once against
+    // production before being caught live (every row backfilled to FirstSeenAt = RefreshedAt
+    // instead of a sentinel). Safe to leave in permanently: bounded by a fixed past cutoff,
+    // so it can only ever match rows poisoned by that specific already-happened bug, never a
+    // real future refresh's genuinely-equal FirstSeenAt/RefreshedAt pair.
+    db.Database.ExecuteSqlRaw(
+        "UPDATE DcbsSolicitationEntries SET FirstSeenAt = '2000-01-01T00:00:00.0000000' " +
+        "WHERE FirstSeenAt = RefreshedAt AND RefreshedAt < '2026-09-21T00:00:00.0000000'");
 
     // Same EnsureCreated() limitation, fourth occurrence: DcbsOrderSnapshotLines persists
     // every synced order (see IOrderSnapshotService) so a candidates rescan can flag
