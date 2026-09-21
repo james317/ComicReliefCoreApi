@@ -54,6 +54,24 @@ public class DcbsClient : IDcbsClient
         "alt='(Processing|Filled|Shipped|Cancelled)' title='[^']*' border='0' class='statusimg'",
         RegexOptions.Compiled);
 
+    // Same cartimg element OrderCartImgAltRegex already reads the alt text from - this pulls
+    // the thumbnail src instead, confirmed live in the same class="cartimg" src="..." order
+    // as the alt-then-class fallback already handles for OrderCartImgAltRegex.
+    private static readonly Regex OrderCartImgSrcRegex = new(
+        "class=\"cartimg\"[^>]*?src=\"([^\"]+)\"|src=\"([^\"]+)\"[^>]*?class=\"cartimg\"",
+        RegexOptions.Compiled);
+
+    // Row layout confirmed live: Product | Qty | Price | Subtotal | Status. Qty is the first
+    // bare-integer "centered" cell in the row (the Status cell right after it always holds an
+    // <img>, never a bare digit, so a first-match-in-chunk lookup can't cross into it). Price
+    // is the first of two "currency" cells (the second is the line subtotal - Qty*Price,
+    // computed rather than separately scraped, one less regex to keep in sync with DCBS's own
+    // markup).
+    private static readonly Regex OrderRowQtyRegex = new(
+        "<td class=\"centered\">\\s*(\\d+)\\s*</td>", RegexOptions.Compiled);
+    private static readonly Regex OrderRowCurrencyRegex = new(
+        "<td class=\"currency\">\\s*\\$?([\\d.]+)\\s*</td>", RegexOptions.Compiled);
+
     private static readonly Regex OrderIdLinkRegex = new("href=\"/account/order/(\\d+)\"", RegexOptions.Compiled);
 
     // /account/orders' own banner: "Orders marked with a [icon] can be edited through
@@ -336,7 +354,20 @@ public class DcbsClient : IDcbsClient
                 ? Enum.Parse<DcbsShipmentStatus>(statusMatch.Groups[1].Value)
                 : null;
 
-            lines.Add(new DcbsOrderLine(codeMatch.Groups[1].Value, title, status));
+            var srcMatch = OrderCartImgSrcRegex.Match(chunk);
+            var thumbnailUrl = srcMatch.Success
+                ? (srcMatch.Groups[1].Success ? srcMatch.Groups[1].Value : srcMatch.Groups[2].Value)
+                : null;
+
+            var qtyMatch = OrderRowQtyRegex.Match(chunk);
+            int? quantity = qtyMatch.Success && int.TryParse(qtyMatch.Groups[1].Value, out var qty) ? qty : null;
+
+            var currencyMatches = OrderRowCurrencyRegex.Matches(chunk);
+            decimal? unitPrice = currencyMatches.Count > 0 && decimal.TryParse(currencyMatches[0].Groups[1].Value, out var price)
+                ? price
+                : null;
+
+            lines.Add(new DcbsOrderLine(codeMatch.Groups[1].Value, title, status, quantity, unitPrice, thumbnailUrl));
         }
         return lines;
     }
@@ -449,6 +480,22 @@ public class DcbsClient : IDcbsClient
         return DateOnly.TryParse(match.Groups[2].Value, out var date)
             ? new DcbsOrderDateInfo(match.Groups[1].Value, date)
             : null;
+    }
+
+    /// <summary>Every order id on /account/orders mapped to its "Order Date" - the full history, not just the most recent (see GetMostRecentOrderDateAsync).</summary>
+    public async Task<IReadOnlyDictionary<string, DateOnly>> GetOrderDatesAsync(CancellationToken ct = default)
+    {
+        using var response = await GetAsync("/account/orders", ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+        var dates = new Dictionary<string, DateOnly>();
+        foreach (Match match in OrderRowIdAndDateRegex.Matches(body))
+        {
+            if (DateOnly.TryParse(match.Groups[2].Value, out var date))
+            {
+                dates[match.Groups[1].Value] = date;
+            }
+        }
+        return dates;
     }
 
     public async Task<DateOnly?> GetOrderEditCutoffDateAsync(CancellationToken ct = default)

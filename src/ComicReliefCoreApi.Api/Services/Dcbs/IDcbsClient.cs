@@ -42,6 +42,9 @@ public interface IDcbsClient
     /// <summary>The most recently placed order's id and "Order Date", from the top row of /account/orders. Null if no orders exist or the page layout no longer matches.</summary>
     Task<DcbsOrderDateInfo?> GetMostRecentOrderDateAsync(CancellationToken ct = default);
 
+    /// <summary>Every order id on /account/orders mapped to its "Order Date" - the full history, not just the most recent.</summary>
+    Task<IReadOnlyDictionary<string, DateOnly>> GetOrderDatesAsync(CancellationToken ct = default);
+
     /// <summary>
     /// The date through which editable orders can still be changed, scraped from
     /// /account/orders' own banner text ("can be edited through M/D/YYYY"). Returns null once

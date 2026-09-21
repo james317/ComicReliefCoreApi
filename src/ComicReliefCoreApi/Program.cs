@@ -186,6 +186,26 @@ using (var scope = app.Services.CreateScope())
         // Already applied.
     }
 
+    // Same gap, four more columns: Quantity/UnitPrice/ThumbnailUrl/OrderDate (see
+    // DcbsOrderSnapshotLine) for the order-search feature - all genuinely optional facts
+    // (null for the free-item rows, or until the next order sync populates them), so unlike
+    // FirstSeenAt above, a plain nullable ALTER TABLE with no backfill is correct as-is: an
+    // existing row just shows blank details until re-synced, never a wrong value.
+    foreach (var (column, sqlType) in new[]
+             {
+                 ("Quantity", "INTEGER"), ("UnitPrice", "TEXT"), ("ThumbnailUrl", "TEXT"), ("OrderDate", "TEXT"),
+             })
+    {
+        try
+        {
+            db.Database.ExecuteSqlRaw($"ALTER TABLE DcbsOrderSnapshotLines ADD COLUMN {column} {sqlType} NULL");
+        }
+        catch (Exception ex) when (ex.Message.Contains("duplicate column", StringComparison.OrdinalIgnoreCase))
+        {
+            // Already applied.
+        }
+    }
+
     // Same EnsureCreated() limitation, fifth occurrence: ClzIssueReleases persists per-issue
     // release dates from a CLZ export (see ClzCsvParser.ParsePerIssueRows) - a separate table
     // from the per-series ClzSeriesSummaries aggregate, needed to match a shipment's specific

@@ -5,6 +5,27 @@ namespace ComicReliefCoreApi.App.Services;
 public record OrderSnapshotStatus(int OrderCount, int TotalLineCount, DateTime? LastSyncedAt);
 
 /// <summary>
+/// One ordered item, every detail on file. ProductUrl/Publisher/ThumbnailUrl (the "enriched"
+/// fields) are a best-effort cross-reference against whatever's currently solicited
+/// (IDcbsSolicitationStore, matched by product code) - populated whenever the title is still
+/// in this month's (or a recent) crawl, null otherwise (an older item that's rotated off the
+/// solicited catalog). ThumbnailUrl falls back to the one scraped directly off the order page
+/// itself (DcbsOrderSnapshotLine.ThumbnailUrl) when there's no solicitation match, so a cover
+/// image is almost always available regardless.
+/// </summary>
+public record OrderedItemSearchResult(
+    string OrderId,
+    DateOnly? OrderDate,
+    string ProductCode,
+    string Title,
+    int? Quantity,
+    decimal? UnitPrice,
+    DcbsShipmentStatus? Status,
+    string? ThumbnailUrl,
+    string? ProductUrl,
+    string? Publisher);
+
+/// <summary>
 /// Errors are only ever about the sync call that just ran - never persisted, since a failed
 /// order just leaves its last-known lines in place. NewFirstIssues is what
 /// IPullListService.DetectAndTrackNewFirstIssuesAsync found and (attempted to) track this
@@ -37,4 +58,12 @@ public interface IOrderSnapshotService
     /// since the snapshot stores line items, not order-level metadata like a placement date.
     /// </summary>
     Task<DcbsOrderDateInfo?> GetMostRecentOrderDateAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Every synced order line whose title contains term, across every order ever synced -
+    /// "did I already order something like this, and what were the details" (price, quantity,
+    /// shipment status, order date). Never touches DCBS itself - purely a query against
+    /// whatever the last "Sync Order History" already pulled in.
+    /// </summary>
+    Task<IReadOnlyList<OrderedItemSearchResult>> SearchAsync(string term, CancellationToken ct = default);
 }

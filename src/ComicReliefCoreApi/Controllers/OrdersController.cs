@@ -40,4 +40,17 @@ public sealed class OrdersController : ControllerBase
     {
         return Ok(await _orders.GetMostRecentOrderDateAsync(cancellationToken));
     }
+
+    /// <summary>Full-detail search across every synced order's line items - see IOrderSnapshotService.SearchAsync. Never touches DCBS itself.</summary>
+    [HttpGet("search")]
+    public async Task<ActionResult<IReadOnlyList<OrderedItemSearchResult>>> Search(
+        [FromQuery] string term, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(term))
+        {
+            return BadRequest("term is required.");
+        }
+
+        return Ok(await _orders.SearchAsync(term, cancellationToken));
+    }
 }

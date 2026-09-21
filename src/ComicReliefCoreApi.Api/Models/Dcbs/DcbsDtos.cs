@@ -11,7 +11,10 @@ public record DcbsPullListRow(string Title, int Qty, string PullListId);
 /// small number of rows that carry no status icon at all (confirmed live: free items like
 /// Comic Shop News/DC Connect/monthly catalogs) rather than guessed as any particular value.
 /// </summary>
-public record DcbsOrderLine(string ProductCode, string Title, DcbsShipmentStatus? Status);
+/// <summary>Quantity/UnitPrice/ThumbnailUrl are null for the rare free-item rows (Comic Shop News, monthly catalogs) whose order-page markup carries no currency/qty cells or cover image at all - same rows Status is already null for.</summary>
+public record DcbsOrderLine(
+    string ProductCode, string Title, DcbsShipmentStatus? Status,
+    int? Quantity = null, decimal? UnitPrice = null, string? ThumbnailUrl = null);
 
 /// <summary>The most recently placed order's id and its "Order Date" - the only date DCBS exposes anywhere on an order (no separate "last updated" field exists on either /account/orders or an order's own detail page - confirmed live 9/2026).</summary>
 public record DcbsOrderDateInfo(string OrderId, DateOnly OrderDate);

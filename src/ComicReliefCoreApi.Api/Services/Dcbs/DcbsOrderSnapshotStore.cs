@@ -15,7 +15,7 @@ public class DcbsOrderSnapshotStore : IDcbsOrderSnapshotStore
     }
 
     public async Task UpsertOrderAsync(
-        string orderId, IReadOnlyList<DcbsOrderLine> lines, DateTime syncedAt, CancellationToken ct = default)
+        string orderId, IReadOnlyList<DcbsOrderLine> lines, DateOnly? orderDate, DateTime syncedAt, CancellationToken ct = default)
     {
         // Scoped to this one order, not a wholesale wipe - real case this exists for:
         // the user ordered Altered States: Warlords #4 (a different cover) on an earlier
@@ -31,6 +31,10 @@ public class DcbsOrderSnapshotStore : IDcbsOrderSnapshotStore
             Title = l.Title,
             Status = l.Status,
             SyncedAt = syncedAt,
+            Quantity = l.Quantity,
+            UnitPrice = l.UnitPrice,
+            ThumbnailUrl = l.ThumbnailUrl,
+            OrderDate = orderDate,
         }));
         await _db.SaveChangesAsync(ct);
     }
@@ -56,5 +60,19 @@ public class DcbsOrderSnapshotStore : IDcbsOrderSnapshotStore
     {
         var rows = await _db.DcbsOrderSnapshotLines.Select(l => new { l.OrderId, l.Title, l.Status }).ToListAsync(ct);
         return rows.Select(r => (r.OrderId, r.Title, r.Status)).ToList();
+    }
+
+    public async Task<IReadOnlyList<DcbsOrderSnapshotLine>> SearchLinesAsync(string term, CancellationToken ct = default)
+    {
+        // EF.Functions.Like would push this to SQLite, but SQLite's LIKE is ASCII-only
+        // case-insensitive (mishandles non-ASCII titles) - loading and filtering in memory
+        // sidesteps that. A personal order history (low hundreds of lines even after years)
+        // is nowhere near large enough for this to matter.
+        var all = await _db.DcbsOrderSnapshotLines.AsNoTracking().ToListAsync(ct);
+        return all
+            .Where(l => l.Title.Contains(term, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(l => l.OrderDate)
+            .ThenBy(l => l.Title)
+            .ToList();
     }
 }

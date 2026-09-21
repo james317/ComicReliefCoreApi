@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Order History — If You Pull, Don't Miss</title>
+<meta name="theme-color" content="#3a2214" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Rye&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<nav class="trail-nav">
+  <a href="/index.html">Solicitations</a>
+  <a href="/pull-list.html">Pull List</a>
+  <a href="/candidates.html">Candidates</a>
+  <a href="/shipments.html">Shipments</a>
+  <a href="/order-history.html" class="active">Order History</a>
+  <a href="/reading-log.html">Reading Log</a>
+  <a href="/writers.html">Writers</a>
+  <a href="/dcbs-session.html">DCBS Session</a>
+</nav>
+<main class="content">
+  <h1 class="page-heading">Order History</h1>
+  <p class="page-intro">
+    Search everything you've ever ordered, across every order synced so far - title,
+    quantity, price, shipment status, and a link back to the listing when it's still
+    currently solicited. Searches only what's already on file; use "Sync Order History"
+    on the <a href="/candidates.html">Candidates</a> tab first if what you're looking for
+    was ordered recently and isn't showing up.
+  </p>
+
+  <form id="searchForm" class="add-form">
+    <input type="text" id="termInput" placeholder="Search your orders, e.g. Odin" autocomplete="off" />
+    <button type="submit" id="searchBtn">Search</button>
+  </form>
+
+  <div class="message" id="message"></div>
+
+  <ul class="comic-list" id="resultsList"></ul>
+</main>
+<script src="/order-history.js"></script>
+</body>
+</html>

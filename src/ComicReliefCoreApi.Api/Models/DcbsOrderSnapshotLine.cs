@@ -23,4 +23,19 @@ public class DcbsOrderSnapshotLine
     public DcbsShipmentStatus? Status { get; set; }
 
     public DateTime SyncedAt { get; set; }
+
+    /// <summary>Null for the rare free-item rows (Comic Shop News, monthly catalogs) - same rows Status is already null for.</summary>
+    public int? Quantity { get; set; }
+
+    public decimal? UnitPrice { get; set; }
+
+    public string? ThumbnailUrl { get; set; }
+
+    /// <summary>
+    /// This order's "Order Date" (see IDcbsClient.GetOrderDatesAsync) - denormalized onto
+    /// every line of the order, same pattern as SyncedAt above, rather than a separate
+    /// per-order header table. Null only if the order no longer appears on /account/orders
+    /// at sync time (shouldn't happen for a real order, but not assumed).
+    /// </summary>
+    public DateOnly? OrderDate { get; set; }
 }

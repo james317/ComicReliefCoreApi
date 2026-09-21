@@ -13,14 +13,17 @@ public class OrderSnapshotService : IOrderSnapshotService
 
     private readonly IDcbsClient _dcbs;
     private readonly IDcbsOrderSnapshotStore _store;
+    private readonly IDcbsSolicitationStore _solicitationStore;
     private readonly IPullListService _pullList;
     private readonly ILogger<OrderSnapshotService> _logger;
 
     public OrderSnapshotService(
-        IDcbsClient dcbs, IDcbsOrderSnapshotStore store, IPullListService pullList, ILogger<OrderSnapshotService> logger)
+        IDcbsClient dcbs, IDcbsOrderSnapshotStore store, IDcbsSolicitationStore solicitationStore,
+        IPullListService pullList, ILogger<OrderSnapshotService> logger)
     {
         _dcbs = dcbs;
         _store = store;
+        _solicitationStore = solicitationStore;
         _pullList = pullList;
         _logger = logger;
     }
@@ -28,6 +31,7 @@ public class OrderSnapshotService : IOrderSnapshotService
     public async Task<OrderSyncResult> SyncRecentAsync(int maxOrders = 24, CancellationToken ct = default)
     {
         var orderIds = await _dcbs.GetRecentOrderIdsAsync(maxOrders, ct);
+        var orderDates = await _dcbs.GetOrderDatesAsync(ct);
         var errors = new ConcurrentDictionary<string, string>();
         var fetched = new ConcurrentDictionary<string, IReadOnlyList<DcbsOrderLine>>();
         var syncedAt = DateTime.UtcNow;
@@ -57,7 +61,8 @@ public class OrderSnapshotService : IOrderSnapshotService
 
         foreach (var (orderId, lines) in fetched)
         {
-            await _store.UpsertOrderAsync(orderId, lines, syncedAt, ct);
+            DateOnly? orderDate = orderDates.TryGetValue(orderId, out var d) ? d : null;
+            await _store.UpsertOrderAsync(orderId, lines, orderDate, syncedAt, ct);
         }
 
         var newFirstIssues = await _pullList.DetectAndTrackNewFirstIssuesAsync(ct);
@@ -74,4 +79,31 @@ public class OrderSnapshotService : IOrderSnapshotService
 
     public Task<DcbsOrderDateInfo?> GetMostRecentOrderDateAsync(CancellationToken ct = default) =>
         _dcbs.GetMostRecentOrderDateAsync(ct);
+
+    public async Task<IReadOnlyList<OrderedItemSearchResult>> SearchAsync(string term, CancellationToken ct = default)
+    {
+        var lines = await _store.SearchLinesAsync(term, ct);
+        var solicited = await _solicitationStore.GetAllAsync(ct);
+        // Last-write-wins on a duplicate product code (a relisted item can appear more than
+        // once across categories) - fine here, any one match is equally good for a details
+        // lookup, unlike SolicitationService's own matching which cares about every listing.
+        var byProductCode = solicited.ToDictionary(
+            s => s.Item.ProductCode.ToUpperInvariant(), s => s, StringComparer.Ordinal);
+
+        return lines.Select(l =>
+        {
+            byProductCode.TryGetValue(l.ProductCode.ToUpperInvariant(), out var match);
+            return new OrderedItemSearchResult(
+                l.OrderId,
+                l.OrderDate,
+                l.ProductCode,
+                l.Title,
+                l.Quantity,
+                l.UnitPrice,
+                l.Status,
+                match.Item?.ThumbnailUrl ?? l.ThumbnailUrl,
+                match.Item?.ProductUrl,
+                match.Publisher);
+        }).ToList();
+    }
 }
