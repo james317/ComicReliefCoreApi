@@ -26,7 +26,7 @@ public static class TitleNormalizer
         return NonAlphanumeric.Replace(withoutArticle, "");
     }
 
-    private static string NormalizeKeepingWordBoundaries(string title)
+    public static string NormalizeKeepingWordBoundaries(string title)
     {
         var lowered = title.Trim().ToLowerInvariant();
         var withoutArticle = LeadingArticle.Replace(lowered, "");
@@ -87,6 +87,38 @@ public static class TitleNormalizer
             return false;
         }
         return longer.StartsWith(shorter, StringComparison.Ordinal) && longer.Length - shorter.Length <= maxTruncation;
+    }
+
+    /// <summary>
+    /// True if one full name is the other plus a trailing word or two - real case that missed
+    /// live: a favorite-writer entry of "James Tynion" never matched Odin #5's actual credit,
+    /// "James Tynion IV" (his real byline), because exact-normalized-name matching (chosen
+    /// deliberately, to avoid a bare last name like "Moore" matching every "Moore" in
+    /// existence) doesn't tolerate a generational suffix (Jr./Sr./II/III/IV) either the
+    /// tracked entry or DCBS's own credit might omit. Bidirectional word-boundary prefix
+    /// check rather than a plain substring test, so "James Tynion" can match "James Tynion IV"
+    /// (and vice versa) without also matching an unrelated "James Tynion-Smith" or unrelated
+    /// name that merely contains the same characters.
+    /// </summary>
+    public static bool IsLikelyNameMatch(string nameA, string nameB)
+    {
+        // Hyphens are stripped outright (not turned into a word-boundary space, unlike the
+        // shared NormalizeKeepingWordBoundaries' general punctuation pass) so a hyphenated
+        // surname stays one token - caught by this method's own test coverage: without this,
+        // "James Tynion" wrongly matched a hypothetical "James Tynion-Smith" because the
+        // hyphen-turned-space created a false word boundary between them. Done here rather
+        // than changing NormalizeKeepingWordBoundaries itself, which title-matching
+        // (IsLikelySeriesMatch) already depends on with the opposite (space) behavior for
+        // titles like "X-Men".
+        var a = NormalizeKeepingWordBoundaries(nameA.Replace("-", ""));
+        var b = NormalizeKeepingWordBoundaries(nameB.Replace("-", ""));
+        if (a.Length == 0 || b.Length == 0)
+        {
+            return false;
+        }
+        return a == b
+            || a.StartsWith(b + " ", StringComparison.Ordinal)
+            || b.StartsWith(a + " ", StringComparison.Ordinal);
     }
 
     public static bool IsLikelySeriesMatch(string listingTitle, string seriesTitle, int maxGapWords = 0)

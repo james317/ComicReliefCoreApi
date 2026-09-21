@@ -63,30 +63,27 @@ public class SolicitationService : ISolicitationService
         var rows = await _store.GetAllAsync(ct);
         var orderedCodes = await _orderStore.GetProductCodesAsync(ct);
         var writerPrefs = await _writerPreferences.GetAllAsync(ct);
-        var favoriteNames = writerPrefs
-            .Where(w => w.Type == WriterPreferenceType.Favorite)
-            .Select(w => w.NormalizedName)
-            .ToHashSet();
-        var avoidNames = writerPrefs
-            .Where(w => w.Type == WriterPreferenceType.Avoid)
-            .Select(w => w.NormalizedName)
-            .ToHashSet();
+        var favoritePrefs = writerPrefs.Where(w => w.Type == WriterPreferenceType.Favorite).ToList();
+        var avoidPrefs = writerPrefs.Where(w => w.Type == WriterPreferenceType.Avoid).ToList();
 
         return rows
             .Select(r =>
             {
                 List<string>? favoriteMatches = null;
                 List<string>? avoidMatches = null;
-                if (favoriteNames.Count > 0 || avoidNames.Count > 0)
+                if (favoritePrefs.Count > 0 || avoidPrefs.Count > 0)
                 {
                     foreach (var writer in CreatorCreditParser.ExtractWriterNames(r.Item.CreatorsAndDescription))
                     {
-                        var normalized = TitleNormalizer.Normalize(writer);
-                        if (favoriteNames.Contains(normalized))
+                        // Word-boundary prefix match (not exact-normalized-string equality) -
+                        // tolerates a generational suffix (Jr./Sr./II/III/IV) either side might
+                        // omit, e.g. a tracked "James Tynion" matching DCBS's own credit of
+                        // "James Tynion IV" - see TitleNormalizer.IsLikelyNameMatch.
+                        if (favoritePrefs.Any(p => TitleNormalizer.IsLikelyNameMatch(p.Name, writer)))
                         {
                             (favoriteMatches ??= new List<string>()).Add(writer);
                         }
-                        else if (avoidNames.Contains(normalized))
+                        else if (avoidPrefs.Any(p => TitleNormalizer.IsLikelyNameMatch(p.Name, writer)))
                         {
                             (avoidMatches ??= new List<string>()).Add(writer);
                         }
