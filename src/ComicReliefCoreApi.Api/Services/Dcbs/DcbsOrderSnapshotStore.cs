@@ -1,6 +1,7 @@
 using ComicReliefCoreApi.Api.Data;
 using ComicReliefCoreApi.Api.Models;
 using ComicReliefCoreApi.Api.Models.Dcbs;
+using ComicReliefCoreApi.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace ComicReliefCoreApi.Api.Services.Dcbs;
@@ -68,9 +69,20 @@ public class DcbsOrderSnapshotStore : IDcbsOrderSnapshotStore
         // case-insensitive (mishandles non-ASCII titles) - loading and filtering in memory
         // sidesteps that. A personal order history (low hundreds of lines even after years)
         // is nowhere near large enough for this to matter.
+        //
+        // Matched on TitleNormalizer.Normalize (strips every non-alphanumeric character,
+        // not just case) rather than a raw Contains - confirmed live that a plain substring
+        // match on the raw title missed a real title entirely when the search term's
+        // apostrophe was a curly quote ("You'll...") instead of the straight one DCBS's own
+        // title actually uses ("You'll...") - exactly the character iOS autocorrect
+        // substitutes by default, so a search typed naturally on the phone this app is built
+        // for would silently fail. Normalizing strips apostrophes (of either kind) and all
+        // other punctuation/spacing from both sides before comparing, so "You'll", "Youll",
+        // and "You'll" (and any spacing/punctuation variant) all match the same way.
+        var normalizedTerm = TitleNormalizer.Normalize(term);
         var all = await _db.DcbsOrderSnapshotLines.AsNoTracking().ToListAsync(ct);
         return all
-            .Where(l => l.Title.Contains(term, StringComparison.OrdinalIgnoreCase))
+            .Where(l => TitleNormalizer.Normalize(l.Title).Contains(normalizedTerm, StringComparison.Ordinal))
             .OrderByDescending(l => l.OrderDate)
             .ThenBy(l => l.Title)
             .ToList();
