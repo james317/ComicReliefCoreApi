@@ -16,9 +16,26 @@ and add them once confirmed.
 1. A box arrives from DCBS.
 2. Scan all the issues in that shipment into the CLZ (Comic Book Collector)
    app.
-3. Export the CLZ collection to a CSV file.
-4. *(in progress — not yet confirmed: what exactly gets uploaded where, and
-   what "done" looks like)*
+3. Export to CSV — **confirmed 10/8: this export is scoped to just the new
+   shipment**, not the whole collection (so "Does 'export the collection'
+   mean the whole library or a shipment-scoped subset?" below is answered:
+   it's shipment-scoped). Real header from the user's own export:
+   `Series,Issue,"Variant Description",Publisher,"Cover Date","Storage Box",Title,"Added Date","Release Date"`.
+   Verified against the real parser (`ClzCsvParser.ParsePerIssueRows`,
+   confirmed by porting its exact rules and running them against the
+   user's actual file): all rows parsed cleanly, multiple covers of one
+   issue (e.g. two different Vampirella #6 variants) correctly collapse to
+   one row. The CSV's own "Added Date" column happened to read today's
+   date for every row on this export (everything scanned in one sitting) -
+   worth noting only because it's what made the date-based assumption feel
+   plausible; confirmed (again) that column still isn't read by the parser
+   at all.
+4. Upload via the **shipment-scoped** import on the Shipments tab
+   (`/api/clz/import-shipment-issues`) - see the mechanics below for why
+   this (not the Pull List upload) is the correct one.
+5. *(not yet confirmed: what happens after upload - does the user pick the
+   shipment and read in release-date order immediately, or something else
+   first? what does "done" look like?)*
 
 ## How the app actually behaves at step 4 — verified against the real code 9/21
 
@@ -85,8 +102,6 @@ Here's what's actually true instead:
 
 - What happens physically before scanning into CLZ (unboxing against a
   packing list? sorting by pull-list priority? something else)?
-- Does "export the collection" mean the whole CLZ library every time, or a
-  CLZ-side saved search/tag scoped to just this shipment?
 - What does the user consider "done" for a shipment — all items read? All
   items shelved? Something else?
 - Anything the user does with the missed-issue check results once they see
