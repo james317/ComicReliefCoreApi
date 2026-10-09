@@ -110,12 +110,17 @@ Here's what's actually true instead:
    one-shot/special from its title - left untracked rather than
    auto-added." The step: after syncing, check the Pull List tab's **Just
    Rode In** group, and for anything that's actually an ongoing series
-   (not a true one-shot), add it by hand using the same title shown on
-   the card, via the regular Add box - that runs it through the normal
-   `AddToPullListAsync` DCBS-add attempt the heuristic skipped.
-   **Not yet built**: unlike Still Wanted's one-click "Retry all" button
-   (`/api/pulllist/retry-unsticky`), there's no bulk action for Just Rode
-   In yet - today it's one add per title.
+   (not a true one-shot), hit the **"Try adding to Pull List"** button on
+   its card - that runs it through the same `AddToPullListAsync` DCBS-add
+   attempt the heuristic skipped, resolving it to Sticky (added for real)
+   or Still Wanted (didn't take) same as any other add.
+   **Deliberately no bulk "try all" here** - unlike Still Wanted's
+   one-click "Retry all" (`/api/pulllist/retry-unsticky`), where every
+   entry is already believed to be a real series. Most of what lands in
+   Just Rode In genuinely are one-shots/specials the heuristic correctly
+   caught; a "try all" would just churn through a wall of expected
+   failures. Per-card is the per-title judgment call this step actually
+   needs.
 
 ## Open questions — ask the user, don't guess
 

@@ -207,6 +207,45 @@
       info.appendChild(metaEl);
     }
 
+    // Just Rode In entries are deliberately not auto-attempted (see
+    // DetectAndTrackNewFirstIssuesAsync's one-shot/special heuristic) - no "try all"
+    // alongside this, since most of this group really are one-shots/specials and
+    // churning through all of them would just be a wall of expected failures.
+    if (entry.status === "Unresolved") {
+      const addBtn = document.createElement("button");
+      addBtn.type = "button";
+      addBtn.className = "secondary";
+      addBtn.textContent = "Try adding to Pull List";
+      addBtn.style.marginTop = "8px";
+      addBtn.addEventListener("click", async () => {
+        addBtn.disabled = true;
+        addBtn.textContent = "Trying…";
+        log("tryAddUnresolved: starting", { id: entry.id, title: entry.title });
+        try {
+          const res = await fetch("/api/pulllist/add", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: entry.title }),
+          });
+          if (!res.ok) throw new Error(`Request failed (${res.status})`);
+          const updated = await res.json();
+          log("tryAddUnresolved: result", updated);
+          if (updated.status === "Sticky") {
+            showMessage(`"${updated.title}" is corralled on your DCBS pull list.`, false);
+          } else {
+            showMessage(`"${updated.title}" wouldn't stick — moved to Still Wanted. ${updated.failureReason ?? ""}`, true);
+          }
+          await loadList();
+        } catch (err) {
+          console.error("[pull-list] tryAddUnresolved: failed", err);
+          showMessage(`Something went wrong: ${err.message}`, true);
+          addBtn.disabled = false;
+          addBtn.textContent = "Try adding to Pull List";
+        }
+      });
+      info.appendChild(addBtn);
+    }
+
     card.appendChild(badge);
     card.appendChild(info);
 
