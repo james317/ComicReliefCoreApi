@@ -97,6 +97,25 @@ Here's what's actually true instead:
    in, sync order history (Candidates tab) so a missed-issue check can flag
    anything that should have shown up in this shipment but didn't
    (`IssueContinuityService`/Missed Issues).
+7. **Confirmed 10/9 - a step the user had been skipping over when
+   describing this process:** that same order sync (`/api/orders/sync-recent`,
+   fired from the Shipments, Candidates, *and* Solicitations tabs - all
+   three call the same endpoint) also runs
+   `PullListService.DetectAndTrackNewFirstIssuesAsync`. For every real
+   issue #1 in a newly-synced order, it checks the extracted series title
+   against a one-shot/special heuristic (`one-shot`/`special` in the
+   title). If it matches, the app deliberately does **not** try adding it
+   to DCBS's real sticky pull list - it's tracked as `Unresolved`
+   ("Just Rode In" on the Pull List tab) with the note "Looks like a
+   one-shot/special from its title - left untracked rather than
+   auto-added." The step: after syncing, check the Pull List tab's **Just
+   Rode In** group, and for anything that's actually an ongoing series
+   (not a true one-shot), add it by hand using the same title shown on
+   the card, via the regular Add box - that runs it through the normal
+   `AddToPullListAsync` DCBS-add attempt the heuristic skipped.
+   **Not yet built**: unlike Still Wanted's one-click "Retry all" button
+   (`/api/pulllist/retry-unsticky`), there's no bulk action for Just Rode
+   In yet - today it's one add per title.
 
 ## Open questions — ask the user, don't guess
 

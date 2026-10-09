@@ -70,7 +70,13 @@ Quoted directly rather than paraphrased, since the exact phrase
    stale/completed/cancelled series can be identified and removed from
    the sticky pull list. *(Not yet confirmed: whether the user actually
    uses this section for that purpose today, or does pull-list cleanup
-   some other way.)*
+   some other way.)* The other confirmed half of this step: checking the
+   Pull List tab's **Just Rode In** group (new issue #1s the app's
+   one-shot/special heuristic deliberately left untouched during the
+   order sync that happens on checkout) and manually adding anything
+   that's actually an ongoing series — see `docs/SHIPMENT-PROCESS.md`
+   step 7 for the full mechanism, since the same order-sync endpoint and
+   heuristic apply regardless of which tab triggers the sync.
 
 ## Why the app can't push to the cart itself — the real architecture
 
