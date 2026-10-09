@@ -19,6 +19,13 @@ that don't survive that on their own:**
   code genuinely behaves (verified against source, not assumed). Keep this
   updated the moment the user describes a new or corrected step - don't
   let it go stale the way it did before this file existed.
+- `docs/ORDERING-PROCESS.md` — the separate monthly process of building and
+  placing *next* month's order (catalogs → DCBS auto-cart-from-pull-list →
+  variant-cover swaps → cart glance-through → #1s check → checkout →
+  pull-list touch-up) - don't confuse this with SHIPMENT-PROCESS.md, which
+  is about a shipment that already arrived. Also explains why the app
+  can't push to DCBS's cart itself (session-routing, not a missing
+  feature) - see that file before re-deriving or re-litigating this.
 
 After any `dotnet build`-worthy change: build before committing, push to
 `master`, then verify the change live (curl the deployed app / API) rather
