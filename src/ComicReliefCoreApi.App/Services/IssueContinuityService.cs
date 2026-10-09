@@ -6,6 +6,18 @@ namespace ComicReliefCoreApi.App.Services;
 
 public class IssueContinuityService : IIssueContinuityService
 {
+    // A legacy-numbering relaunch (e.g. Amazing Spider-Man jumping from its current volume's
+    // #36 straight to legacy issue #1000 for an anniversary) looks identical to a huge missed-
+    // issue run from this data alone - DCBS order titles carry no volume/series metadata to
+    // tell the two apart, only issue numbers. Confirmed live 10/9: this produced 2,613 bogus
+    // flags across the account, the overwhelming majority from this one jump (36 through 999,
+    // all "missing"). A real missed-issue run from skipped orders is realistically small - at
+    // most a year or so of a monthly book - so nothing close to this size is actually
+    // purchasable/relevant to flag. Treat any upward jump past this size the same way a
+    // downward relaunch-to-#1 jump is already treated below: as the start of a new run, not a
+    // one-flag-per-missing-number gap.
+    private const int MaxPlausibleGap = 12;
+
     private readonly IPullListService _pullList;
     private readonly IDcbsOrderSnapshotStore _orderStore;
 
@@ -79,7 +91,7 @@ public class IssueContinuityService : IIssueContinuityService
                     continue;
                 }
 
-                if (number > runMax + 1)
+                if (number > runMax + 1 && number - runMax - 1 <= MaxPlausibleGap)
                 {
                     for (var missing = runMax + 1; missing < number; missing++)
                     {
@@ -87,8 +99,9 @@ public class IssueContinuityService : IIssueContinuityService
                     }
                 }
 
-                // Normal continuation (number == runMax + 1) or a relaunch/new volume
-                // (number < runMax - 1) both just advance the run the same way from here.
+                // Normal continuation (number == runMax + 1), a downward relaunch/new volume
+                // (number < runMax - 1), and an upward legacy-numbering jump too big to be a
+                // real gap (handled above) all just advance the run the same way from here.
                 runMax = number;
                 runMaxOrderId = orderId;
             }
