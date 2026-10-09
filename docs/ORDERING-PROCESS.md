@@ -31,6 +31,15 @@ Quoted directly rather than paraphrased, since the exact phrase
    job is to keep that sticky list accurate (the Pull List tab's whole
    purpose); DCBS does the population itself.
 
+   **Hard ordering requirement, confirmed 10/9**: DCBS builds the
+   "Pull List Matches" table (below) by reading whatever is sticky *at
+   the moment it builds that page* — there's no later reconciliation
+   pass. So step 7 of `docs/SHIPMENT-PROCESS.md` (hand-adding real
+   ongoing series out of the Pull List tab's **Just Rode In** group) has
+   to be done *before* this step for the current cycle, or that series'
+   next issue silently won't appear as a match this time around — it
+   isn't retried automatically next month either, it's just missed.
+
    **Confirmed 10/9 from a real printed copy of this page** (DCBS's
    "Create Order from Pull List" page, September 2026 Preorders). Page
    copy reads: "Review the pull list and variant matches below and make
