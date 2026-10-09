@@ -30,9 +30,47 @@ Quoted directly rather than paraphrased, since the exact phrase
    auto-cart-from-pull-list" means in the user's own outline. The app's
    job is to keep that sticky list accurate (the Pull List tab's whole
    purpose); DCBS does the population itself.
-3. *(not yet confirmed: variant-cover swaps, cart glance-through, #1s
-   check, checkout, pull-list touch-up — these are named in the user's own
-   outline above but haven't been walked through in detail yet)*
+
+   **Confirmed 10/9 from a real printed copy of this page** (DCBS's
+   "Create Order from Pull List" page, September 2026 Preorders). Page
+   copy reads: "Review the pull list and variant matches below and make
+   any needed quantity adjustments. Click the 'Add Pull List to Cart'
+   button to add the products to your shopping cart." It has three
+   distinct sections, in this order:
+   - **"Pull List Matches"** — one row per series on the pull list that
+     has a new solicitation this month, **default cover only**, with
+     **Qty to Add pre-set to 1**. 43 items this month (Doom Patrol #3,
+     Batman #15, Odin #5, several Star Wars trades, Comic Shop News
+     issues at $0.50 each, etc.).
+   - **"Variants and Incentives"** — every *other* cover of those same
+     matched titles (virgin/incentive/connecting variants, 1:10s, 1:25s,
+     1:100s...), **Qty to Add pre-set to 0** by default. 99 items this
+     month. This is the real mechanism behind "variant-cover swaps" (see
+     below).
+   - **"Pull List Titles without a Match"** — a plain list (Series
+     Title + DCBS's internal Series Code, no prices/quantities) of pull
+     list series that have **no** solicitation this month at all. 95
+     series this month, and looking at them they're overwhelmingly old,
+     completed, or cancelled minis (e.g. Batman: Three Jokers, Dark
+     Nights: Death Metal, Darth Maul, Harrow County, Immortal Iron
+     Fist) rather than ongoing series just skipping a month. This is the
+     real mechanism behind "pull-list touch-up" (see below).
+3. **Variant-cover swaps** (confirmed 10/9, from the page structure
+   above): for any matched title where the user prefers a variant over
+   the default cover, the swap is manually zeroing out "Qty to Add" on
+   the default-cover row in "Pull List Matches" and setting it to 1 on
+   the preferred row in "Variants and Incentives" — DCBS doesn't guess
+   which variant is wanted, it always defaults to the plain cover.
+4. *(not yet confirmed: cart glance-through, #1s check, checkout — named
+   in the user's own outline above but not walked through in detail yet)*
+5. **Pull-list touch-up** (partially confirmed 10/9): the "Pull List
+   Titles without a Match" section above is a direct, built-in prompt for
+   this step — it's DCBS surfacing every pull-list series that didn't
+   generate a match this cycle, by title and series code, specifically so
+   stale/completed/cancelled series can be identified and removed from
+   the sticky pull list. *(Not yet confirmed: whether the user actually
+   uses this section for that purpose today, or does pull-list cleanup
+   some other way.)*
 
 ## Why the app can't push to the cart itself — the real architecture
 
@@ -63,16 +101,13 @@ Quoted directly rather than paraphrased, since the exact phrase
 
 ## Open questions — ask the user, don't guess
 
-- What does "variant-cover swaps" involve in practice - swapping a
-  default cover for a preferred variant DCBS already added automatically,
-  or something else?
 - What's being checked during "cart glance-through" - price, quantity,
   something DCBS might have gotten wrong?
 - Does "#1s check" mean cross-referencing against the app's own New #1s
   view (Solicitations tab), or a separate manual pass?
-- What does "pull-list touch-up" after checkout involve - archiving
-  one-shots that shipped, correcting anything the month's experience
-  revealed?
+- Does the user actually use the "Pull List Titles without a Match"
+  section (see above) to remove stale/completed series from the pull
+  list, or handle that cleanup some other way?
 
 Update this file as these get answered, in the same direct,
 first-person-verified style as above — not as a guess.
