@@ -25,4 +25,7 @@ public interface IDcbsOrderSnapshotStore
 
     /// <summary>Every synced line (full detail, every field) whose Title contains term - case-insensitive, across every order on file. No relevance ranking - a personal order history is small enough that "everything that matches, newest order first" is enough.</summary>
     Task<IReadOnlyList<DcbsOrderSnapshotLine>> SearchLinesAsync(string term, CancellationToken ct = default);
+
+    /// <summary>Every synced line, full detail, unfiltered - for a caller doing its own in-memory matching (e.g. a cart-duplicate check against messy pasted text) rather than a single clean search term.</summary>
+    Task<IReadOnlyList<DcbsOrderSnapshotLine>> GetAllFullLinesAsync(CancellationToken ct = default);
 }

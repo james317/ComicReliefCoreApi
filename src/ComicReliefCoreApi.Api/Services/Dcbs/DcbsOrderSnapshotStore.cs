@@ -87,4 +87,7 @@ public class DcbsOrderSnapshotStore : IDcbsOrderSnapshotStore
             .ThenBy(l => l.Title)
             .ToList();
     }
+
+    public async Task<IReadOnlyList<DcbsOrderSnapshotLine>> GetAllFullLinesAsync(CancellationToken ct = default) =>
+        await _db.DcbsOrderSnapshotLines.AsNoTracking().ToListAsync(ct);
 }

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Cart Check — If You Pull, Don't Miss</title>
+<meta name="theme-color" content="#3a2214" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Rye&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<nav class="trail-nav">
+  <a href="/index.html">Solicitations</a>
+  <a href="/pull-list.html">Pull List</a>
+  <a href="/candidates.html">Candidates</a>
+  <a href="/shipments.html">Shipments</a>
+  <a href="/order-history.html">Order History</a>
+  <a href="/cart-check.html" class="active">Cart Check</a>
+  <a href="/reading-log.html">Reading Log</a>
+  <a href="/writers.html">Writers</a>
+  <a href="/dcbs-session.html">DCBS Session</a>
+</nav>
+<main class="content">
+  <h1 class="page-heading">Cart Check</h1>
+  <p class="page-intro">
+    The app can't read DCBS's live cart itself (session-routing — see
+    <code>docs/ORDERING-PROCESS.md</code>), so paste it here by hand before you submit:
+    copy everything out of the cart or the "Create Order from Pull List" page and drop
+    it in below, one item per line, however messy — price and quantity text along with
+    the title is fine. Each line gets checked against every order you've already synced,
+    so anything you've bought before — a different cycle's pull-list match, a title the
+    app already stuck onto your sticky list after a direct purchase — gets flagged before
+    it becomes a real duplicate on a placed order.
+  </p>
+
+  <textarea id="cartText" placeholder="Paste cart contents here, one item per line…" autocomplete="off" spellcheck="false"></textarea>
+
+  <div class="actions">
+    <button id="checkBtn">Check for duplicates</button>
+  </div>
+
+  <div class="message" id="message"></div>
+
+  <ul class="comic-list" id="resultsList"></ul>
+</main>
+<script src="/cart-check.js"></script>
+</body>
+</html>

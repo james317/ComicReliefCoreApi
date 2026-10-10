@@ -53,4 +53,25 @@ public sealed class OrdersController : ControllerBase
 
         return Ok(await _orders.SearchAsync(term, cancellationToken));
     }
+
+    /// <summary>
+    /// One line per item, pasted straight from whatever's about to go in the DCBS cart -
+    /// see IOrderSnapshotService.CheckCartForDuplicatesAsync for why this exists and why
+    /// it can't just read the live cart itself. Never touches DCBS - purely a check against
+    /// already-synced order history.
+    /// </summary>
+    [HttpPost("check-cart")]
+    public async Task<ActionResult<IReadOnlyList<CartLineCheckResult>>> CheckCart(
+        [FromBody] CheckCartRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.CartText))
+        {
+            return BadRequest("cartText is required.");
+        }
+
+        var lines = request.CartText.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        return Ok(await _orders.CheckCartForDuplicatesAsync(lines, cancellationToken));
+    }
 }
+
+public sealed record CheckCartRequest(string CartText);

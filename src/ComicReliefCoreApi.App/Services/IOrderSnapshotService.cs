@@ -37,6 +37,9 @@ public record OrderSyncResult(
     IReadOnlyDictionary<string, string> OrderErrors,
     IReadOnlyList<NewFirstIssueDetection> NewFirstIssues);
 
+/// <summary>One pasted cart line, and whatever already-ordered lines look like the same item - empty when nothing matched.</summary>
+public record CartLineCheckResult(string PastedLine, IReadOnlyList<OrderedItemSearchResult> PossibleDuplicates);
+
 /// <summary>
 /// Persists the user's DCBS order history so a candidates rescan can flag "this matches
 /// your pull list and isn't in anything you've ordered" - checked against every synced
@@ -66,4 +69,21 @@ public interface IOrderSnapshotService
     /// whatever the last "Sync Order History" already pulled in.
     /// </summary>
     Task<IReadOnlyList<OrderedItemSearchResult>> SearchAsync(string term, CancellationToken ct = default);
+
+    /// <summary>
+    /// Real incident this exists for: DCBS's own "Create Order from Pull List" page matched a
+    /// title the user had already bought in a separate order (the sticky pull list had picked
+    /// it up automatically after that purchase - see docs/BACKLOG.md's 10/10/2026 entry), and
+    /// submitting the cart as a new order duplicated it rather than catching the overlap, with
+    /// no way to undo it after the fact. The app can't read DCBS's live cart itself (session-
+    /// routing - see docs/ORDERING-PROCESS.md), so this takes the cart's contents pasted by
+    /// hand instead: one line per item, however messy (title plus whatever price/qty/cover text
+    /// came along with it), and checks each against every synced order line using the same
+    /// forgiving bidirectional-contains match <see cref="PullListService.FindKnownOrRecentPurchaseAsync"/>
+    /// uses for "is this the same item" - not the stricter one-directional Contains
+    /// IDcbsOrderSnapshotStore.SearchLinesAsync uses for a clean typed search term, since pasted
+    /// cart text usually isn't clean.
+    /// </summary>
+    Task<IReadOnlyList<CartLineCheckResult>> CheckCartForDuplicatesAsync(
+        IReadOnlyList<string> pastedLines, CancellationToken ct = default);
 }

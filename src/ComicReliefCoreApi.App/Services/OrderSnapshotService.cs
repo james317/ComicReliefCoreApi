@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using ComicReliefCoreApi.Api.Models.Dcbs;
+using ComicReliefCoreApi.Api.Services;
 using ComicReliefCoreApi.Api.Services.Dcbs;
 using Microsoft.Extensions.Logging;
 
@@ -105,5 +106,61 @@ public class OrderSnapshotService : IOrderSnapshotService
                 match.Item?.ProductUrl,
                 match.Publisher);
         }).ToList();
+    }
+
+    // Below this length a normalized fragment ("1", "Qty", a lone cover letter) is a substring
+    // of nearly every title on file - matching it would flood every pasted line with bogus
+    // duplicates instead of the real ones. Real series/issue titles normalize to well past
+    // this; nothing legitimate gets excluded by it.
+    private const int MinNormalizedLengthToMatch = 4;
+
+    public async Task<IReadOnlyList<CartLineCheckResult>> CheckCartForDuplicatesAsync(
+        IReadOnlyList<string> pastedLines, CancellationToken ct = default)
+    {
+        var allLines = await _store.GetAllFullLinesAsync(ct);
+        var solicited = await _solicitationStore.GetAllAsync(ct);
+        var byProductCode = solicited.ToDictionary(
+            s => s.Item.ProductCode.ToUpperInvariant(), s => s, StringComparer.Ordinal);
+
+        var results = new List<CartLineCheckResult>();
+        foreach (var rawLine in pastedLines)
+        {
+            var line = rawLine.Trim();
+            if (line.Length == 0)
+            {
+                continue;
+            }
+
+            var normalizedLine = TitleNormalizer.Normalize(line);
+
+            // Bidirectional, same idiom as PullListService.FindKnownOrRecentPurchaseAsync -
+            // pasted cart text usually carries extra noise (price, qty, cover letter) that a
+            // one-directional Contains (the clean-search-term case SearchLinesAsync handles)
+            // would reject as "no match" even when it's obviously the same item.
+            var matches = allLines
+                .Where(l =>
+                {
+                    var normalizedTitle = TitleNormalizer.Normalize(l.Title);
+                    if (normalizedTitle.Length < MinNormalizedLengthToMatch || normalizedLine.Length < MinNormalizedLengthToMatch)
+                    {
+                        return false;
+                    }
+                    return normalizedTitle.Contains(normalizedLine, StringComparison.Ordinal)
+                        || normalizedLine.Contains(normalizedTitle, StringComparison.Ordinal);
+                })
+                .Select(l =>
+                {
+                    byProductCode.TryGetValue(l.ProductCode.ToUpperInvariant(), out var match);
+                    return new OrderedItemSearchResult(
+                        l.OrderId, l.OrderDate, l.ProductCode, l.Title, l.Quantity, l.UnitPrice, l.Status,
+                        match.Item?.ThumbnailUrl ?? l.ThumbnailUrl, match.Item?.ProductUrl, match.Publisher);
+                })
+                .OrderByDescending(m => m.OrderDate)
+                .ToList();
+
+            results.Add(new CartLineCheckResult(rawLine, matches));
+        }
+
+        return results;
     }
 }
