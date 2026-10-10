@@ -1381,3 +1381,39 @@ across repeated syncs rather than re-flagged forever. `OrderSyncResult` gained a
 `NewFirstIssues` list surfaced in both calling pages: `shipments.html` gets a full "Newly
 tracked from orders" section, `candidates.html` folds the count into its existing sync
 status message.
+
+## Real finding: DCBS's "Pull List Matches" table includes titles NOT on the sticky pull list (10/10/2026)
+
+**Corrects an assumption stated as fact in `docs/ORDERING-PROCESS.md`** (added 10/9, same
+session): that DCBS's "Create Order from Pull List" page builds its "Pull List Matches"
+table purely by cross-referencing solicitations against the account's real, persistent
+sticky pull list (`/account/pulllist`). That's wrong, or at least incomplete.
+
+Confirmed by comparing two real printed pages from the same account, same month
+(September 2026 preorders):
+- The "Create Order from Pull List" page's "Pull List Matches" table (Qty to Add
+  pre-set to 1) included **Death Vigil (2026) #4**, **Monstress #66**, **That Texas Blood
+  Hell Comes To Allison Ranch #3**, and **Die Loaded #11**.
+- The real `/account/pulllist` page's "Current Pull List Titles" list - the actual sticky
+  list, alphabetized, confirmed complete (runs start to finish, ends in the site nav, no
+  pagination) - has **none of those four series** anywhere in it. Verified by exact
+  series-name grep against the full extracted list, not a fuzzy guess.
+
+So matching onto the order-build page's "Pull List Matches" table is not proof a title is
+genuinely on the sticky list - DCBS's matching there is evidently broader than just that
+list. The order-build page's own copy hints at why: the `/account/pulllist` page explicitly
+offers two separate ways to get a title into pull-list territory - "Search for Pull List
+Titles" (the real sticky add) and "add items directly from your order history" - suggesting
+the order-build page's candidate list may draw on order history too, not only the sticky
+list. Unconfirmed which mechanism actually explains it; DCBS gives no way to ask it directly.
+
+Checked the obvious alternative explanation first and ruled it out: this app's own order
+sync (`/api/orders/search`) also shows **zero** prior orders for all four titles - but that
+window only covers the last 21 synced orders (~7 months back), so it can't rule out an order
+from further back explaining DCBS's own, unknown-length lookback.
+
+**Practical takeaway, until DCBS's real logic is understood:** a title showing up in "Pull
+List Matches" is not by itself a reason to assume it's wanted - cross-check it against
+the real `/account/pulllist` page (or run `/api/pulllist/reconcile`, which pulls in anything
+genuinely sticky but untracked by this app) before assuming "on my pull list" rather than
+"DCBS thinks I might want this."

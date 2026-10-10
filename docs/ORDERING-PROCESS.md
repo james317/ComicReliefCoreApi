@@ -25,20 +25,34 @@ Quoted directly rather than paraphrased, since the exact phrase
 2. **Go to DCBS directly and open the new month's order.** This is *not*
    a workaround for a missing app feature — it's the intended design.
    DCBS's own site auto-populates the draft order/cart by cross-referencing
-   the current month's solicitations against the account's real, persistent
-   sticky pull list (`/account/pulllist`) — that's what "DCBS
-   auto-cart-from-pull-list" means in the user's own outline. The app's
-   job is to keep that sticky list accurate (the Pull List tab's whole
-   purpose); DCBS does the population itself.
+   the current month's solicitations against the account's pull list —
+   that's what "DCBS auto-cart-from-pull-list" means in the user's own
+   outline. The app's job is to keep the real sticky pull list
+   (`/account/pulllist`) accurate (the Pull List tab's whole purpose).
 
-   **Hard ordering requirement, confirmed 10/9**: DCBS builds the
-   "Pull List Matches" table (below) by reading whatever is sticky *at
-   the moment it builds that page* — there's no later reconciliation
-   pass. So step 7 of `docs/SHIPMENT-PROCESS.md` (hand-adding real
-   ongoing series out of the Pull List tab's **Just Rode In** group) has
-   to be done *before* this step for the current cycle, or that series'
-   next issue silently won't appear as a match this time around — it
-   isn't retried automatically next month either, it's just missed.
+   **Correction, 10/10**: the paragraph above used to claim this
+   cross-reference is purely against the real sticky pull list. That's
+   now confirmed wrong — see `docs/BACKLOG.md`'s 10/10/2026 entry. A real
+   side-by-side of the same month's order-build page and the real
+   `/account/pulllist` page showed four titles (Death Vigil, Monstress,
+   That Texas Blood, Die Loaded) matched into "Pull List Matches" that
+   are **not** on the sticky list at all. DCBS's matching logic on that
+   page is broader than the sticky list alone - possibly also drawing on
+   order history (the real pull-list page's own copy mentions adding
+   items "directly from your order history" as a separate path) - exact
+   mechanism unconfirmed. **Practical effect: don't treat a "Pull List
+   Matches" row as proof something is genuinely on the sticky list.**
+   Cross-check the real `/account/pulllist` page, or run
+   `/api/pulllist/reconcile`, before trusting it.
+
+   **Hard ordering requirement, confirmed 10/9, still holds for the
+   sticky-list half of the matching**: DCBS reads whatever actually is
+   sticky *at the moment it builds that page* — there's no later
+   reconciliation pass for that part. So step 7 of
+   `docs/SHIPMENT-PROCESS.md` (hand-adding real ongoing series out of the
+   Pull List tab's **Just Rode In** group) still has to be done *before*
+   this step for the current cycle, or that series' next issue won't
+   appear as a genuine sticky-list match this time around.
 
    **Confirmed 10/9 from a real printed copy of this page** (DCBS's
    "Create Order from Pull List" page, September 2026 Preorders). Page
@@ -123,6 +137,13 @@ Quoted directly rather than paraphrased, since the exact phrase
 - Does the user actually use the "Pull List Titles without a Match"
   section (see above) to remove stale/completed series from the pull
   list, or handle that cleanup some other way?
+- What actually puts a title in "Pull List Matches" when it's not on
+  the real sticky list (10/10 finding, `docs/BACKLOG.md`)? Order history
+  depth/recency, a stale sticky-list cache, a silently-rolled-forward
+  series code from an old relaunch, something else? DCBS gives no way to
+  ask directly - would need a deliberate test (e.g. watch what happens
+  to a title immediately after manually removing it from the sticky
+  list) to pin down.
 
 Update this file as these get answered, in the same direct,
 first-person-verified style as above — not as a guess.
