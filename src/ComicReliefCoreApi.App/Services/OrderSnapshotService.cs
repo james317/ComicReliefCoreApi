@@ -114,6 +114,49 @@ public class OrderSnapshotService : IOrderSnapshotService
     // this; nothing legitimate gets excluded by it.
     private const int MinNormalizedLengthToMatch = 4;
 
+    // Confirmed live on the very first real cart (10/18/2026): a plain bidirectional Contains
+    // on the full normalized title treats "Amazing Spider-Man #1005" as a match for "Amazing
+    // Spider-Man #10", and "Eyrie Magazine #17" for "Eyrie Magazine #1" - Normalize() strips
+    // the "#" and the space before it, so the shorter issue number ends up a literal character
+    // prefix of the longer one with nothing between the series name and the digits to stop it.
+    // When both sides carry an explicit "#<number>", require that number to match exactly
+    // before falling back to a (still bidirectional) Contains on the series-name portion alone,
+    // which isn't vulnerable to the same digit-adjacency problem.
+    private static bool LooksLikeSameItem(string pastedLine, string orderedTitle)
+    {
+        var pastedIssue = IssueNumberParser.TryParseWholeIssueNumber(pastedLine);
+        var orderedIssue = IssueNumberParser.TryParseWholeIssueNumber(orderedTitle);
+
+        if (pastedIssue is not null && orderedIssue is not null)
+        {
+            if (pastedIssue != orderedIssue)
+            {
+                return false;
+            }
+
+            var pastedSeries = TitleNormalizer.Normalize(IssueNumberParser.TryExtractSeriesTitle(pastedLine) ?? pastedLine);
+            var orderedSeries = TitleNormalizer.Normalize(IssueNumberParser.TryExtractSeriesTitle(orderedTitle) ?? orderedTitle);
+            if (pastedSeries.Length < MinNormalizedLengthToMatch || orderedSeries.Length < MinNormalizedLengthToMatch)
+            {
+                return false;
+            }
+            return pastedSeries.Contains(orderedSeries, StringComparison.Ordinal)
+                || orderedSeries.Contains(pastedSeries, StringComparison.Ordinal);
+        }
+
+        // At least one side has no "#<number>" to anchor on (a TP/HC/omnibus/magazine without
+        // one) - fall back to the original whole-text match; same idiom
+        // PullListService.FindKnownOrRecentPurchaseAsync uses for "is this the same item".
+        var normalizedPasted = TitleNormalizer.Normalize(pastedLine);
+        var normalizedOrdered = TitleNormalizer.Normalize(orderedTitle);
+        if (normalizedPasted.Length < MinNormalizedLengthToMatch || normalizedOrdered.Length < MinNormalizedLengthToMatch)
+        {
+            return false;
+        }
+        return normalizedPasted.Contains(normalizedOrdered, StringComparison.Ordinal)
+            || normalizedOrdered.Contains(normalizedPasted, StringComparison.Ordinal);
+    }
+
     public async Task<IReadOnlyList<CartLineCheckResult>> CheckCartForDuplicatesAsync(
         IReadOnlyList<string> pastedLines, CancellationToken ct = default)
     {
@@ -131,23 +174,8 @@ public class OrderSnapshotService : IOrderSnapshotService
                 continue;
             }
 
-            var normalizedLine = TitleNormalizer.Normalize(line);
-
-            // Bidirectional, same idiom as PullListService.FindKnownOrRecentPurchaseAsync -
-            // pasted cart text usually carries extra noise (price, qty, cover letter) that a
-            // one-directional Contains (the clean-search-term case SearchLinesAsync handles)
-            // would reject as "no match" even when it's obviously the same item.
             var matches = allLines
-                .Where(l =>
-                {
-                    var normalizedTitle = TitleNormalizer.Normalize(l.Title);
-                    if (normalizedTitle.Length < MinNormalizedLengthToMatch || normalizedLine.Length < MinNormalizedLengthToMatch)
-                    {
-                        return false;
-                    }
-                    return normalizedTitle.Contains(normalizedLine, StringComparison.Ordinal)
-                        || normalizedLine.Contains(normalizedTitle, StringComparison.Ordinal);
-                })
+                .Where(l => LooksLikeSameItem(line, l.Title))
                 .Select(l =>
                 {
                     byProductCode.TryGetValue(l.ProductCode.ToUpperInvariant(), out var match);
