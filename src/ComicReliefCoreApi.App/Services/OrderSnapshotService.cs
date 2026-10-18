@@ -134,14 +134,23 @@ public class OrderSnapshotService : IOrderSnapshotService
                 return false;
             }
 
-            var pastedSeries = TitleNormalizer.Normalize(IssueNumberParser.TryExtractSeriesTitle(pastedLine) ?? pastedLine);
-            var orderedSeries = TitleNormalizer.Normalize(IssueNumberParser.TryExtractSeriesTitle(orderedTitle) ?? orderedTitle);
+            // Word-boundary prefix match (same idiom as TitleNormalizer.IsLikelyNameMatch),
+            // not a plain Contains - confirmed live, same cart: a raw Contains treats "Superman"
+            // as a match for "Batman Superman Worlds Finest" (an unrelated, real, different
+            // series that happens to contain the word "Superman"), and "Hyde Street" as a match
+            // for "Sisterhood: A Hyde Street Story" (a distinct spin-off, not the same series).
+            // Requiring the shorter name to be a whole-word prefix of the longer one still
+            // matches "Vampirella (2026)" against "Vampirella" (DCBS's own volume-disambiguating
+            // suffix, same series) while rejecting both of the above.
+            var pastedSeries = TitleNormalizer.NormalizeKeepingWordBoundaries(IssueNumberParser.TryExtractSeriesTitle(pastedLine) ?? pastedLine);
+            var orderedSeries = TitleNormalizer.NormalizeKeepingWordBoundaries(IssueNumberParser.TryExtractSeriesTitle(orderedTitle) ?? orderedTitle);
             if (pastedSeries.Length < MinNormalizedLengthToMatch || orderedSeries.Length < MinNormalizedLengthToMatch)
             {
                 return false;
             }
-            return pastedSeries.Contains(orderedSeries, StringComparison.Ordinal)
-                || orderedSeries.Contains(pastedSeries, StringComparison.Ordinal);
+            return pastedSeries == orderedSeries
+                || pastedSeries.StartsWith(orderedSeries + " ", StringComparison.Ordinal)
+                || orderedSeries.StartsWith(pastedSeries + " ", StringComparison.Ordinal);
         }
 
         // At least one side has no "#<number>" to anchor on (a TP/HC/omnibus/magazine without
