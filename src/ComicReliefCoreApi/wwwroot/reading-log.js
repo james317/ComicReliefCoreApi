@@ -138,7 +138,12 @@ async function showWeek(releaseDate, scroll = true) {
     log('week', view);
     currentWeek = { date: releaseDate };
     renderWeek(view);
-    if (scroll) sameWeekHeading.scrollIntoView({ block: 'start' });
+    if (scroll) {
+      // Offset by the sticky tab bar, which otherwise covers the heading naming the week.
+      const navHeight = document.querySelector('.trail-nav')?.offsetHeight ?? 0;
+      const top = sameWeekHeading.getBoundingClientRect().top + window.scrollY - navHeight - 8;
+      window.scrollTo({ top });
+    }
   } catch (err) {
     log('showWeek failed', err);
   }
