@@ -7,7 +7,13 @@ const searchResults = document.getElementById('searchResults');
 const sameWeekSection = document.getElementById('sameWeekSection');
 const sameWeekHeading = document.getElementById('sameWeekHeading');
 const sameWeekList = document.getElementById('sameWeekList');
+const weekNavTop = document.getElementById('weekNavTop');
+const weekNavBottom = document.getElementById('weekNavBottom');
 const recentList = document.getElementById('recentList');
+
+// What the same-week section is currently showing, so marking something read in it can
+// refresh that exact view - anchored on an issue, or reached by stepping to a ship date.
+let currentWeek = null;
 
 function issueRow(item, onMarkRead, onShowSameWeek) {
   const li = document.createElement('li');
@@ -49,7 +55,7 @@ function issueRow(item, onMarkRead, onShowSameWeek) {
   return li;
 }
 
-async function markRead(item) {
+async function markRead(item, fromWeekView = false) {
   log('marking read', item);
   try {
     const res = await fetch('/api/reading-log/read', {
@@ -59,11 +65,50 @@ async function markRead(item) {
     });
     if (!res.ok) throw new Error(`Request failed (${res.status})`);
     await runSearch();
-    await showSameWeek(item);
+    if (fromWeekView && currentWeek?.date) {
+      await showWeek(currentWeek.date, false);
+    } else if (fromWeekView && currentWeek?.item) {
+      await showSameWeek(currentWeek.item);
+    } else {
+      await showSameWeek(item);
+    }
     await loadRecent();
   } catch (err) {
     log('markRead failed', err);
   }
+}
+
+function renderWeekNav(container, view) {
+  container.innerHTML = '';
+  const prev = document.createElement('button');
+  prev.type = 'button';
+  prev.className = 'secondary';
+  prev.textContent = view.previousReleaseDate ? `‹ ${view.previousReleaseDate}` : '‹ Earliest';
+  prev.disabled = !view.previousReleaseDate;
+  prev.addEventListener('click', () => showWeek(view.previousReleaseDate));
+
+  const next = document.createElement('button');
+  next.type = 'button';
+  next.className = 'secondary';
+  next.textContent = view.nextReleaseDate ? `${view.nextReleaseDate} ›` : 'Latest ›';
+  next.disabled = !view.nextReleaseDate;
+  next.addEventListener('click', () => showWeek(view.nextReleaseDate));
+
+  container.appendChild(prev);
+  container.appendChild(next);
+}
+
+function renderWeek(view) {
+  sameWeekHeading.textContent = view.series
+    ? `Shipped the same week as ${view.series} #${view.issueNumber} (${view.releaseDate})`
+    : `Shipped the week of ${view.releaseDate}`;
+  sameWeekList.innerHTML = '';
+  for (const same of view.sameWeekIssues) {
+    sameWeekList.appendChild(issueRow(same, (it) => markRead(it, true), null));
+  }
+  renderWeekNav(weekNavTop, view);
+  renderWeekNav(weekNavBottom, view);
+  sameWeekSection.hidden = false;
 }
 
 async function showSameWeek(item) {
@@ -72,20 +117,30 @@ async function showSameWeek(item) {
     const res = await fetch(`/api/reading-log/same-week?${params}`);
     if (res.status === 404) {
       sameWeekSection.hidden = true;
+      currentWeek = null;
       return;
     }
     if (!res.ok) throw new Error(`Request failed (${res.status})`);
     const view = await res.json();
     log('same week', view);
-
-    sameWeekHeading.textContent = `Shipped the same week as ${view.series} #${view.issueNumber} (${view.releaseDate})`;
-    sameWeekList.innerHTML = '';
-    for (const same of view.sameWeekIssues) {
-      sameWeekList.appendChild(issueRow(same, markRead, null));
-    }
-    sameWeekSection.hidden = false;
+    currentWeek = { item };
+    renderWeek(view);
   } catch (err) {
     log('showSameWeek failed', err);
+  }
+}
+
+async function showWeek(releaseDate, scroll = true) {
+  try {
+    const res = await fetch(`/api/reading-log/week?releaseDate=${encodeURIComponent(releaseDate)}`);
+    if (!res.ok) throw new Error(`Request failed (${res.status})`);
+    const view = await res.json();
+    log('week', view);
+    currentWeek = { date: releaseDate };
+    renderWeek(view);
+    if (scroll) sameWeekHeading.scrollIntoView({ block: 'start' });
+  } catch (err) {
+    log('showWeek failed', err);
   }
 }
 

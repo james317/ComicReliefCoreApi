@@ -125,6 +125,17 @@ public class ClzImportStore : IClzImportStore
             .ToListAsync(ct);
     }
 
+    public async Task<(DateOnly? Previous, DateOnly? Next)> GetAdjacentReleaseDatesAsync(DateOnly releaseDate, CancellationToken ct = default)
+    {
+        var previous = await _db.ClzIssueReleases
+            .Where(r => r.ReleaseDate != null && r.ReleaseDate < releaseDate)
+            .MaxAsync(r => r.ReleaseDate, ct);
+        var next = await _db.ClzIssueReleases
+            .Where(r => r.ReleaseDate != null && r.ReleaseDate > releaseDate)
+            .MinAsync(r => r.ReleaseDate, ct);
+        return (previous, next);
+    }
+
     public async Task<ClzIssueRelease?> GetIssueAsync(string normalizedSeries, int issueNumber, CancellationToken ct = default)
     {
         return await _db.ClzIssueReleases

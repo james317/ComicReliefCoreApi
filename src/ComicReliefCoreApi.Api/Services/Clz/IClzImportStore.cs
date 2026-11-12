@@ -41,6 +41,9 @@ public interface IClzImportStore
     /// <summary>Every ClzIssueRelease row sharing this exact release date, for "what else shipped the same week" - DCBS's own release-date granularity already buckets by weekly ship day, so exact-date equality is the same thing as "same week."</summary>
     Task<IReadOnlyList<ClzIssueRelease>> GetIssuesByReleaseDateAsync(DateOnly releaseDate, CancellationToken ct = default);
 
+    /// <summary>The closest release dates on file before and after this one (null at either end) - steps between actual ship dates rather than calendar weeks, so a skipped week or an off-cycle date is never an empty stop.</summary>
+    Task<(DateOnly? Previous, DateOnly? Next)> GetAdjacentReleaseDatesAsync(DateOnly releaseDate, CancellationToken ct = default);
+
     /// <summary>One specific (NormalizedSeries, IssueNumber) row, or null if not on file.</summary>
     Task<ClzIssueRelease?> GetIssueAsync(string normalizedSeries, int issueNumber, CancellationToken ct = default);
 }

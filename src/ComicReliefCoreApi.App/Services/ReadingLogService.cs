@@ -43,10 +43,20 @@ public class ReadingLogService : IReadingLogService
             return null;
         }
 
+        return await BuildWeekViewAsync(target.Series, target.IssueNumber, releaseDate, ct);
+    }
+
+    public Task<ReadingLogWeekView> GetWeekAsync(DateOnly releaseDate, CancellationToken ct = default) =>
+        BuildWeekViewAsync(null, null, releaseDate, ct);
+
+    private async Task<ReadingLogWeekView> BuildWeekViewAsync(
+        string? series, int? issueNumber, DateOnly releaseDate, CancellationToken ct)
+    {
         var sameWeek = await _clzStore.GetIssuesByReleaseDateAsync(releaseDate, ct);
         var readKeys = await _readStore.GetAllReadKeysAsync(ct);
+        var (previous, next) = await _clzStore.GetAdjacentReleaseDatesAsync(releaseDate, ct);
         return new ReadingLogWeekView(
-            target.Series, target.IssueNumber, releaseDate, sameWeek.Select(o => ToView(o, readKeys)).ToList());
+            series, issueNumber, releaseDate, sameWeek.Select(o => ToView(o, readKeys)).ToList(), previous, next);
     }
 
     public Task<IReadOnlyList<ReadIssue>> GetRecentlyReadAsync(int max, CancellationToken ct = default) =>

@@ -82,6 +82,14 @@ public sealed class ReadingLogController : ControllerBase
         return view is null ? NotFound("No release date on file for that issue.") : Ok(view);
     }
 
+    /// <summary>Same view as same-week, reached by release date - backs the previous/next ship-date buttons.</summary>
+    [HttpGet("week")]
+    public async Task<ActionResult<ReadingLogWeekView>> GetWeek(
+        [FromQuery] DateOnly releaseDate, CancellationToken cancellationToken)
+    {
+        return Ok(await _readingLog.GetWeekAsync(releaseDate, cancellationToken));
+    }
+
     [HttpGet("recent")]
     public async Task<ActionResult> GetRecent([FromQuery] int? max, CancellationToken cancellationToken)
     {

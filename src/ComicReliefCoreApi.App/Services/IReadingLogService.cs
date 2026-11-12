@@ -25,6 +25,9 @@ public interface IReadingLogService
     /// </summary>
     Task<ReadingLogWeekView?> GetSameWeekAsync(string series, int issueNumber, CancellationToken ct = default);
 
+    /// <summary>Everything on file with this exact release date - the same view as GetSameWeekAsync, but reached by date (stepping to the previous/next ship date) rather than anchored on one issue, so Series/IssueNumber are null.</summary>
+    Task<ReadingLogWeekView> GetWeekAsync(DateOnly releaseDate, CancellationToken ct = default);
+
     Task<IReadOnlyList<ReadIssue>> GetRecentlyReadAsync(int max, CancellationToken ct = default);
 
     /// <summary>Removes a mis-attributed read entry (e.g. logged under the wrong series name) rather than living with it. Returns how many rows were removed.</summary>
@@ -41,6 +44,12 @@ public interface IReadingLogService
 
 public sealed record OwnedIssueView(string Series, int IssueNumber, DateOnly? ReleaseDate, bool AlreadyRead);
 
-public sealed record ReadingLogWeekView(string Series, int IssueNumber, DateOnly ReleaseDate, IReadOnlyList<OwnedIssueView> SameWeekIssues);
+public sealed record ReadingLogWeekView(
+    string? Series,
+    int? IssueNumber,
+    DateOnly ReleaseDate,
+    IReadOnlyList<OwnedIssueView> SameWeekIssues,
+    DateOnly? PreviousReleaseDate,
+    DateOnly? NextReleaseDate);
 
 public sealed record SeriesSuggestion(string Series, int? NextUnreadIssueNumber, DateOnly? NextUnreadReleaseDate);
