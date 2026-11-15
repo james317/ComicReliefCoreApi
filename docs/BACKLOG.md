@@ -1432,3 +1432,14 @@ and after. Still wrong, all title-shape quirks rather than volume collisions - u
 manual date form on the Shipments tab: "Amazing Spider-Man Annual #1" and the "Amazing
 Spider-Man 1000/Queen In Black" bundle (both read as ASM #1), and "Batman Superman Worlds
 Finest 2026 Annual #1" (reads as Worlds Finest #1; CLZ puts "Annual" before the year).
+
+## Cart Check flagged a relaunched series' earlier volume (11/15/2026)
+Vampirella relaunched at #1 in February 2026; Cart Check flagged "Vampirella (2026) #10"
+(November) and "#9" (October - the user removed it from that cart on this advice, though it
+ended up on the order anyway) as duplicates of the 2025 run's #10/#9. DCBS's "(2026)" tag
+can't be trusted to separate volumes - the same 2026 run also appears as plain "Vampirella
+#6". Numbered issues now only match orders from the series' current run (after its last
+drop back to #1/#2, by order id), series names must match exactly apart from a trailing
+year (the old word-prefix rule would also pair "Vampirella" with "Vampirella Paradise"),
+and cancelled lines no longer count. Verified live against the November cart (27/27 clean)
+plus the October order's real duplicates (all still flagged).
