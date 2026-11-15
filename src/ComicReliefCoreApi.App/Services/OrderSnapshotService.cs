@@ -206,8 +206,18 @@ public class OrderSnapshotService : IOrderSnapshotService
             IssueNumberParser.TryParseWholeIssueNumber(l.Title) == pastedIssue && OrderIdNumber(l) >= runStart);
     }
 
-    public async Task<IReadOnlyList<CartLineCheckResult>> CheckCartForDuplicatesAsync(
-        IReadOnlyList<string> pastedLines, CancellationToken ct = default)
+    public Task<IReadOnlyList<CartLineCheckResult>> CheckCartForDuplicatesAsync(
+        IReadOnlyList<string> pastedLines, CancellationToken ct = default) =>
+        CheckCartLinesAsync(pastedLines.Select(l => (l, (string?)null, (int?)null)).ToList(), ct);
+
+    public async Task<IReadOnlyList<CartLineCheckResult>> CheckCartPdfAsync(Stream pdf, CancellationToken ct = default)
+    {
+        var items = DcbsCartPdfParser.Parse(pdf);
+        return await CheckCartLinesAsync(items.Select(i => (i.Title, (string?)i.ProductCode, i.Quantity)).ToList(), ct);
+    }
+
+    private async Task<IReadOnlyList<CartLineCheckResult>> CheckCartLinesAsync(
+        IReadOnlyList<(string Line, string? ProductCode, int? Quantity)> cartLines, CancellationToken ct)
     {
         var allLines = await _store.GetAllFullLinesAsync(ct);
         var solicited = await _solicitationStore.GetAllAsync(ct);
@@ -215,7 +225,7 @@ public class OrderSnapshotService : IOrderSnapshotService
             s => s.Item.ProductCode.ToUpperInvariant(), s => s, StringComparer.Ordinal);
 
         var results = new List<CartLineCheckResult>();
-        foreach (var rawLine in pastedLines)
+        foreach (var (rawLine, productCode, quantity) in cartLines)
         {
             var line = rawLine.Trim();
             if (line.Length == 0)
@@ -234,7 +244,7 @@ public class OrderSnapshotService : IOrderSnapshotService
                 .OrderByDescending(m => m.OrderDate)
                 .ToList();
 
-            results.Add(new CartLineCheckResult(rawLine, matches));
+            results.Add(new CartLineCheckResult(rawLine, matches, productCode, quantity));
         }
 
         return results;

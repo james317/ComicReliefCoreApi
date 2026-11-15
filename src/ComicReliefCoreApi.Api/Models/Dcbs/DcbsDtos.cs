@@ -52,6 +52,9 @@ public record DcbsShipmentSummary(string ShipmentId, string PacklistNumber, Date
 /// </summary>
 public record DcbsShipmentLine(string ProductCode, string Title);
 
+/// <summary>One line read off a printed DCBS cart page - Quantity/UnitPrice null when that column couldn't be read for the row.</summary>
+public record DcbsCartPdfItem(string Title, string ProductCode, int? Quantity, decimal? UnitPrice);
+
 /// <summary>
 /// One item from a publisher's current-preorders listing page (/products/&lt;slug&gt;/&lt;id&gt;).
 /// Title includes the issue number and variant description as DCBS writes it (e.g. "Absolute

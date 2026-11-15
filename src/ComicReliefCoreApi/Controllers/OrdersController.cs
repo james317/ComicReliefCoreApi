@@ -72,6 +72,31 @@ public sealed class OrdersController : ControllerBase
         var lines = request.CartText.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
         return Ok(await _orders.CheckCartForDuplicatesAsync(lines, cancellationToken));
     }
+
+    /// <summary>Same check from a printed DCBS cart page (a Safari full-page PDF) instead of pasted text - see DcbsCartPdfParser.</summary>
+    [HttpPost("check-cart-pdf")]
+    [RequestSizeLimit(50_000_000)]
+    public async Task<ActionResult<IReadOnlyList<CartLineCheckResult>>> CheckCartPdf(
+        IFormFile? file, CancellationToken cancellationToken)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest("File is required.");
+        }
+
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            var results = await _orders.CheckCartPdfAsync(stream, cancellationToken);
+            return results.Count == 0
+                ? BadRequest("No cart items found in that PDF - is it a printed DCBS cart page?")
+                : Ok(results);
+        }
+        catch (InvalidDataException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
 }
 
 public sealed record CheckCartRequest(string CartText);

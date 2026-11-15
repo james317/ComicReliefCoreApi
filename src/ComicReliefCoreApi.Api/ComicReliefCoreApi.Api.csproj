@@ -21,6 +21,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.10" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.10" />
+    <!-- Reads the text layer of a printed DCBS cart page (DcbsCartPdfParser). -->
+    <PackageReference Include="PdfPig" Version="0.1.16" />
   </ItemGroup>
 
 </Project>

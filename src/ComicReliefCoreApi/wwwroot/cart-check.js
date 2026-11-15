@@ -2,6 +2,8 @@ const log = (...args) => console.log('[cart-check]', ...args);
 
 const cartText = document.getElementById('cartText');
 const checkBtn = document.getElementById('checkBtn');
+const pdfInput = document.getElementById('pdfInput');
+const pdfBtn = document.getElementById('pdfBtn');
 const message = document.getElementById('message');
 const resultsList = document.getElementById('resultsList');
 
@@ -60,16 +62,30 @@ function renderDuplicate(result) {
   return li;
 }
 
+// A cart line needs a look if it may already be ordered, or (PDF uploads only, where the
+// quantity is known) it's in the cart more than once.
+function hasDuplicate(lineResult) {
+  return lineResult.possibleDuplicates.length > 0;
+}
+
+function hasExtraCopies(lineResult) {
+  return lineResult.quantity != null && lineResult.quantity > 1;
+}
+
+function needsLook(lineResult) {
+  return hasDuplicate(lineResult) || hasExtraCopies(lineResult);
+}
+
 function renderLineResult(lineResult) {
   const li = document.createElement('li');
   li.className = 'comic-card-wrap';
 
   const card = document.createElement('div');
-  card.className = 'pull-card' + (lineResult.possibleDuplicates.length > 0 ? ' wanted' : '');
+  card.className = 'pull-card' + (needsLook(lineResult) ? ' wanted' : '');
 
   const badge = document.createElement('span');
-  badge.className = 'pull-badge ' + (lineResult.possibleDuplicates.length > 0 ? 'wanted' : 'corralled');
-  badge.textContent = lineResult.possibleDuplicates.length > 0 ? '!' : '✓';
+  badge.className = 'pull-badge ' + (needsLook(lineResult) ? 'wanted' : 'corralled');
+  badge.textContent = needsLook(lineResult) ? '!' : '✓';
   card.appendChild(badge);
 
   const info = document.createElement('div');
@@ -80,9 +96,23 @@ function renderLineResult(lineResult) {
   title.textContent = lineResult.pastedLine;
   info.appendChild(title);
 
+  if (lineResult.productCode) {
+    const code = document.createElement('div');
+    code.className = 'pull-meta';
+    code.textContent = `${lineResult.productCode}${lineResult.quantity != null ? ` · Qty ${lineResult.quantity}` : ''}`;
+    info.appendChild(code);
+  }
+
+  if (hasExtraCopies(lineResult)) {
+    const qtyWarning = document.createElement('div');
+    qtyWarning.className = 'pull-meta';
+    qtyWarning.textContent = `${lineResult.quantity} copies in the cart — set it to 1 unless you meant to buy extras.`;
+    info.appendChild(qtyWarning);
+  }
+
   const meta = document.createElement('div');
   meta.className = 'pull-meta';
-  meta.textContent = lineResult.possibleDuplicates.length > 0
+  meta.textContent = hasDuplicate(lineResult)
     ? `Already in your order history — possible duplicate (${lineResult.possibleDuplicates.length} match${lineResult.possibleDuplicates.length === 1 ? '' : 'es'})`
     : 'No match in your order history.';
   info.appendChild(meta);
@@ -119,22 +149,70 @@ async function check() {
       showMessage('Nothing to check — paste one item per line first.', true);
       return;
     }
-
-    const flagged = results.filter((r) => r.possibleDuplicates.length > 0);
-    showMessage(
-      flagged.length > 0
-        ? `${flagged.length} of ${results.length} line${results.length === 1 ? '' : 's'} may already be in your order history — check below.`
-        : `Checked ${results.length} line${results.length === 1 ? '' : 's'} — nothing matched your order history.`,
-      flagged.length > 0);
-
-    for (const result of results) {
-      resultsList.appendChild(renderLineResult(result));
-    }
+    renderResults(results, `Checked ${results.length} line${results.length === 1 ? '' : 's'}`);
   } catch (err) {
     console.error('[cart-check] check failed', err);
     showMessage('Check failed - see the console.', true);
   }
 }
+
+// Flagged lines first, so anything to fix is at the top of a long cart.
+function renderResults(results, summaryPrefix) {
+  const flagged = results.filter(needsLook);
+  const duplicates = results.filter(hasDuplicate).length;
+  const extraCopies = results.filter(hasExtraCopies).length;
+  const problems = [];
+  if (duplicates > 0) problems.push(`${duplicates} may already be ordered`);
+  if (extraCopies > 0) problems.push(`${extraCopies} ${extraCopies === 1 ? 'has' : 'have'} more than one copy`);
+  showMessage(
+    problems.length > 0
+      ? `${summaryPrefix} — ${problems.join(', ')}. See below.`
+      : `${summaryPrefix} — nothing already ordered${results.some((r) => r.quantity != null) ? ', one copy each' : ''}.`,
+    problems.length > 0);
+
+  resultsList.innerHTML = '';
+  for (const result of [...flagged, ...results.filter((r) => !needsLook(r))]) {
+    resultsList.appendChild(renderLineResult(result));
+  }
+
+  // Results sit below the paste box - bring the summary up under the sticky tab bar.
+  const navHeight = document.querySelector('.trail-nav')?.offsetHeight ?? 0;
+  window.scrollTo({ top: message.getBoundingClientRect().top + window.scrollY - navHeight - 8 });
+}
+
+async function checkPdf(file) {
+  resultsList.innerHTML = '';
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch('/api/orders/check-cart-pdf', { method: 'POST', body: formData });
+  if (!res.ok) {
+    const problem = await res.text().catch(() => '');
+    showMessage(problem || `Upload failed (${res.status}).`, true);
+    return;
+  }
+  const results = await res.json();
+  log('pdf results', results.length);
+  const copies = results.reduce((sum, r) => sum + (r.quantity ?? 0), 0);
+  renderResults(results, `Read ${results.length} item${results.length === 1 ? '' : 's'} (${copies} ${copies === 1 ? 'copy' : 'copies'}) from the PDF`);
+}
+
+pdfBtn.addEventListener('click', async () => {
+  const file = pdfInput.files[0];
+  if (!file) {
+    showMessage('Choose the cart PDF first.', true);
+    return;
+  }
+  pdfBtn.disabled = true;
+  showMessage('Reading the PDF…', false);
+  try {
+    await checkPdf(file);
+  } catch (err) {
+    console.error('[cart-check] pdf check failed', err);
+    showMessage('Check failed - see the console.', true);
+  } finally {
+    pdfBtn.disabled = false;
+  }
+});
 
 checkBtn.addEventListener('click', async () => {
   if (!cartText.value.trim()) {

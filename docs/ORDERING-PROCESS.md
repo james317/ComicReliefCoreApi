@@ -84,8 +84,17 @@ Quoted directly rather than paraphrased, since the exact phrase
    the default-cover row in "Pull List Matches" and setting it to 1 on
    the preferred row in "Variants and Incentives" — DCBS doesn't guess
    which variant is wanted, it always defaults to the plain cover.
-4. *(not yet confirmed: cart glance-through, #1s check, checkout — named
-   in the user's own outline above but not walked through in detail yet)*
+4. **Cart check before checkout** (added after the real 10/2026 incident:
+   submitting a cart as a new order duplicated titles already on an open
+   order, and DCBS couldn't undo it - customer service had to). Once the
+   cart is built, save DCBS's cart page as a Safari **Full Page** screenshot
+   PDF and upload it on the app's **Cart Check** tab (or paste the cart
+   text). It flags anything already in synced order history (same series,
+   exact issue number, current volume only) and any item in the cart more
+   than once - the November 2026 cart had W0rldtr33 #24 at qty 2 where every
+   prior issue was qty 1. Sync order history first so the latest order
+   counts. *(Still not walked through in detail: the user's own cart
+   glance-through and #1s check, and checkout itself.)*
 5. **Pull-list touch-up** (partially confirmed 10/9): the "Pull List
    Titles without a Match" section above is a direct, built-in prompt for
    this step — it's DCBS surfacing every pull-list series that didn't

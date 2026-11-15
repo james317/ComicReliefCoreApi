@@ -26,15 +26,25 @@
   <h1 class="page-heading">Cart Check</h1>
   <p class="page-intro">
     The app can't read DCBS's live cart itself (session-routing — see
-    <code>docs/ORDERING-PROCESS.md</code>), so paste it here by hand before you submit:
-    copy everything out of the cart or the "Create Order from Pull List" page and drop
-    it in below, one item per line, however messy — price and quantity text along with
-    the title is fine. Each line gets checked against every order you've already synced,
-    so anything you've bought before — a different cycle's pull-list match, a title the
-    app already stuck onto your sticky list after a direct purchase — gets flagged before
-    it becomes a real duplicate on a placed order.
+    <code>docs/ORDERING-PROCESS.md</code>), so hand it the cart before you submit. Every
+    item gets checked against every order you've already synced, so anything you've bought
+    before gets flagged before it becomes a real duplicate on a placed order.
   </p>
 
+  <h2 class="section-heading">Upload a cart PDF</h2>
+  <p class="page-intro">
+    On DCBS's cart page in Safari, take a screenshot, choose <strong>Full Page</strong>, and
+    save it as a PDF. Uploading it also checks each item's quantity.
+  </p>
+  <div class="clz-upload-row">
+    <input type="file" id="pdfInput" accept="application/pdf,.pdf" />
+    <button type="button" id="pdfBtn">Check PDF</button>
+  </div>
+
+  <h2 class="section-heading">Or paste the cart</h2>
+  <p class="page-intro">
+    One item per line, however messy — price and quantity text along with the title is fine.
+  </p>
   <textarea id="cartText" placeholder="Paste cart contents here, one item per line…" autocomplete="off" spellcheck="false"></textarea>
 
   <div class="actions">

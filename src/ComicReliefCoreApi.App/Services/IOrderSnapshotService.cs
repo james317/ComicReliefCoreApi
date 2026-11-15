@@ -37,8 +37,12 @@ public record OrderSyncResult(
     IReadOnlyDictionary<string, string> OrderErrors,
     IReadOnlyList<NewFirstIssueDetection> NewFirstIssues);
 
-/// <summary>One pasted cart line, and whatever already-ordered lines look like the same item - empty when nothing matched.</summary>
-public record CartLineCheckResult(string PastedLine, IReadOnlyList<OrderedItemSearchResult> PossibleDuplicates);
+/// <summary>One cart line, and whatever already-ordered lines look like the same item - empty when nothing matched. ProductCode/Quantity are only known when the cart came from a PDF.</summary>
+public record CartLineCheckResult(
+    string PastedLine,
+    IReadOnlyList<OrderedItemSearchResult> PossibleDuplicates,
+    string? ProductCode = null,
+    int? Quantity = null);
 
 /// <summary>
 /// Persists the user's DCBS order history so a candidates rescan can flag "this matches
@@ -84,4 +88,7 @@ public interface IOrderSnapshotService
     /// </summary>
     Task<IReadOnlyList<CartLineCheckResult>> CheckCartForDuplicatesAsync(
         IReadOnlyList<string> pastedLines, CancellationToken ct = default);
+
+    /// <summary>Same check, reading the items (title, product code, quantity) off a printed DCBS cart page - see DcbsCartPdfParser. Empty when no cart items were found in the PDF.</summary>
+    Task<IReadOnlyList<CartLineCheckResult>> CheckCartPdfAsync(Stream pdf, CancellationToken ct = default);
 }
