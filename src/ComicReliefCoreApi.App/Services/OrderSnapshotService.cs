@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
+using ComicReliefCoreApi.Api.Models;
 using ComicReliefCoreApi.Api.Models.Dcbs;
 using ComicReliefCoreApi.Api.Services;
 using ComicReliefCoreApi.Api.Services.Dcbs;
@@ -114,56 +116,89 @@ public class OrderSnapshotService : IOrderSnapshotService
     // this; nothing legitimate gets excluded by it.
     private const int MinNormalizedLengthToMatch = 4;
 
-    // Confirmed live on the very first real cart (10/18/2026): a plain bidirectional Contains
-    // on the full normalized title treats "Amazing Spider-Man #1005" as a match for "Amazing
-    // Spider-Man #10", and "Eyrie Magazine #17" for "Eyrie Magazine #1" - Normalize() strips
-    // the "#" and the space before it, so the shorter issue number ends up a literal character
-    // prefix of the longer one with nothing between the series name and the digits to stop it.
-    // When both sides carry an explicit "#<number>", require that number to match exactly
-    // before falling back to a (still bidirectional) Contains on the series-name portion alone,
-    // which isn't vulnerable to the same digit-adjacency problem.
-    private static bool LooksLikeSameItem(string pastedLine, string orderedTitle)
+    // DCBS tags some volumes with their launch year - "Vampirella (2026) #10" - but not
+    // consistently: the same 2026 run also appears as plain "Vampirella #6". So the year is
+    // dropped from the series name, and volumes are told apart by RunStartOrderId instead.
+    private static readonly Regex TrailingYearRegex = new(@" (19|20)\d{2}$", RegexOptions.Compiled);
+
+    private static string SeriesKey(string title)
     {
+        var series = TitleNormalizer.NormalizeKeepingWordBoundaries(IssueNumberParser.TryExtractSeriesTitle(title) ?? title);
+        return TrailingYearRegex.Replace(series, "");
+    }
+
+    private static long OrderIdNumber(DcbsOrderSnapshotLine line) =>
+        long.TryParse(line.OrderId, out var n) ? n : 0;
+
+    // Where the series' current volume begins in order history: the last time its issue
+    // numbers dropped back by more than one (a relaunch to #1), same rule IssueContinuityService
+    // uses. Confirmed live 11/15/2026: matching across volumes flagged "Vampirella (2026) #10"
+    // as a duplicate of the 2025 run's #10 (and #9 the month before) - the series relaunched
+    // at #1 in February 2026, so nothing ordered before that can be the same book. Returns
+    // null when the pasted issue itself drops well below the run (a new relaunch in the cart).
+    private static long? RunStartOrderId(IReadOnlyList<DcbsOrderSnapshotLine> seriesHistory, int pastedIssue)
+    {
+        long runStart = 0;
+        int? runMax = null;
+        foreach (var line in seriesHistory
+            .OrderBy(OrderIdNumber)
+            .ThenBy(l => IssueNumberParser.TryParseWholeIssueNumber(l.Title)))
+        {
+            var n = IssueNumberParser.TryParseWholeIssueNumber(line.Title)!.Value;
+            if (runMax is { } max && n < max - 1)
+            {
+                runStart = OrderIdNumber(line);
+                runMax = n;
+            }
+            else
+            {
+                runMax = Math.Max(runMax ?? n, n);
+            }
+        }
+        return runMax is { } currentMax && pastedIssue < currentMax - 1 ? null : runStart;
+    }
+
+    // Lines with a "#<number>" match on series name plus exact issue number, within the series'
+    // current run. An exact issue number is required because Normalize() would otherwise make
+    // "#10" a character prefix of "#1005" (confirmed live 10/18/2026), and an exact series name
+    // because a looser prefix match let "Superman" pair with "Batman Superman Worlds Finest" and
+    // "Vampirella" with "Vampirella Paradise". Cancelled lines never count - you don't have them.
+    private static IEnumerable<DcbsOrderSnapshotLine> FindAlreadyOrdered(string pastedLine, IReadOnlyList<DcbsOrderSnapshotLine> allLines)
+    {
+        var live = allLines.Where(l => l.Status != DcbsShipmentStatus.Cancelled).ToList();
         var pastedIssue = IssueNumberParser.TryParseWholeIssueNumber(pastedLine);
-        var orderedIssue = IssueNumberParser.TryParseWholeIssueNumber(orderedTitle);
-
-        if (pastedIssue is not null && orderedIssue is not null)
+        if (pastedIssue is null)
         {
-            if (pastedIssue != orderedIssue)
+            // A TP/HC/omnibus/magazine with no "#<number>" - whole-text match, same idiom
+            // PullListService.FindKnownOrRecentPurchaseAsync uses for "is this the same item".
+            var normalizedPasted = TitleNormalizer.Normalize(pastedLine);
+            if (normalizedPasted.Length < MinNormalizedLengthToMatch)
             {
-                return false;
+                return [];
             }
-
-            // Word-boundary prefix match (same idiom as TitleNormalizer.IsLikelyNameMatch),
-            // not a plain Contains - confirmed live, same cart: a raw Contains treats "Superman"
-            // as a match for "Batman Superman Worlds Finest" (an unrelated, real, different
-            // series that happens to contain the word "Superman"), and "Hyde Street" as a match
-            // for "Sisterhood: A Hyde Street Story" (a distinct spin-off, not the same series).
-            // Requiring the shorter name to be a whole-word prefix of the longer one still
-            // matches "Vampirella (2026)" against "Vampirella" (DCBS's own volume-disambiguating
-            // suffix, same series) while rejecting both of the above.
-            var pastedSeries = TitleNormalizer.NormalizeKeepingWordBoundaries(IssueNumberParser.TryExtractSeriesTitle(pastedLine) ?? pastedLine);
-            var orderedSeries = TitleNormalizer.NormalizeKeepingWordBoundaries(IssueNumberParser.TryExtractSeriesTitle(orderedTitle) ?? orderedTitle);
-            if (pastedSeries.Length < MinNormalizedLengthToMatch || orderedSeries.Length < MinNormalizedLengthToMatch)
+            return live.Where(l =>
             {
-                return false;
-            }
-            return pastedSeries == orderedSeries
-                || pastedSeries.StartsWith(orderedSeries + " ", StringComparison.Ordinal)
-                || orderedSeries.StartsWith(pastedSeries + " ", StringComparison.Ordinal);
+                var normalizedOrdered = TitleNormalizer.Normalize(l.Title);
+                return normalizedOrdered.Length >= MinNormalizedLengthToMatch
+                    && (normalizedPasted.Contains(normalizedOrdered, StringComparison.Ordinal)
+                        || normalizedOrdered.Contains(normalizedPasted, StringComparison.Ordinal));
+            });
         }
 
-        // At least one side has no "#<number>" to anchor on (a TP/HC/omnibus/magazine without
-        // one) - fall back to the original whole-text match; same idiom
-        // PullListService.FindKnownOrRecentPurchaseAsync uses for "is this the same item".
-        var normalizedPasted = TitleNormalizer.Normalize(pastedLine);
-        var normalizedOrdered = TitleNormalizer.Normalize(orderedTitle);
-        if (normalizedPasted.Length < MinNormalizedLengthToMatch || normalizedOrdered.Length < MinNormalizedLengthToMatch)
+        var seriesKey = SeriesKey(pastedLine);
+        if (seriesKey.Length < MinNormalizedLengthToMatch)
         {
-            return false;
+            return [];
         }
-        return normalizedPasted.Contains(normalizedOrdered, StringComparison.Ordinal)
-            || normalizedOrdered.Contains(normalizedPasted, StringComparison.Ordinal);
+        var seriesHistory = live
+            .Where(l => IssueNumberParser.TryParseWholeIssueNumber(l.Title) is not null && SeriesKey(l.Title) == seriesKey)
+            .ToList();
+        if (RunStartOrderId(seriesHistory, pastedIssue.Value) is not { } runStart)
+        {
+            return [];
+        }
+        return seriesHistory.Where(l =>
+            IssueNumberParser.TryParseWholeIssueNumber(l.Title) == pastedIssue && OrderIdNumber(l) >= runStart);
     }
 
     public async Task<IReadOnlyList<CartLineCheckResult>> CheckCartForDuplicatesAsync(
@@ -183,8 +218,7 @@ public class OrderSnapshotService : IOrderSnapshotService
                 continue;
             }
 
-            var matches = allLines
-                .Where(l => LooksLikeSameItem(line, l.Title))
+            var matches = FindAlreadyOrdered(line, allLines)
                 .Select(l =>
                 {
                     byProductCode.TryGetValue(l.ProductCode.ToUpperInvariant(), out var match);

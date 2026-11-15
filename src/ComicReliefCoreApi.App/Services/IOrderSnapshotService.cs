@@ -78,11 +78,9 @@ public interface IOrderSnapshotService
     /// no way to undo it after the fact. The app can't read DCBS's live cart itself (session-
     /// routing - see docs/ORDERING-PROCESS.md), so this takes the cart's contents pasted by
     /// hand instead: one line per item, however messy (title plus whatever price/qty/cover text
-    /// came along with it), and checks each against every synced order line using the same
-    /// forgiving bidirectional-contains match <see cref="PullListService.FindKnownOrRecentPurchaseAsync"/>
-    /// uses for "is this the same item" - not the stricter one-directional Contains
-    /// IDcbsOrderSnapshotStore.SearchLinesAsync uses for a clean typed search term, since pasted
-    /// cart text usually isn't clean.
+    /// came along with it), and checks each against every synced order line: same series and
+    /// exact issue number within the series' current volume for numbered issues, a forgiving
+    /// whole-text match for TPs/HCs/magazines with no number.
     /// </summary>
     Task<IReadOnlyList<CartLineCheckResult>> CheckCartForDuplicatesAsync(
         IReadOnlyList<string> pastedLines, CancellationToken ct = default);
