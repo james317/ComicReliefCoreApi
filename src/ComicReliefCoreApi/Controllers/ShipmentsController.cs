@@ -31,8 +31,8 @@ public sealed class ShipmentsController : ControllerBase
 
     [HttpGet("{shipmentId}/reading-order")]
     public async Task<ActionResult<ShipmentReadingOrder>> GetReadingOrder(
-        string shipmentId, CancellationToken cancellationToken)
+        string shipmentId, [FromQuery] DateOnly? shippedAt, CancellationToken cancellationToken)
     {
-        return Ok(await _shipments.GetReadingOrderAsync(shipmentId, cancellationToken));
+        return Ok(await _shipments.GetReadingOrderAsync(shipmentId, shippedAt, cancellationToken));
     }
 }

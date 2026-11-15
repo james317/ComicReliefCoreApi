@@ -12,9 +12,10 @@ public interface IShipmentTrackingService
     /// CLZ export), for reading in ship-date order - the reading step of the user's own
     /// shipment-processing routine. Interest ranking within a date group is deliberately not
     /// modeled here: it's a personal, per-shipment judgment call the user makes themselves,
-    /// not something this cross-reference can derive.
+    /// not something this cross-reference can derive. shippedAt picks between same-numbered
+    /// issues of different volumes (see PickReleaseDate); looked up from DCBS when omitted.
     /// </summary>
-    Task<ShipmentReadingOrder> GetReadingOrderAsync(string shipmentId, CancellationToken ct = default);
+    Task<ShipmentReadingOrder> GetReadingOrderAsync(string shipmentId, DateOnly? shippedAt = null, CancellationToken ct = default);
 }
 
 /// <summary>ReleaseDate is null when no CLZ row matched this exact issue (not on file, or a title/issue-number mismatch) - shown as its own "unknown" group rather than guessed into one.</summary>

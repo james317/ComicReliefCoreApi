@@ -21,6 +21,7 @@ const newFirstIssuesSection = document.getElementById('newFirstIssuesSection');
 const newFirstIssuesList = document.getElementById('newFirstIssuesList');
 
 let selectedShipmentId = null;
+let selectedShippedAt = null;
 
 function showMessage(text, isError) {
   message.textContent = text;
@@ -77,6 +78,7 @@ function markActiveRow() {
 
 async function selectShipment(shipmentId, shipment) {
   selectedShipmentId = shipmentId;
+  selectedShippedAt = shipment?.shippedAt ?? null;
   markActiveRow();
   shipmentDetailHeading.textContent = shipment
     ? `Packlist ${shipment.packlistNumber} — shipped ${shipment.shippedAt}`
@@ -88,7 +90,10 @@ async function selectShipment(shipmentId, shipment) {
 async function loadReadingOrder(shipmentId) {
   readingOrder.innerHTML = '<p>Loading…</p>';
   try {
-    const res = await fetch(`/api/shipments/${shipmentId}/reading-order`);
+    // The ship date picks the right volume when CLZ has the same issue number under two (e.g.
+    // Batman, Vol. 3 #14 vs Vol. 4 #14) - the server looks it up itself if it isn't passed.
+    const query = selectedShippedAt ? `?shippedAt=${encodeURIComponent(selectedShippedAt)}` : '';
+    const res = await fetch(`/api/shipments/${shipmentId}/reading-order${query}`);
     const order = await res.json();
     renderReadingOrder(order);
   } catch (err) {

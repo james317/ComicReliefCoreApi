@@ -30,10 +30,12 @@ public class ShipmentTrackingService : IShipmentTrackingService
     public Task<IReadOnlyList<DcbsShipmentSummary>> GetRecentShipmentsAsync(int max = 12, CancellationToken ct = default) =>
         _dcbs.GetRecentShipmentsAsync(max, ct);
 
-    public async Task<ShipmentReadingOrder> GetReadingOrderAsync(string shipmentId, CancellationToken ct = default)
+    public async Task<ShipmentReadingOrder> GetReadingOrderAsync(
+        string shipmentId, DateOnly? shippedAt = null, CancellationToken ct = default)
     {
         var lines = await _dcbs.GetShipmentLinesAsync(shipmentId, ct);
         var clzIssues = await _clz.GetAllIssueReleasesAsync(ct);
+        var shipDate = shippedAt ?? await LookUpShipDateAsync(shipmentId, ct);
 
         var items = lines.Select(line =>
         {
@@ -43,10 +45,10 @@ public class ShipmentTrackingService : IShipmentTrackingService
             // "some digit follows," and a wrong match only affects a display grouping, not
             // which series something gets tracked as (see TitleNormalizer's own docs on why
             // pull-list/solicitation matching can't afford this same width).
-            var match = issueNumber is null
-                ? null
-                : clzIssues.FirstOrDefault(c => c.IssueNumber == issueNumber && TitleNormalizer.IsLikelySeriesMatch(line.Title, CleanClzSeriesName(c.Series), maxGapWords: 2));
-            return new ShipmentReadingItem(line.ProductCode, line.Title, match?.ReleaseDate);
+            var candidates = issueNumber is null
+                ? new List<ClzIssueRelease>()
+                : clzIssues.Where(c => c.IssueNumber == issueNumber && TitleNormalizer.IsLikelySeriesMatch(line.Title, CleanClzSeriesName(c.Series), maxGapWords: 2)).ToList();
+            return new ShipmentReadingItem(line.ProductCode, line.Title, PickReleaseDate(candidates, shipDate));
         }).ToList();
 
         var groups = items
@@ -59,6 +61,31 @@ public class ShipmentTrackingService : IShipmentTrackingService
             .ToList();
 
         return new ShipmentReadingOrder(shipmentId, groups);
+    }
+
+    // CleanClzSeriesName strips ", Vol. N" so CLZ names can match DCBS's undecorated titles -
+    // which also means every volume of a long-running title matches: "Batman #14" matches
+    // both "Batman, Vol. 3" #14 (2017) and "Batman, Vol. 4" #14 (2026). Confirmed live
+    // 11/15/2026: taking the first match put Batman #14/#15, Superman #43, Vampirella #7 and
+    // Avengers #1 at 2017-2023 dates at the top of a box shipped 11/10/2026. Nothing can be in
+    // a box before it came out, so the right volume is the latest release on or before the
+    // ship date; an older volume's same issue number is years earlier, a newer one is after.
+    private static DateOnly? PickReleaseDate(IReadOnlyList<ClzIssueRelease> candidates, DateOnly shipDate)
+    {
+        var dated = candidates.Where(c => c.ReleaseDate.HasValue).Select(c => c.ReleaseDate!.Value).ToList();
+        if (dated.Count == 0)
+        {
+            return null;
+        }
+        var onOrBefore = dated.Where(d => d <= shipDate).ToList();
+        return onOrBefore.Count > 0 ? onOrBefore.Max() : dated.Min();
+    }
+
+    private async Task<DateOnly> LookUpShipDateAsync(string shipmentId, CancellationToken ct)
+    {
+        var shipments = await _dcbs.GetRecentShipmentsAsync(50, ct);
+        return shipments.FirstOrDefault(s => s.ShipmentId == shipmentId)?.ShippedAt
+            ?? DateOnly.FromDateTime(DateTime.UtcNow);
     }
 
     private static string CleanClzSeriesName(string series)
