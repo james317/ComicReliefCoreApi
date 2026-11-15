@@ -48,7 +48,7 @@ public class ShipmentTrackingService : IShipmentTrackingService
             var candidates = issueNumber is null
                 ? new List<ClzIssueRelease>()
                 : clzIssues.Where(c => c.IssueNumber == issueNumber && TitleNormalizer.IsLikelySeriesMatch(line.Title, CleanClzSeriesName(c.Series), maxGapWords: 2)).ToList();
-            return new ShipmentReadingItem(line.ProductCode, line.Title, PickReleaseDate(candidates, shipDate));
+            return new ShipmentReadingItem(line.ProductCode, line.Title, PickReleaseDate(MostSpecific(candidates), shipDate));
         }).ToList();
 
         var groups = items
@@ -70,6 +70,10 @@ public class ShipmentTrackingService : IShipmentTrackingService
     // Avengers #1 at 2017-2023 dates at the top of a box shipped 11/10/2026. Nothing can be in
     // a box before it came out, so the right volume is the latest release on or before the
     // ship date; an older volume's same issue number is years earlier, a newer one is after.
+    // The slack covers DCBS shipping a few days ahead of CLZ's listed date - confirmed live:
+    // Vampirella Summer Special 2026 #1 (7/1/2026) arrived in a box marked shipped 6/30/2026.
+    private static readonly int ShipDateSlackDays = 14;
+
     private static DateOnly? PickReleaseDate(IReadOnlyList<ClzIssueRelease> candidates, DateOnly shipDate)
     {
         var dated = candidates.Where(c => c.ReleaseDate.HasValue).Select(c => c.ReleaseDate!.Value).ToList();
@@ -77,8 +81,25 @@ public class ShipmentTrackingService : IShipmentTrackingService
         {
             return null;
         }
-        var onOrBefore = dated.Where(d => d <= shipDate).ToList();
+        var cutoff = shipDate.AddDays(ShipDateSlackDays);
+        var onOrBefore = dated.Where(d => d <= cutoff).ToList();
         return onOrBefore.Count > 0 ? onOrBefore.Max() : dated.Min();
+    }
+
+    // maxGapWords: 2 lets a bare "Vampirella" match "Vampirella Summer Special 2026 #1" (the
+    // "2026" counts as the number) alongside the real "Vampirella Summer Special 2026" row -
+    // so before the date rule picks between volumes, keep only the longest series names that
+    // matched. Volumes of one title clean to the same name ("Batman"), so this never removes
+    // the volume choice the date rule exists to make.
+    private static IReadOnlyList<ClzIssueRelease> MostSpecific(IReadOnlyList<ClzIssueRelease> candidates)
+    {
+        if (candidates.Count <= 1)
+        {
+            return candidates;
+        }
+        var lengths = candidates.ToDictionary(c => c, c => TitleNormalizer.NormalizeKeepingWordBoundaries(CleanClzSeriesName(c.Series)).Length);
+        var longest = lengths.Values.Max();
+        return candidates.Where(c => lengths[c] == longest).ToList();
     }
 
     private async Task<DateOnly> LookUpShipDateAsync(string shipmentId, CancellationToken ct)
