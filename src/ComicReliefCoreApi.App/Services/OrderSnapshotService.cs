@@ -131,11 +131,16 @@ public class OrderSnapshotService : IOrderSnapshotService
         long.TryParse(line.OrderId, out var n) ? n : 0;
 
     // Where the series' current volume begins in order history: the last time its issue
-    // numbers dropped back by more than one (a relaunch to #1), same rule IssueContinuityService
-    // uses. Confirmed live 11/15/2026: matching across volumes flagged "Vampirella (2026) #10"
-    // as a duplicate of the 2025 run's #10 (and #9 the month before) - the series relaunched
-    // at #1 in February 2026, so nothing ordered before that can be the same book. Returns
-    // null when the pasted issue itself drops well below the run (a new relaunch in the cart).
+    // numbers dropped back to #1 or #2 (a relaunch). Confirmed live 11/15/2026: matching across
+    // volumes flagged "Vampirella (2026) #10" as a duplicate of the 2025 run's #10 (and #9 the
+    // month before) - the series relaunched at #1 in February 2026, so nothing ordered before
+    // that can be the same book. Only a drop to a low number counts, so a late variant reorder
+    // of an older issue doesn't split the run. Returns null when the pasted issue is itself a
+    // relaunch (#1/#2 against a run already past that), where nothing on file can match it.
+    private const int RelaunchMaxIssue = 2;
+
+    private static bool IsRelaunch(int issue, int runMax) => issue <= RelaunchMaxIssue && issue < runMax - 1;
+
     private static long? RunStartOrderId(IReadOnlyList<DcbsOrderSnapshotLine> seriesHistory, int pastedIssue)
     {
         long runStart = 0;
@@ -145,7 +150,7 @@ public class OrderSnapshotService : IOrderSnapshotService
             .ThenBy(l => IssueNumberParser.TryParseWholeIssueNumber(l.Title)))
         {
             var n = IssueNumberParser.TryParseWholeIssueNumber(line.Title)!.Value;
-            if (runMax is { } max && n < max - 1)
+            if (runMax is { } max && IsRelaunch(n, max))
             {
                 runStart = OrderIdNumber(line);
                 runMax = n;
@@ -155,7 +160,7 @@ public class OrderSnapshotService : IOrderSnapshotService
                 runMax = Math.Max(runMax ?? n, n);
             }
         }
-        return runMax is { } currentMax && pastedIssue < currentMax - 1 ? null : runStart;
+        return runMax is { } currentMax && IsRelaunch(pastedIssue, currentMax) ? null : runStart;
     }
 
     // Lines with a "#<number>" match on series name plus exact issue number, within the series'
