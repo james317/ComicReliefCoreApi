@@ -562,6 +562,18 @@ details summary { cursor: pointer; color: var(--accent); }
   color: var(--accent-contrast);
 }
 
+/* A whole word ("Read") rather than one symbol - an oval sized to its text. */
+.pull-badge.word {
+  width: auto;
+  height: auto;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  align-self: center;
+  margin-top: 0;
+}
+
 .pull-badge.corralled { background: #2e6b2e; }
 .pull-badge.wanted { background: var(--accent); }
 .pull-badge.unresolved { background: var(--text-muted); }

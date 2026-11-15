@@ -33,7 +33,7 @@ function issueRow(item, onMarkRead, onShowSameWeek) {
 
   if (item.alreadyRead) {
     const badge = document.createElement('span');
-    badge.className = 'pull-badge corralled';
+    badge.className = 'pull-badge corralled word';
     badge.textContent = 'Read';
     li.appendChild(badge);
   } else if (onMarkRead) {
