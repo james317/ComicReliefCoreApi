@@ -1417,3 +1417,18 @@ List Matches" is not by itself a reason to assume it's wanted - cross-check it a
 the real `/account/pulllist` page (or run `/api/pulllist/reconcile`, which pulls in anything
 genuinely sticky but untracked by this app) before assuming "on my pull list" rather than
 "DCBS thinks I might want this."
+
+## Reading order picked the wrong CLZ volume (11/15/2026)
+CLZ records volumes separately ("Batman, Vol. 3" #14 from 2017, "Batman, Vol. 4" #14 from
+2026); DCBS titles are undecorated ("Batman #14"), and `ShipmentTrackingService` strips
+", Vol. N" from CLZ names to match them - so every volume matched and the first row won.
+Confirmed live: 112 books across all 19 boxes sorted to 2014-2024 dates (Batman, Superman,
+Amazing Spider-Man, Vampirella, Star Wars, Twilight Zone...), bunching at the top of each
+box. `GetReadingOrderAsync` now takes the box's ship date (passed by the Shipments tab,
+looked up from `/account/shipments` otherwise), keeps only the most specific matching
+series names, then picks the latest release date no more than 14 days past the ship date
+(DCBS can ship a few days ahead of CLZ's listed date). Verified by diffing every box before
+and after. Still wrong, all title-shape quirks rather than volume collisions - use the
+manual date form on the Shipments tab: "Amazing Spider-Man Annual #1" and the "Amazing
+Spider-Man 1000/Queen In Black" bundle (both read as ASM #1), and "Batman Superman Worlds
+Finest 2026 Annual #1" (reads as Worlds Finest #1; CLZ puts "Annual" before the year).
