@@ -43,16 +43,18 @@ public class SolicitationService : ISolicitationService
     private readonly IDcbsSolicitationStore _store;
     private readonly IDcbsOrderSnapshotStore _orderStore;
     private readonly IWriterPreferenceService _writerPreferences;
+    private readonly ICheckedCartStore _checkedCart;
     private readonly ILogger<SolicitationService> _logger;
 
     public SolicitationService(
         IDcbsClient dcbs, IDcbsSolicitationStore store, IDcbsOrderSnapshotStore orderStore,
-        IWriterPreferenceService writerPreferences, ILogger<SolicitationService> logger)
+        IWriterPreferenceService writerPreferences, ICheckedCartStore checkedCart, ILogger<SolicitationService> logger)
     {
         _dcbs = dcbs;
         _store = store;
         _orderStore = orderStore;
         _writerPreferences = writerPreferences;
+        _checkedCart = checkedCart;
         _logger = logger;
     }
 
@@ -60,6 +62,18 @@ public class SolicitationService : ISolicitationService
 
     private async Task<List<SolicitationItem>> LoadItemsAsync(CancellationToken ct)
     {
+        var cart = await _checkedCart.GetAsync(ct);
+        return await LoadItemsAsync(cart, ct);
+    }
+
+    private static bool IsInCart(DcbsListingItem item, HashSet<string> cartCodes, IReadOnlyList<string> uncodedCartTitles) =>
+        cartCodes.Contains(item.ProductCode.ToUpperInvariant())
+        || uncodedCartTitles.Any(t => CartItemIdentity.IsSameSeriesAndIssue(t, item.Title));
+
+    private async Task<List<SolicitationItem>> LoadItemsAsync(IReadOnlyList<CheckedCartLine> cart, CancellationToken ct)
+    {
+        var cartCodes = cart.Where(c => c.ProductCode is not null).Select(c => c.ProductCode!.ToUpperInvariant()).ToHashSet();
+        var uncodedCartTitles = cart.Where(c => c.ProductCode is null).Select(c => c.Title).ToList();
         var rows = await _store.GetAllAsync(ct);
         var orderedCodes = await _orderStore.GetProductCodesAsync(ct);
         var writerPrefs = await _writerPreferences.GetAllAsync(ct);
@@ -98,7 +112,8 @@ public class SolicitationService : ISolicitationService
                     r.FirstSeenAt,
                     r.FirstSeenAt == r.RefreshedAt,
                     favoriteMatches ?? NoWriters,
-                    avoidMatches ?? NoWriters);
+                    avoidMatches ?? NoWriters,
+                    IsInCart(r.Item, cartCodes, uncodedCartTitles));
             })
             .ToList();
     }
@@ -158,7 +173,8 @@ public class SolicitationService : ISolicitationService
     public async Task<SolicitationCandidateList> BuildCandidateListAsync(
         IReadOnlyCollection<PullListEntry> trackedEntries, CancellationToken ct = default)
     {
-        var items = await LoadItemsAsync(ct);
+        var cart = await _checkedCart.GetAsync(ct);
+        var items = await LoadItemsAsync(cart, ct);
 
         var matched = new HashSet<SolicitationItem>();
         var matches = new List<SolicitationMatch>();
@@ -191,7 +207,9 @@ public class SolicitationService : ISolicitationService
         var untracked = items.Where(i => !matched.Contains(i)).ToList();
         var favoriteWriterMatches = items.Where(i => i.FavoriteWriters.Count > 0).ToList();
         var (lastRefreshedAt, _) = await _store.GetStatusAsync(ct);
-        return new SolicitationCandidateList(lastRefreshedAt, matches, favoriteWriterMatches, untracked);
+        return new SolicitationCandidateList(
+            lastRefreshedAt, matches, favoriteWriterMatches, untracked,
+            cart.Count > 0 ? cart.Max(c => c.CheckedAt) : null, cart.Count);
     }
 
     public async Task<IReadOnlyList<SolicitationItem>> GetAllItemsAsync(CancellationToken ct = default)

@@ -3,6 +3,11 @@
 // ({ publisher, item: DcbsListingItem }), so the grouping/rendering logic lives here once
 // rather than being duplicated per page. Load this script before candidates.js/solicitations.js.
 
+// When the last Cart Check ran (set by candidates.js). Every card says "In your cart" when
+// it is; "Not in your checked cart" only once a cart has actually been checked, since
+// before that it would just be noise.
+let cartCheckedAt = null;
+
 // Primary strategy: everything up to and including the issue number ("#1002", optionally
 // with a trailing "(of N)" for minis) is the issue identity - DCBS includes this on every
 // single-issue title regardless of publisher. This has to be tried first, not "Cvr X"/
@@ -170,6 +175,19 @@ function issueCard(group) {
     orderStatus.textContent = 'Not in your last order';
   }
   info.appendChild(orderStatus);
+
+  // Same any-variant rule as the order line: one cover of the issue in the cart is enough.
+  if (group.some((g) => g.isInCheckedCart)) {
+    const cartStatus = document.createElement('div');
+    cartStatus.className = 'comic-order-confirmed';
+    cartStatus.textContent = '✓ In your cart';
+    info.appendChild(cartStatus);
+  } else if (cartCheckedAt) {
+    const cartStatus = document.createElement('div');
+    cartStatus.className = 'comic-order-alert';
+    cartStatus.textContent = 'Not in your checked cart';
+    info.appendChild(cartStatus);
+  }
 
   // Writer favorite/avoid badges - checked across the whole group (any variant's credits
   // matching is enough), same as the order-status line above, in case DCBS lists a variant's

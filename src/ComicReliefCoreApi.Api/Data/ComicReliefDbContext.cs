@@ -20,6 +20,7 @@ public class ComicReliefDbContext : DbContext
     public DbSet<ReadIssue> ReadIssues => Set<ReadIssue>();
     public DbSet<ReviewFlagEntry> ReviewFlagEntries => Set<ReviewFlagEntry>();
     public DbSet<WriterPreference> WriterPreferences => Set<WriterPreference>();
+    public DbSet<CheckedCartLine> CheckedCartLines => Set<CheckedCartLine>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

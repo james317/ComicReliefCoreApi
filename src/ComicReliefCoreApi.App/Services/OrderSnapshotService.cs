@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Text.RegularExpressions;
 using ComicReliefCoreApi.Api.Models;
 using ComicReliefCoreApi.Api.Models.Dcbs;
 using ComicReliefCoreApi.Api.Services;
@@ -18,16 +17,18 @@ public class OrderSnapshotService : IOrderSnapshotService
     private readonly IDcbsOrderSnapshotStore _store;
     private readonly IDcbsSolicitationStore _solicitationStore;
     private readonly IPullListService _pullList;
+    private readonly ICheckedCartStore _checkedCart;
     private readonly ILogger<OrderSnapshotService> _logger;
 
     public OrderSnapshotService(
         IDcbsClient dcbs, IDcbsOrderSnapshotStore store, IDcbsSolicitationStore solicitationStore,
-        IPullListService pullList, ILogger<OrderSnapshotService> logger)
+        IPullListService pullList, ICheckedCartStore checkedCart, ILogger<OrderSnapshotService> logger)
     {
         _dcbs = dcbs;
         _store = store;
         _solicitationStore = solicitationStore;
         _pullList = pullList;
+        _checkedCart = checkedCart;
         _logger = logger;
     }
 
@@ -116,17 +117,6 @@ public class OrderSnapshotService : IOrderSnapshotService
     // this; nothing legitimate gets excluded by it.
     private const int MinNormalizedLengthToMatch = 4;
 
-    // DCBS tags some volumes with their launch year - "Vampirella (2026) #10" - but not
-    // consistently: the same 2026 run also appears as plain "Vampirella #6". So the year is
-    // dropped from the series name, and volumes are told apart by RunStartOrderId instead.
-    private static readonly Regex TrailingYearRegex = new(@" (19|20)\d{2}$", RegexOptions.Compiled);
-
-    private static string SeriesKey(string title)
-    {
-        var series = TitleNormalizer.NormalizeKeepingWordBoundaries(IssueNumberParser.TryExtractSeriesTitle(title) ?? title);
-        return TrailingYearRegex.Replace(series, "");
-    }
-
     private static long OrderIdNumber(DcbsOrderSnapshotLine line) =>
         long.TryParse(line.OrderId, out var n) ? n : 0;
 
@@ -190,13 +180,13 @@ public class OrderSnapshotService : IOrderSnapshotService
             });
         }
 
-        var seriesKey = SeriesKey(pastedLine);
+        var seriesKey = CartItemIdentity.SeriesKey(pastedLine);
         if (seriesKey.Length < MinNormalizedLengthToMatch)
         {
             return [];
         }
         var seriesHistory = live
-            .Where(l => IssueNumberParser.TryParseWholeIssueNumber(l.Title) is not null && SeriesKey(l.Title) == seriesKey)
+            .Where(l => IssueNumberParser.TryParseWholeIssueNumber(l.Title) is not null && CartItemIdentity.SeriesKey(l.Title) == seriesKey)
             .ToList();
         if (RunStartOrderId(seriesHistory, pastedIssue.Value) is not { } runStart)
         {
@@ -245,6 +235,16 @@ public class OrderSnapshotService : IOrderSnapshotService
                 .ToList();
 
             results.Add(new CartLineCheckResult(rawLine, matches, productCode, quantity));
+        }
+
+        // Kept as "the last cart checked" so the Candidates tab can mark what's in it - but not
+        // when nothing was read (an unrecognized PDF), which would wipe a real saved cart.
+        if (results.Count > 0)
+        {
+            var checkedAt = DateTime.UtcNow;
+            await _checkedCart.ReplaceAsync(results
+                .Select(r => new CheckedCartLine { Title = r.PastedLine.Trim(), ProductCode = r.ProductCode, Quantity = r.Quantity, CheckedAt = checkedAt })
+                .ToList(), ct);
         }
 
         return results;

@@ -21,12 +21,15 @@ namespace ComicReliefCoreApi.App.Services;
 /// writer name(s) (see CreatorCreditParser) that matched an entry on the tracked writer list
 /// (IWriterPreferenceService) - empty when no writer credit on this item matches either list.
 /// A name can only ever appear in one of the two lists, never both (WriterPreference.Type is
-/// exclusive per normalized name).
+/// exclusive per normalized name). IsInCheckedCart: this item is in the last cart run through
+/// Cart Check (ICheckedCartStore) - exact product code for a PDF cart, same series and issue
+/// number for a pasted one (which has no codes).
 /// </summary>
 public record SolicitationItem(
     string Publisher, DcbsListingItem Item, bool IsInLatestOrder, bool IsNewFirstIssueOrOneShot,
     DateTime FirstSeenAt, bool IsNewSinceLastRefresh,
-    IReadOnlyList<string> FavoriteWriters, IReadOnlyList<string> AvoidedWriters);
+    IReadOnlyList<string> FavoriteWriters, IReadOnlyList<string> AvoidedWriters,
+    bool IsInCheckedCart);
 
 /// <summary>Every current-solicitation item matched to one pull-list entry.</summary>
 public record SolicitationMatch(int PullListEntryId, string PullListTitle, PullListStatus Status, IReadOnlyList<SolicitationItem> Items);
@@ -34,13 +37,16 @@ public record SolicitationMatch(int PullListEntryId, string PullListTitle, PullL
 /// <summary>
 /// FavoriteWriterMatches and Untracked are independent lenses over the same items, not
 /// mutually exclusive categories - an item can appear in both (a title with a favorite writer
-/// that also isn't on the pull list) or in neither.
+/// that also isn't on the pull list) or in neither. CartCheckedAt is when the cart behind each
+/// item's IsInCheckedCart was checked - null if no cart has been, so "not in cart" means nothing.
 /// </summary>
 public record SolicitationCandidateList(
     DateTime? GeneratedAt,
     IReadOnlyList<SolicitationMatch> TrackedMatches,
     IReadOnlyList<SolicitationItem> FavoriteWriterMatches,
-    IReadOnlyList<SolicitationItem> Untracked);
+    IReadOnlyList<SolicitationItem> Untracked,
+    DateTime? CartCheckedAt,
+    int CartItemCount);
 
 public record SolicitationCacheStatus(
     DateTime? LastRefreshedAt,

@@ -15,6 +15,8 @@ const trackedList = document.getElementById('trackedList');
 const favoriteWritersGroup = document.getElementById('favoriteWritersGroup');
 const favoriteWritersHeading = document.getElementById('favoriteWritersHeading');
 const favoriteWritersList = document.getElementById('favoriteWritersList');
+const cartStatusDot = document.getElementById('cartStatusDot');
+const cartStatusText = document.getElementById('cartStatusText');
 
 function showMessage(text, isError) {
   message.textContent = text;
@@ -155,11 +157,42 @@ async function loadOrderStatus() {
   }
 }
 
+// The add-by-hand (Unsticky) titles are the ones DCBS never carries into the cart itself, so
+// those are the ones to name when they're missing from the last cart checked.
+function renderCartStatus(data) {
+  if (!data.cartCheckedAt) {
+    cartStatusDot.className = 'status-dot unknown';
+    cartStatusText.innerHTML = 'No cart checked yet — run your cart through <a href="/cart-check.html">Cart Check</a> to see which candidates are in it.';
+    return;
+  }
+
+  const issueGroups = (matches) => matches.flatMap((m) => groupByIssue(m.items));
+  const inCart = (group) => group.some((g) => g.isInCheckedCart);
+  const addByHand = issueGroups(data.trackedMatches.filter((m) => m.status === 'Unsticky'));
+  const missing = addByHand.filter((g) => !inCart(g));
+  const favorites = groupByIssue(data.favoriteWriterMatches || []);
+
+  const parts = [`Cart checked ${formatDateTime(data.cartCheckedAt)} (${data.cartItemCount} items).`];
+  if (addByHand.length > 0) {
+    parts.push(missing.length === 0
+      ? `All ${addByHand.length} add-by-hand titles are in it.`
+      : `Add by hand, not in it: ${missing.map((g) => extractIssueIdentity(g[0].item.title)).join('; ')}.`);
+  }
+  if (favorites.length > 0) {
+    parts.push(`Favorite writers: ${favorites.filter(inCart).length} of ${favorites.length} in it.`);
+  }
+  cartStatusDot.className = missing.length > 0 ? 'status-dot invalid' : 'status-dot valid';
+  cartStatusText.textContent = parts.join(' ');
+}
+
 async function loadCandidates() {
   try {
     const res = await fetch('/api/solicitations/candidates');
     const data = await res.json();
     log('candidates loaded', data.trackedMatches.length, 'tracked matches');
+
+    cartCheckedAt = data.cartCheckedAt;
+    renderCartStatus(data);
 
     if (!data.generatedAt) {
       results.hidden = true;

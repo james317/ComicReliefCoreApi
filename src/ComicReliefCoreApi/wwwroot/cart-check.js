@@ -4,6 +4,7 @@ const cartText = document.getElementById('cartText');
 const checkBtn = document.getElementById('checkBtn');
 const pdfInput = document.getElementById('pdfInput');
 const pdfBtn = document.getElementById('pdfBtn');
+const candidatesLink = document.getElementById('candidatesLink');
 const message = document.getElementById('message');
 const resultsList = document.getElementById('resultsList');
 
@@ -169,6 +170,9 @@ function renderResults(results, summaryPrefix) {
       ? `${summaryPrefix} — ${problems.join(', ')}. See below.`
       : `${summaryPrefix} — nothing already ordered${results.some((r) => r.quantity != null) ? ', one copy each' : ''}.`,
     problems.length > 0);
+
+  // The check just saved this cart, so the Candidates tab now shows what's in it.
+  candidatesLink.hidden = false;
 
   resultsList.innerHTML = '';
   for (const result of [...flagged, ...results.filter((r) => !needsLook(r))]) {

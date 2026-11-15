@@ -32,6 +32,7 @@ builder.Services.AddScoped<IDcbsSolicitationStore, DcbsSolicitationStore>();
 builder.Services.AddScoped<ISolicitationService, SolicitationService>();
 builder.Services.AddScoped<IDcbsOrderSnapshotStore, DcbsOrderSnapshotStore>();
 builder.Services.AddScoped<IOrderSnapshotService, OrderSnapshotService>();
+builder.Services.AddScoped<ICheckedCartStore, CheckedCartStore>();
 builder.Services.AddScoped<IIssueContinuityService, IssueContinuityService>();
 builder.Services.AddScoped<IShipmentTrackingService, ShipmentTrackingService>();
 builder.Services.AddScoped<IReadIssueStore, ReadIssueStore>();
@@ -280,6 +281,18 @@ using (var scope = app.Services.CreateScope())
         """);
     db.Database.ExecuteSqlRaw(
         "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_WriterPreferences_NormalizedName\" ON \"WriterPreferences\" (\"NormalizedName\")");
+
+    // Same EnsureCreated() limitation, ninth occurrence: CheckedCartLines keeps the last cart
+    // run through Cart Check (see ICheckedCartStore), for the Candidates tab's in-cart marks.
+    db.Database.ExecuteSqlRaw("""
+        CREATE TABLE IF NOT EXISTS "CheckedCartLines" (
+            "Id" INTEGER NOT NULL CONSTRAINT "PK_CheckedCartLines" PRIMARY KEY AUTOINCREMENT,
+            "Title" TEXT NOT NULL,
+            "ProductCode" TEXT NULL,
+            "Quantity" INTEGER NULL,
+            "CheckedAt" TEXT NOT NULL
+        )
+        """);
 }
 
 app.UseDefaultFiles();
