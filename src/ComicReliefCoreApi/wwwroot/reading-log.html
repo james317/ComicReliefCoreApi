@@ -32,7 +32,10 @@
 
   <h2 class="section-heading">Find an issue</h2>
   <div class="clz-upload-row" style="position: relative;">
-    <input type="text" id="searchInput" placeholder="Series title, e.g. Batman" autocomplete="off" />
+    <div class="search-field">
+      <input type="text" id="searchInput" placeholder="Series title, e.g. Batman" autocomplete="off" />
+      <button type="button" id="searchClear" class="search-clear" aria-label="Clear search" hidden>×</button>
+    </div>
     <button type="button" id="searchBtn">Search</button>
     <ul class="posse-list" id="suggestList" style="display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 10; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; margin-top: 2px;"></ul>
   </div>

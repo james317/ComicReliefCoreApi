@@ -248,6 +248,32 @@ body {
   align-items: center;
 }
 
+.search-field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.search-field input {
+  padding-right: 40px;
+}
+
+.search-clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--text-muted);
+  color: var(--surface);
+  font-size: 1.1rem;
+  line-height: 28px;
+}
+
 .clz-upload-row input[type="file"] {
   flex: 1;
   min-width: 0;

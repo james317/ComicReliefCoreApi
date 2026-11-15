@@ -2,6 +2,7 @@ const log = (...args) => console.log('[reading-log]', ...args);
 
 const searchInput = document.getElementById('searchInput');
 const searchBtn = document.getElementById('searchBtn');
+const searchClear = document.getElementById('searchClear');
 const suggestList = document.getElementById('suggestList');
 const searchResults = document.getElementById('searchResults');
 const sameWeekSection = document.getElementById('sameWeekSection');
@@ -207,6 +208,7 @@ function hideSuggestions() {
 
 function selectSuggestion(series) {
   searchInput.value = series;
+  updateClearButton();
   hideSuggestions();
   runSearch();
 }
@@ -256,8 +258,24 @@ async function updateSuggestions() {
   }
 }
 
+function updateClearButton() {
+  searchClear.hidden = searchInput.value.length === 0;
+}
+
+// mousedown + preventDefault keeps focus in the field (so the keyboard stays up on a phone)
+// and stops the input's blur handler from racing the clear.
+searchClear.addEventListener('mousedown', (event) => event.preventDefault());
+searchClear.addEventListener('click', () => {
+  searchInput.value = '';
+  updateClearButton();
+  hideSuggestions();
+  searchResults.innerHTML = '';
+  searchInput.focus();
+});
+
 let suggestTimer = null;
 searchInput.addEventListener('input', () => {
+  updateClearButton();
   clearTimeout(suggestTimer);
   suggestTimer = setTimeout(updateSuggestions, 200);
 });
