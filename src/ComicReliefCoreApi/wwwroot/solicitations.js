@@ -14,6 +14,7 @@ const viewByPublisherBtn = document.getElementById('viewByPublisherBtn');
 const viewNewIssuesBtn = document.getElementById('viewNewIssuesBtn');
 const viewSinceRefreshBtn = document.getElementById('viewSinceRefreshBtn');
 const viewSinceOrderBtn = document.getElementById('viewSinceOrderBtn');
+const viewRegularsBtn = document.getElementById('viewRegularsBtn');
 const newIssuesIntro = document.getElementById('newIssuesIntro');
 const deltaIntro = document.getElementById('deltaIntro');
 const reviewFlagsBanner = document.getElementById('reviewFlagsBanner');
@@ -80,7 +81,7 @@ function renderOrderStatus(status, orderErrors) {
 
   if (!status.lastSyncedAt) {
     orderStatusDot.className = 'status-dot unknown';
-    orderStatusText.textContent = 'No orders synced yet - click "Sync Order History" so "In your order" badges (and the New Since Order view) reflect what you\'ve actually ordered.';
+    orderStatusText.textContent = 'No orders synced yet - click "Sync Order History" so the "Ordered" badges (and the New Since Order and Regulars views) reflect what you\'ve actually ordered.';
     return;
   }
   orderStatusDot.className = errorOrders.length > 0 ? 'status-dot invalid' : 'status-dot valid';
@@ -126,6 +127,13 @@ async function loadMostRecentOrderDate() {
 // placed order's own date, fetched once via loadMostRecentOrderDate - DCBS exposes only an
 // "Order Date" (initial placement), no separate "last updated" field, so that's the one
 // anchor available for this view.
+// Any cover of the same issue ordered counts as ordered - you only ever buy one cover of an
+// issue, same rule the card's "Ordered" line uses.
+function groupOrdered(items, item) {
+  const key = extractIssueIdentity(item.item.title).toLowerCase();
+  return items.some((other) => other.isInLatestOrder && extractIssueIdentity(other.item.title).toLowerCase() === key);
+}
+
 function applyView() {
   if (allItems.length === 0) {
     filterInput.hidden = true;
@@ -141,6 +149,7 @@ function applyView() {
     'new-issues': viewNewIssuesBtn,
     'since-refresh': viewSinceRefreshBtn,
     'since-order': viewSinceOrderBtn,
+    regulars: viewRegularsBtn,
   };
   for (const [view, btn] of Object.entries(buttonsByView)) {
     btn.classList.toggle('active', view === currentView);
@@ -169,8 +178,19 @@ function applyView() {
       deltaIntro.hidden = false;
       deltaIntro.textContent = 'No synced order to compare against yet - click "Sync Order History" above first.';
     }
+  } else if (currentView === 'regulars') {
+    // Only what still needs attention - series you buy regularly with a solicited issue you
+    // haven't ordered. Counted per issue (all covers of one issue = one), not per cover.
+    const regularItems = allItems.filter((item) => item.regular);
+    itemsToRender = regularItems.filter((item) => !groupOrdered(regularItems, item));
+    const notOrdered = groupByIssue(itemsToRender).length;
+    const ordered = groupByIssue(regularItems).length - notOrdered;
+    deltaIntro.hidden = false;
+    deltaIntro.textContent =
+      `Series you've ordered in at least 2 of your last 6 order months: ${notOrdered} solicited ` +
+      `issue${notOrdered === 1 ? '' : 's'} not ordered yet (${ordered} already ordered, not shown).`;
   }
-  if (currentView !== 'since-refresh' && currentView !== 'since-order') {
+  if (currentView !== 'since-refresh' && currentView !== 'since-order' && currentView !== 'regulars') {
     deltaIntro.hidden = true;
   }
 
@@ -325,6 +345,11 @@ viewSinceRefreshBtn.addEventListener('click', () => {
 
 viewSinceOrderBtn.addEventListener('click', () => {
   currentView = 'since-order';
+  applyView();
+});
+
+viewRegularsBtn.addEventListener('click', () => {
+  currentView = 'regulars';
   applyView();
 });
 

@@ -695,6 +695,13 @@ details summary { cursor: pointer; color: var(--accent); }
   color: #2e6b2e;
 }
 
+.comic-regular {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
 .comic-writer-favorite {
   margin-top: 6px;
   font-size: 0.78rem;

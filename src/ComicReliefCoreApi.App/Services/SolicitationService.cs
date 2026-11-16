@@ -70,8 +70,54 @@ public class SolicitationService : ISolicitationService
         cartCodes.Contains(item.ProductCode.ToUpperInvariant())
         || uncodedCartTitles.Any(t => CartItemIdentity.IsSameSeriesAndIssue(t, item.Title));
 
+    private const int RegularMonthsWindow = 6;
+    private const int RegularMinMonths = 2;
+
+    // Per series (CartItemIdentity.SeriesKey), how many of the last RegularMonthsWindow months
+    // with any order included it - only series meeting RegularMinMonths are returned. Months,
+    // not orders: a bi-monthly book still counts, and small add-on orders between monthly ones
+    // don't push real months out of the window. Cancelled lines and facsimile editions never
+    // count (a "Batman #423 Facsimile" isn't buying Batman).
+    private static Dictionary<string, RegularPurchase> BuildRegularPurchases(IReadOnlyList<DcbsOrderSnapshotLine> lines)
+    {
+        var bought = lines
+            .Where(l => l.Status != DcbsShipmentStatus.Cancelled
+                && l.OrderDate is not null
+                && IssueNumberParser.TryParseWholeIssueNumber(l.Title) is not null
+                && !l.Title.Contains("facsimile", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        var recentMonths = bought
+            .Select(l => (l.OrderDate!.Value.Year, l.OrderDate.Value.Month))
+            .Distinct()
+            .OrderByDescending(m => m)
+            .Take(RegularMonthsWindow)
+            .ToHashSet();
+
+        var regulars = new Dictionary<string, RegularPurchase>();
+        foreach (var series in bought.GroupBy(l => CartItemIdentity.SeriesKey(l.Title)))
+        {
+            var monthsBought = series
+                .Select(l => (l.OrderDate!.Value.Year, l.OrderDate.Value.Month))
+                .Where(recentMonths.Contains)
+                .Distinct()
+                .Count();
+            if (monthsBought < RegularMinMonths)
+            {
+                continue;
+            }
+            var latest = series
+                .OrderByDescending(l => long.TryParse(l.OrderId, out var id) ? id : 0)
+                .ThenByDescending(l => IssueNumberParser.TryParseWholeIssueNumber(l.Title))
+                .First();
+            regulars[series.Key] = new RegularPurchase(
+                monthsBought, recentMonths.Count, IssueNumberParser.TryParseWholeIssueNumber(latest.Title), latest.OrderDate);
+        }
+        return regulars;
+    }
+
     private async Task<List<SolicitationItem>> LoadItemsAsync(IReadOnlyList<CheckedCartLine> cart, CancellationToken ct)
     {
+        var regulars = BuildRegularPurchases(await _orderStore.GetAllFullLinesAsync(ct));
         var cartCodes = cart.Where(c => c.ProductCode is not null).Select(c => c.ProductCode!.ToUpperInvariant()).ToHashSet();
         var uncodedCartTitles = cart.Where(c => c.ProductCode is null).Select(c => c.Title).ToList();
         var rows = await _store.GetAllAsync(ct);
@@ -113,7 +159,10 @@ public class SolicitationService : ISolicitationService
                     r.FirstSeenAt == r.RefreshedAt,
                     favoriteMatches ?? NoWriters,
                     avoidMatches ?? NoWriters,
-                    IsInCart(r.Item, cartCodes, uncodedCartTitles));
+                    IsInCart(r.Item, cartCodes, uncodedCartTitles),
+                    !r.Item.IsFacsimileOrReprint && IssueNumberParser.TryParseWholeIssueNumber(r.Item.Title) is not null
+                        ? regulars.GetValueOrDefault(CartItemIdentity.SeriesKey(r.Item.Title))
+                        : null);
             })
             .ToList();
     }

@@ -40,6 +40,19 @@ function splitCreatorsAndDescription(text) {
   return { credits: null, description: text.trim() };
 }
 
+// "last ordered #41 (Oct 2026), 5 of your last 6 order months"
+function describeRegular(regular) {
+  const parts = [];
+  if (regular.lastIssueNumber != null) {
+    const when = regular.lastOrderDate
+      ? ` (${new Date(`${regular.lastOrderDate}T00:00:00`).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })})`
+      : '';
+    parts.push(`last ordered #${regular.lastIssueNumber}${when}`);
+  }
+  parts.push(`${regular.monthsBought} of your last ${regular.monthsConsidered} order months`);
+  return parts.join(', ');
+}
+
 function groupByIssue(items) {
   const groups = new Map();
   for (const solicitationItem of items) {
@@ -166,15 +179,28 @@ function issueCard(group) {
   // defeats the point of syncing order history in the first place. Shown on every card,
   // not just pull-list matches (candidates.js) - "did I already order this" is just as
   // useful while skimming the full by-publisher browse (index.html) for something new.
+  // Checks every synced order, but for this exact issue - so it reads "Ordered"/"Not ordered
+  // yet" rather than the old "Not in your last order", which implied only one order was
+  // checked and confused a regularly-bought series' new issue with something never bought.
   const orderStatus = document.createElement('div');
   if (group.some((g) => g.isInLatestOrder)) {
     orderStatus.className = 'comic-order-confirmed';
-    orderStatus.textContent = '✓ In your order';
+    orderStatus.textContent = '✓ Ordered';
   } else {
     orderStatus.className = 'comic-order-alert';
-    orderStatus.textContent = 'Not in your last order';
+    orderStatus.textContent = 'Not ordered yet';
   }
   info.appendChild(orderStatus);
+
+  // "Do I normally buy this series" - separate from the per-issue line above (see
+  // RegularPurchase): a series bought in at least 2 of the last 6 ordering months.
+  const regular = group.find((g) => g.regular)?.regular;
+  if (regular) {
+    const regularLine = document.createElement('div');
+    regularLine.className = 'comic-regular';
+    regularLine.textContent = `↻ You buy this: ${describeRegular(regular)}`;
+    info.appendChild(regularLine);
+  }
 
   // Same any-variant rule as the order line: one cover of the issue in the cart is enough.
   if (group.some((g) => g.isInCheckedCart)) {

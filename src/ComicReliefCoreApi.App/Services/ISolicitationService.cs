@@ -23,13 +23,23 @@ namespace ComicReliefCoreApi.App.Services;
 /// A name can only ever appear in one of the two lists, never both (WriterPreference.Type is
 /// exclusive per normalized name). IsInCheckedCart: this item is in the last cart run through
 /// Cart Check (ICheckedCartStore) - exact product code for a PDF cart, same series and issue
-/// number for a pasted one (which has no codes).
+/// number for a pasted one (which has no codes). Regular: set when this item's series is one
+/// the user buys regularly (see RegularPurchase) - null otherwise, and for items with no issue
+/// number or that are facsimile/reprint editions.
 /// </summary>
 public record SolicitationItem(
     string Publisher, DcbsListingItem Item, bool IsInLatestOrder, bool IsNewFirstIssueOrOneShot,
     DateTime FirstSeenAt, bool IsNewSinceLastRefresh,
     IReadOnlyList<string> FavoriteWriters, IReadOnlyList<string> AvoidedWriters,
-    bool IsInCheckedCart);
+    bool IsInCheckedCart, RegularPurchase? Regular);
+
+/// <summary>
+/// "You buy this series": it appears in at least two of the user's last six ordering months
+/// (MonthsBought of MonthsConsidered). Counted in months rather than orders so a bi-monthly
+/// book still counts and a small add-on order doesn't use up the window. LastIssueNumber /
+/// LastOrderDate are from the most recent order containing the series.
+/// </summary>
+public record RegularPurchase(int MonthsBought, int MonthsConsidered, int? LastIssueNumber, DateOnly? LastOrderDate);
 
 /// <summary>Every current-solicitation item matched to one pull-list entry.</summary>
 public record SolicitationMatch(int PullListEntryId, string PullListTitle, PullListStatus Status, IReadOnlyList<SolicitationItem> Items);
