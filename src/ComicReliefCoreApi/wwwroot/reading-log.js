@@ -16,6 +16,11 @@ const recentList = document.getElementById('recentList');
 // refresh that exact view - anchored on an issue, or reached by stepping to a ship date.
 let currentWeek = null;
 
+// Issues before a series' latest read one (already read, or from before the user started
+// logging it) stay folded away so results open at the next issue to read. Reset per query.
+let showEarlier = false;
+let lastQuery = '';
+
 function issueRow(item, onMarkRead, onShowSameWeek) {
   const li = document.createElement('li');
   li.className = 'pull-card';
@@ -27,6 +32,9 @@ function issueRow(item, onMarkRead, onShowSameWeek) {
   title.textContent = `${item.series} #${item.issueNumber}`;
   const sub = document.createElement('div');
   sub.textContent = item.releaseDate ? `Released ${item.releaseDate}` : 'No release date on file';
+  if (item.isSkipped) {
+    sub.textContent += ' · Skipped - unread between issues you\'ve marked read';
+  }
   info.appendChild(title);
   info.appendChild(sub);
   li.appendChild(info);
@@ -161,8 +169,30 @@ async function runSearch() {
     if (!res.ok) throw new Error(`Request failed (${res.status})`);
     const items = await res.json();
     log('search results', items.length);
+    if (query !== lastQuery) {
+      showEarlier = false;
+      lastQuery = query;
+    }
+    const earlierCount = items.filter((i) => i.isEarlier).length;
     searchResults.innerHTML = '';
+    if (earlierCount > 0) {
+      const li = document.createElement('li');
+      li.className = 'earlier-toggle';
+      const label = document.createElement('label');
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.checked = showEarlier;
+      box.addEventListener('change', () => {
+        showEarlier = box.checked;
+        runSearch();
+      });
+      label.appendChild(box);
+      label.append(` Show ${earlierCount} earlier issue${earlierCount === 1 ? '' : 's'} (read, or from before you started logging)`);
+      li.appendChild(label);
+      searchResults.appendChild(li);
+    }
     for (const item of items) {
+      if (item.isEarlier && !showEarlier) continue;
       searchResults.appendChild(issueRow(item, markRead, showSameWeek));
     }
   } catch (err) {
@@ -239,9 +269,15 @@ async function updateSuggestions() {
       title.className = 'pull-title';
       title.textContent = s.series;
       const sub = document.createElement('div');
-      sub.textContent = s.nextUnreadIssueNumber == null
+      const skipped = s.skippedIssueNumbers ?? [];
+      let line = s.nextUnreadIssueNumber == null
         ? 'Caught up'
         : `Next: #${s.nextUnreadIssueNumber}${s.nextUnreadReleaseDate ? ` (${s.nextUnreadReleaseDate})` : ''}`;
+      if (skipped.length > 0) {
+        const shown = skipped.slice(0, 5).map((n) => `#${n}`).join(', ');
+        line += ` · ${skipped.length} skipped (${shown}${skipped.length > 5 ? ', …' : ''})`;
+      }
+      sub.textContent = line;
       info.appendChild(title);
       info.appendChild(sub);
       li.appendChild(info);

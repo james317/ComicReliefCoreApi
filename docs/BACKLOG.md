@@ -1443,3 +1443,20 @@ drop back to #1/#2, by order id), series names must match exactly apart from a t
 year (the old word-prefix rule would also pair "Vampirella" with "Vampirella Paradise"),
 and cancelled lines no longer count. Verified live against the November cart (27/27 clean)
 plus the October order's real duplicates (all still flagged).
+
+## Reading Log: a series' first read issue is its starting point (11/21/2026)
+
+Problem: "Next" was the lowest owned unread issue, so a series the user started logging
+mid-run (e.g. Detective Comics Vol. 3 at #1068) kept pointing back at its oldest issue
+until everything earlier was backfilled - which we did once by hand (#934-#1067, undated, so
+they stay out of Recently read), but shouldn't need to for every series.
+
+Decision (user-approved): per series, the lowest issue marked read is where logging started.
+- **Next** = first owned unread issue after the highest read one (lowest owned if none read).
+- **Skipped** = owned unread issues strictly between the lowest and highest read issue. These
+  are real skips (they happened while logging) and are shown: "Next: #1085 · 1 skipped (#1083)",
+  and flagged on the issue row in search results.
+- Issues before the starting point are *not* marked read and not flagged - any skip there
+  predates the log and can't be known. In search results they, along with already-read issues
+  before the latest one, fold behind a "Show N earlier issues" checkbox.
+- Marking an earlier issue read moves the starting point back on its own (it's just the min).

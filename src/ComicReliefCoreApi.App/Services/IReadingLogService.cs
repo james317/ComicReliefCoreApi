@@ -35,14 +35,23 @@ public interface IReadingLogService
 
     /// <summary>
     /// Type-ahead suggestions for the search box: one row per matching series (not one per
-    /// issue, unlike SearchOwnedIssuesAsync), each annotated with the lowest-numbered owned
-    /// issue not yet logged read - "the next issue to read", assuming issues get read in
-    /// order. Null when every owned issue of that series is already read (caught up).
+    /// issue, unlike SearchOwnedIssuesAsync), each annotated with the next issue to read - the
+    /// first owned unread issue after the highest one marked read (or the lowest owned issue if
+    /// none is), so a series started mid-run doesn't point back at its oldest issue - plus any
+    /// skipped issues inside the read range (see OwnedIssueView). Null when caught up.
     /// </summary>
     Task<IReadOnlyList<SeriesSuggestion>> SuggestSeriesAsync(string query, CancellationToken ct = default);
 }
 
-public sealed record OwnedIssueView(string Series, int IssueNumber, DateOnly? ReleaseDate, bool AlreadyRead);
+/// <summary>
+/// One owned issue. A series' reading range runs from the lowest to the highest issue marked
+/// read - issues before the first one recorded are where the user started, not skips, since
+/// nothing was being logged yet. IsSkipped: unread, inside that range (a real skip). IsEarlier:
+/// before the latest read issue and not a skip - read already, or from before reading started -
+/// so it can be tucked away to put the next unread issue up front.
+/// </summary>
+public sealed record OwnedIssueView(
+    string Series, int IssueNumber, DateOnly? ReleaseDate, bool AlreadyRead, bool IsSkipped = false, bool IsEarlier = false);
 
 public sealed record ReadingLogWeekView(
     string? Series,
@@ -52,4 +61,5 @@ public sealed record ReadingLogWeekView(
     DateOnly? PreviousReleaseDate,
     DateOnly? NextReleaseDate);
 
-public sealed record SeriesSuggestion(string Series, int? NextUnreadIssueNumber, DateOnly? NextUnreadReleaseDate);
+public sealed record SeriesSuggestion(
+    string Series, int? NextUnreadIssueNumber, DateOnly? NextUnreadReleaseDate, IReadOnlyList<int> SkippedIssueNumbers);

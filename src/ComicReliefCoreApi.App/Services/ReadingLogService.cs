@@ -20,8 +20,31 @@ public class ReadingLogService : IReadingLogService
     {
         var owned = await _clzStore.SearchBySeriesAsync(query, ct);
         var readKeys = await _readStore.GetAllReadKeysAsync(ct);
-        return owned.Select(o => ToView(o, readKeys)).ToList();
+        var ranges = ReadRanges(readKeys);
+        return owned.Select(o =>
+        {
+            var view = ToView(o, readKeys);
+            if (!ranges.TryGetValue(o.NormalizedSeries, out var range))
+            {
+                return view;
+            }
+
+            var skipped = !view.AlreadyRead && o.IssueNumber > range.First && o.IssueNumber < range.Last;
+            return view with { IsSkipped = skipped, IsEarlier = o.IssueNumber < range.Last && !skipped };
+        }).ToList();
     }
+
+    /// <summary>
+    /// Per series, the lowest and highest issue number marked read. The lowest is where the
+    /// user started logging that series (11/21/2026 decision: older issues are neither read nor
+    /// skipped, just from before the log - so no backfill is needed to make "next" sensible).
+    /// Marking an older issue read moves the start back automatically.
+    /// </summary>
+    private static Dictionary<string, (int First, int Last)> ReadRanges(
+        IReadOnlySet<(string NormalizedSeries, int IssueNumber)> readKeys) =>
+        readKeys
+            .GroupBy(k => k.NormalizedSeries)
+            .ToDictionary(g => g.Key, g => (g.Min(k => k.IssueNumber), g.Max(k => k.IssueNumber)));
 
     public Task RecordReadAsync(string series, int issueNumber, CancellationToken ct = default)
     {
@@ -69,19 +92,32 @@ public class ReadingLogService : IReadingLogService
     {
         var owned = await _clzStore.SearchBySeriesAsync(query, ct);
         var readKeys = await _readStore.GetAllReadKeysAsync(ct);
+        var ranges = ReadRanges(readKeys);
 
         return owned
             .GroupBy(o => o.NormalizedSeries)
             .Select(g =>
             {
-                // Lowest-numbered owned issue not yet read - assumes issues get read in
-                // order, same assumption the rest of this feature already makes. Null (no
-                // row) when every owned issue of this series is already read.
-                var nextUnread = g
+                var unread = g
                     .Where(o => !readKeys.Contains((o.NormalizedSeries, o.IssueNumber)))
                     .OrderBy(o => o.IssueNumber)
-                    .FirstOrDefault();
-                return new SeriesSuggestion(g.First().Series, nextUnread?.IssueNumber, nextUnread?.ReleaseDate);
+                    .ToList();
+                if (!ranges.TryGetValue(g.Key, out var range))
+                {
+                    // Nothing logged yet: start at the lowest owned issue.
+                    var first = unread.FirstOrDefault();
+                    return new SeriesSuggestion(g.First().Series, first?.IssueNumber, first?.ReleaseDate, Array.Empty<int>());
+                }
+
+                // Next = first unread after the latest read issue (assumes in-order reading,
+                // same as the rest of this feature); skips = unread holes inside the read range.
+                var next = unread.FirstOrDefault(o => o.IssueNumber > range.Last);
+                var skipped = unread
+                    .Where(o => o.IssueNumber > range.First && o.IssueNumber < range.Last)
+                    .Select(o => o.IssueNumber)
+                    .Distinct()
+                    .ToList();
+                return new SeriesSuggestion(g.First().Series, next?.IssueNumber, next?.ReleaseDate, skipped);
             })
             .OrderBy(s => s.Series)
             .ToList();
