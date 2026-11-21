@@ -25,7 +25,14 @@ public sealed class OrdersController : ControllerBase
     [HttpPost("sync-recent")]
     public async Task<ActionResult<OrderSyncResult>> SyncRecent([FromQuery] int? maxOrders, CancellationToken cancellationToken)
     {
-        return Ok(await _orders.SyncRecentAsync(maxOrders ?? 24, cancellationToken));
+        try
+        {
+            return Ok(await _orders.SyncRecentAsync(maxOrders ?? 24, cancellationToken));
+        }
+        catch (DcbsSessionExpiredException ex)
+        {
+            return Conflict(ex.Message);
+        }
     }
 
     [HttpGet("status")]

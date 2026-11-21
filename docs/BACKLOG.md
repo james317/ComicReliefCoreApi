@@ -1462,3 +1462,24 @@ Decision (user-approved): per series, the lowest issue marked read is where logg
   predates the log and can't be known. In search results they, along with already-read issues
   before the latest one, fold behind a "Show N earlier issues" checkbox.
 - Marking an earlier issue read moves the starting point back on its own (it's just the min).
+
+## Expired DCBS session made order sync "succeed" silently (11/21/2026)
+
+The user synced order history and got "Synced 23 orders", but "last synced" stayed at
+11/16 and New Since Order said "No synced order to compare against yet". The cause was the
+stored DCBS cookie (last updated 9/19) being expired. Solicitations still refresh, because
+publisher preorder pages are public. `/account/orders` returned the login page, so there
+were zero order ids, nothing was fetched, and the sync reported the *stored* order count as
+if it were fresh. `most-recent-date` got the same login page and returned null.
+
+Fixes:
+- `SyncRecentAsync` now throws `DcbsSessionExpiredException` when it finds zero order ids
+  and `IsSessionValidAsync` is false. The controller turns that into a 409 with a
+  "refresh the cookie on the DCBS Session tab" message, which the Solicitations, Candidates
+  and Shipments sync buttons all show.
+- `GetMostRecentOrderDateAsync` falls back to the newest synced order date (`OrderDate` on
+  the snapshot lines) when the live lookup fails or comes back empty.
+
+Also: the tab labels looked blurred on iPhone because they sat in iOS's soft-blur band just
+below the status bar. The nav now adds up to 14px of extra top padding, only when a
+safe-area inset exists.

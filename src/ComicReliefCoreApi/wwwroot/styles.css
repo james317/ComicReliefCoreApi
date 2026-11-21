@@ -178,7 +178,10 @@ body {
   /* Content is rendered edge-to-edge behind the status bar (apple-mobile-web-app-status-bar-style
      is black-translucent), so anything docked at the very top - like this nav - has to push its own
      content below the notch/status bar itself rather than relying on the OS to make room. */
-  padding-top: env(safe-area-inset-top, 0px);
+  /* Plus a little extra on phones: iOS softly blurs/fades the strip just below the status bar,
+     and with only the bare inset the tab labels sat inside that band and looked out of focus
+     (11/21/2026). min(inset, 14px) is 0 wherever there's no inset, so desktop is unchanged. */
+  padding-top: calc(env(safe-area-inset-top, 0px) + min(env(safe-area-inset-top, 0px), 14px));
   box-sizing: border-box;
 }
 

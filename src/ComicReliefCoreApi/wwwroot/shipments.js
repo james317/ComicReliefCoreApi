@@ -290,6 +290,7 @@ syncOrderBtn.addEventListener('click', async () => {
   showMessage('Fetching your order history from DCBS - this can take a little while…', false);
   try {
     const res = await fetch('/api/orders/sync-recent', { method: 'POST' });
+    if (!res.ok) throw new Error(res.status === 409 ? await res.text() : `Request failed (${res.status})`);
     const result = await res.json();
     log('order sync complete', result);
     renderOrderStatus(result.status, result.orderErrors);
@@ -298,7 +299,7 @@ syncOrderBtn.addEventListener('click', async () => {
     await loadMissedIssues();
   } catch (err) {
     log('order sync failed', err);
-    showMessage('Order sync failed - check the console.', true);
+    showMessage(err.message.startsWith('Your DCBS session') ? err.message : 'Order sync failed - check the console.', true);
   } finally {
     syncOrderBtn.disabled = false;
   }

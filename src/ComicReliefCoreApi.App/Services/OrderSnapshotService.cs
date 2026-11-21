@@ -35,6 +35,13 @@ public class OrderSnapshotService : IOrderSnapshotService
     public async Task<OrderSyncResult> SyncRecentAsync(int maxOrders = 24, CancellationToken ct = default)
     {
         var orderIds = await _dcbs.GetRecentOrderIdsAsync(maxOrders, ct);
+        if (orderIds.Count == 0 && !await _dcbs.IsSessionValidAsync(ct))
+        {
+            // An expired cookie gets DCBS's login page instead of /account/orders - zero order
+            // ids, nothing fetched. Without this the sync "succeeded" and reported the stored
+            // order count as if it were fresh (11/21/2026).
+            throw new DcbsSessionExpiredException();
+        }
         var orderDates = await _dcbs.GetOrderDatesAsync(ct);
         var errors = new ConcurrentDictionary<string, string>();
         var fetched = new ConcurrentDictionary<string, IReadOnlyList<DcbsOrderLine>>();
@@ -81,8 +88,30 @@ public class OrderSnapshotService : IOrderSnapshotService
         return new OrderSnapshotStatus(orderCount, totalLineCount, lastSyncedAt);
     }
 
-    public Task<DcbsOrderDateInfo?> GetMostRecentOrderDateAsync(CancellationToken ct = default) =>
-        _dcbs.GetMostRecentOrderDateAsync(ct);
+    public async Task<DcbsOrderDateInfo?> GetMostRecentOrderDateAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var live = await _dcbs.GetMostRecentOrderDateAsync(ct);
+            if (live is not null)
+            {
+                return live;
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Live most-recent-order lookup failed - falling back to synced orders");
+        }
+
+        // DCBS unreachable or the session expired (its login page has no order rows): use the
+        // newest order already synced rather than claiming no order exists at all.
+        var latest = (await _store.GetAllFullLinesAsync(ct))
+            .Where(l => l.OrderDate is not null)
+            .OrderByDescending(l => l.OrderDate)
+            .ThenByDescending(l => l.OrderId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        return latest is null ? null : new DcbsOrderDateInfo(latest.OrderId, latest.OrderDate!.Value);
+    }
 
     public async Task<IReadOnlyList<OrderedItemSearchResult>> SearchAsync(string term, CancellationToken ct = default)
     {

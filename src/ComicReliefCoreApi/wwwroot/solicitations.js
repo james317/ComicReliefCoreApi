@@ -176,7 +176,7 @@ function applyView() {
     } else {
       itemsToRender = [];
       deltaIntro.hidden = false;
-      deltaIntro.textContent = 'No synced order to compare against yet - click "Sync Order History" above first.';
+      deltaIntro.textContent = 'No order date on file to compare against - click "Sync Order History" above (if it reports an expired session, refresh the cookie on the DCBS Session tab first).';
     }
   } else if (currentView === 'regulars') {
     // Only what still needs attention - series you buy regularly with a solicited issue you
@@ -307,6 +307,7 @@ syncOrderBtn.addEventListener('click', async () => {
   showMessage('Fetching your order history from DCBS - this can take a little while…', false);
   try {
     const res = await fetch('/api/orders/sync-recent', { method: 'POST' });
+    if (!res.ok) throw new Error(res.status === 409 ? await res.text() : `Request failed (${res.status})`);
     const result = await res.json();
     log('order sync complete', result);
     renderOrderStatus(result.status, result.orderErrors);
@@ -318,7 +319,7 @@ syncOrderBtn.addEventListener('click', async () => {
     await loadItems();
   } catch (err) {
     log('order sync failed', err);
-    showMessage('Order sync failed - check the console.', true);
+    showMessage(err.message.startsWith('Your DCBS session') ? err.message : 'Order sync failed - check the console.', true);
   } finally {
     syncOrderBtn.disabled = false;
   }

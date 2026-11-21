@@ -92,3 +92,12 @@ public interface IOrderSnapshotService
     /// <summary>Same check, reading the items (title, product code, quantity) off a printed DCBS cart page - see DcbsCartPdfParser. Empty when no cart items were found in the PDF.</summary>
     Task<IReadOnlyList<CartLineCheckResult>> CheckCartPdfAsync(Stream pdf, CancellationToken ct = default);
 }
+
+/// <summary>DCBS bounced the stored session cookie to its login page - nothing could be synced. The fix is a fresh cookie on the DCBS Session tab.</summary>
+public sealed class DcbsSessionExpiredException : Exception
+{
+    public DcbsSessionExpiredException()
+        : base("Your DCBS session has expired, so nothing was synced. Paste a fresh cookie on the DCBS Session tab, then sync again.")
+    {
+    }
+}
