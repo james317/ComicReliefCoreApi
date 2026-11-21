@@ -1449,7 +1449,9 @@ plus the October order's real duplicates (all still flagged).
 Problem: "Next" was the lowest owned unread issue, so a series the user started logging
 mid-run (e.g. Detective Comics Vol. 3 at #1068) kept pointing back at its oldest issue
 until everything earlier was backfilled - which we did once by hand (#934-#1067, undated, so
-they stay out of Recently read), but shouldn't need to for every series.
+they stay out of Recently read), but shouldn't need to for every series. Once this shipped,
+the user had that backfill undone (all 134 rows deleted; none had been read before it), so
+Vol. 3 now starts at #1068 and the older issues are simply unread-and-folded-away.
 
 Decision (user-approved): per series, the lowest issue marked read is where logging started.
 - **Next** = first owned unread issue after the highest read one (lowest owned if none read).
