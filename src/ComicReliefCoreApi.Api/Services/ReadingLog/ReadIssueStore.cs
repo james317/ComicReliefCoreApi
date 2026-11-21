@@ -55,7 +55,15 @@ public class ReadIssueStore : IReadIssueStore
 
     public async Task<IReadOnlyList<ReadIssue>> GetRecentAsync(int max, CancellationToken ct = default)
     {
-        return await _db.ReadIssues.OrderByDescending(r => r.Id).Take(max).ToListAsync(ct);
+        // Backfilled history (ReadAt null) never counts as "recently read": a backfill is
+        // inserted after everything already logged, so ordering by Id alone would put
+        // issues read long ago at the top - e.g. Detective Comics #934-#1067, backfilled
+        // 11/21/2026 behind real reads from that week.
+        return await _db.ReadIssues
+            .Where(r => r.ReadAt != null)
+            .OrderByDescending(r => r.Id)
+            .Take(max)
+            .ToListAsync(ct);
     }
 
     public async Task<int> DeleteAsync(string normalizedSeries, int issueNumber, CancellationToken ct = default)
